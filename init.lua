@@ -13,7 +13,6 @@ local module_list = {
 	"module.window",
 	"module.Spotlightlike",
 	"module.IME",
-	--"module.Test",
 		}
 for _, v in ipairs(module_list) do
 	require (v)
