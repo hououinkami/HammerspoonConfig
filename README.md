@@ -4,7 +4,7 @@
 
 ### 安装
 
-git clone https://github.com/hououinkami/Hammerspoon-Config.git ~/.hammerspoon
+git clone https://github.com/hououinkami/HammerspoonConfig.git ~/.hammerspoon
 
 ### 更新
 
@@ -64,7 +64,7 @@ cd ~/.hammerspoon && git pull
 
 切换成英文：<kbd>⌃</kbd> + <kbd>⌥</kbd> + <kbd>,</kbd>
 
-### 根据App自动切换输入法语言
+### 根据App自动切换输入法语言（暂时停用）
 
 拼音：Finder、Spotlight、设置、Safari、WeChat、QQ、企业微信、Google Chrome、预览、Microsoft Office、iWorks
 
