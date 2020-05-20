@@ -707,16 +707,16 @@ if MusicBar ~= nil then
 end
 -- 更新菜单标题
 function MusicBarUpdate()
-	--if Music.checkrunning() == true then
+	if Music.checkrunning() == true then
 		if MusicBar == nil then
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
 		updatemenubar()
-	--else
-		--deletemenubar()
-		--MusicBar = nil
-	--end
+	else
+		deletemenubar()
+		MusicBar = nil
+	end
 	if MusicBar ~= nil then
 		MusicBar:setClickCallback(togglecanvas)
 	end
