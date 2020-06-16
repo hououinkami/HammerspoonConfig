@@ -5,6 +5,7 @@ local songloved = nil
 local songdisliked = nil
 local songrating = nil
 local songalbum = nil
+local songkind = nil
 local musicstate = nil
 local owner = hs.host.localizedName()
 if owner == "鳳凰院カミのMacBook Pro" then
@@ -165,8 +166,31 @@ Music.shuffleplay = function (playlist)
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
+	if Music.album() ~= songalbum then
+		songalbum = Music.album()
+		hs.osascript.applescript([[
+			tell application "Music"
+					set theartwork to raw data of current track's artwork 1
+					set theformat to format of current track's artwork 1
+					if theformat is «class PNG » then
+						set ext to ".png"
+					else
+						set ext to ".jpg"
+					end if
+				end tell
+				set homefolder to  path to home folder as string
+				set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
+				set outFile to open for access file fileName with write permission
+				set eof outFile to 0
+				write theartwork to outFile
+				close access outFile
+		]])
+	end
+end
+-- 保存专辑封面（BackUp）
+Music.saveartworkold = function ()
 	-- 判断是否为Apple Music
-	if Music.kind() ~= "connecting" then --若为本地曲目或Apple Music
+	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
 			songalbum = Music.album()
 			hs.osascript.applescript([[
@@ -187,7 +211,6 @@ Music.saveartwork = function ()
 					close access outFile
 			]])
 		end
-	--[[
 	elseif Music.kind() == "applemusic"	then -- 若为Apple Music
 		if Music.album() ~= songalbum then
 			songalbum = Music.album()
@@ -219,7 +242,6 @@ Music.saveartwork = function ()
 				return artwork
 				end)
 			end
-		--]]
 	end
 end
 -- 获取专辑封面路径
@@ -660,7 +682,7 @@ function togglecanvas()
 						end
 					end, function()
 						delay(staytime, function() hide("all") end)
-        			end)
+        		end)
 			end
 		end
 	end
@@ -669,11 +691,22 @@ end
 function updatemenubar()
 	if Music.state() ~= "stopped" and Music.checkrunning() == true then
 		--若更换了曲目
-		if Music.title() ~= songtitle then
-			songtitle = Music.title()
-			songloved = Music.loved()
-			songrating = Music.rating()
-			Music.saveartwork()
+		if Music.kind() == "connecting" then
+			settitle()
+			songkind = Music.kind()
+		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
+			if songkind == "connecting" then
+				songtitle = Music.title()
+				songloved = Music.loved()
+				songrating = Music.rating()
+				songkind = Music.kind()
+				delay(3, function() Music.saveartwork() end)
+			else
+				songtitle = Music.title()
+				songloved = Music.loved()
+				songrating = Music.rating()
+				Music.saveartwork()
+			end
 			settitle()
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
 				hide("all")
