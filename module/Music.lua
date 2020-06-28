@@ -134,7 +134,7 @@ Music.locate = function ()
 			activate
 			tell application "System Events" to keystroke "l" using command down
 		end tell
-				]])
+	]])
 end
 -- 切换随机模式
 Music.toggleshuffle = function ()
@@ -164,26 +164,81 @@ Music.shuffleplay = function (playlist)
 	local playlistscript = playscript:gsub("pname", playlist)
 	hs.osascript.applescript(playlistscript)
 end
+-- 判断Apple Music曲目是否存在于本地曲库中
+Music.existinlibrary = function ()
+	local _,existinlibrary,_ = hs.osascript.applescript([[
+		tell application "Music"
+			set a to current track's name
+			set b to current track's artist
+			exists (some track of playlist "ミュージック" whose name is a and artist is b)
+		end tell
+	]])
+	return existinlibrary
+end
+-- 将Apple Music曲目添加到本地曲库
+Music.addtolibrary = function()
+	if Music.kind() == "applemusic" then
+		hs.osascript.applescript([[
+			tell application "Music"
+				try
+					duplicate current track to source "ライブラリ"
+				end try
+			end tell
+		]])
+	end
+end
+-- 判断Apple Music曲目是否存在于播放列表中
+Music.existinplaylist = function (playlistname)
+	local existinscript = [[
+		tell application "Music"
+			set trackName to current track's name
+			set artistName to current track's artist
+			exists (some track of (first user playlist whose smart is false and name is "pname") whose name is trackName and artist is artistName)
+		end tell
+	]]
+	local existinplaylistscript = existinscript:gsub("pname", playlistname)
+	local _,existinplaylist,_ = hs.osascript.applescript(existinplaylistscript)
+	return existinplaylist
+end
+-- 将当前曲目添加到指定播放列表
+Music.addtoplaylist = function(playlistname)
+	if Music.existinplaylist(playlistname) == false then
+		local addscript = [[
+			tell application "Music"
+				set thePlaylist to first user playlist whose smart is false and name is "pname"
+				set trackName to name of current track
+				set artistName to artist of current track
+				set albumName to album of current track
+				set foundTracks to (every track of library playlist 1 whose artist is artistName and name is trackName and album is albumName)
+				repeat with theTrack in foundTracks
+					duplicate theTrack to thePlaylist
+				end repeat
+			end tell
+		]]
+		local addtoplaylistscript = addscript:gsub("pname", playlistname)
+		hs.osascript.applescript(addtoplaylistscript)
+	end
+end
 -- 保存专辑封面
 Music.saveartwork = function ()
 	if Music.album() ~= songalbum then
 		songalbum = Music.album()
 		hs.osascript.applescript([[
 			tell application "Music"
-					set theartwork to raw data of current track's artwork 1
-					set theformat to format of current track's artwork 1
-					if theformat is «class PNG » then
-						set ext to ".png"
-					else
-						set ext to ".jpg"
-					end if
-				end tell
-				set homefolder to  path to home folder as string
-				set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
-				set outFile to open for access file fileName with write permission
-				set eof outFile to 0
-				write theartwork to outFile
-				close access outFile
+				set theartwork to raw data of current track's artwork 1
+				set theformat to format of current track's artwork 1
+				if theformat is «class PNG » then
+					set ext to ".png"
+				else
+					set ext to ".jpg"
+				end if
+			end tell
+			set homefolder to  path to home folder as string
+			set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
+			set outFile to open for access file fileName with write permission
+			set eof outFile to 0
+			write theartwork to outFile
+			close access outFile
 		]])
 	end
 end
@@ -348,7 +403,7 @@ function setmainmenu()
 			fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0},
 			trackMouseEnterExit = true,
 			trackMouseUp = true
-		}, {--专辑封面
+		}, {-- 专辑封面
 			id = "artwork",
 			frame = {x = border.x, y = border.y, h = artworksize.h, w = artworksize.w},
 			type = "image",
@@ -365,7 +420,7 @@ function setmainmenu()
 			trackMouseEnterExit = true,
 			trackMouseUp = true
 		}
-		)
+	)
 	-- 设置悬浮菜单宽度
 	infosize = c_mainmenu:minimumTextSize(3, c_mainmenu["info"].text)
 	local defaultsize = infosize.w + artworksize.w + border.x * 2 + gap.x
@@ -421,10 +476,6 @@ function setapplemusicmenu()
 	else
 		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/notLoved.png"):setSize(imagesize, absolute == true)
 	end
-	-- 是否添加进曲库
-	
-	-- 添加到播放列表
-	
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "applemusic" then
 		c_applemusicmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 3}):level(c_mainmenu:level() + 2)
@@ -555,8 +606,18 @@ function setcontrolmenu()
 	elseif Music.loop() == "off" then
 		loopimage = hs.image.imageFromPath(hs.configdir .. "/image/loop_off.png"):setSize(imagesize, absolute == true)
 	end
+	-- 添加进曲库
+	if Music.kind() == "applemusic" then
+		if Music.existinlibrary() == false then
+			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+		else
+			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
+		end
+	elseif Music.kind() == "localmusic" or Music.kind() == "matched" then
+		addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+	end
 	-- 生成菜单框架和菜单项目
-	c_controlmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * 2.7}):level(c_mainmenu:level() + 1)
+	c_controlmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * (1 + 1.5 * 2)}):level(c_mainmenu:level() + 1)
 	c_controlmenu:replaceElements(
 		 {
 			id = "shuffle",
@@ -572,27 +633,178 @@ function setcontrolmenu()
 			image = loopimage,
 			imageAlignment = "center",
 			trackMouseUp = true
+		}, {
+			id = "playlist",
+			frame = {x = imagesize.w * 1.5 * 2 , y = 0, h = imagesize.h, w = imagesize.w},
+			type = "image",
+			image = addedimage,
+			imageAlignment = "center",
+			trackMouseUp = true
 		}
-		)
+	)
 	-- 鼠标行为
 	c_controlmenu:mouseCallback(function(canvas, event, id, x, y)
 		-- x,y为距离整个悬浮菜单边界的坐标
     	if id == "shuffle" and event == "mouseUp" then
     		Music.toggleshuffle()
    		elseif id == "loop" and event == "mouseUp" then
-    		Music.toggleloop()
+			Music.toggleloop()
+		elseif id == "playlist" and event == "mouseUp" then
+			if Music.existinlibrary() == "false" then
+				Music.addtolibrary()
+			elseif c_playlist == nil then
+				setplaylistmenu()
+				c_playlist:orderAbove(c_mainmenu)
+				show(c_playlist)
+			elseif c_playlist ~= nil then
+				if c_playlist:isShowing() == false then
+					setplaylistmenu()
+					c_playlist:orderAbove(c_mainmenu)
+					show(c_playlist)
+				else
+					hide(c_playlist)
+				end
+			end
    		end
    		setcontrolmenu()
     	c_controlmenu:orderAbove(c_mainmenu)
    		show(c_controlmenu)
    	end)
 end
+-- 播放列表悬浮菜单
+function setplaylistmenu()
+	delete(c_playlist)
+	-- 获取播放列表个数
+	_,playlistcount,_ = hs.osascript.applescript([[
+		tell application "Music"
+			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
+			get count of allplaylist
+		end tell
+	]])
+	-- 获取播放列表名称
+	_,playlistname,_ = hs.osascript.applescript([[
+		tell application "Music"
+			get name of every user playlist whose smart is false and special kind is none
+		end tell
+	]])
+	-- 框架尺寸
+	controlmenuframe = c_controlmenu:frame()
+	playlistframe = {x = controlmenuframe.x + c_controlmenu["playlist"].frame.x + c_controlmenu["playlist"].frame.w / 2, y = controlmenuframe.y + c_controlmenu["playlist"].frame.y + c_controlmenu["playlist"].frame.h / 2, h = textsize * playlistcount, w = smallsize}
+	c_playlist = c.new(playlistframe):level(c_mainmenu:level() + 1)
+	-- 设置菜单宽度
+	local _,test,_ = hs.osascript.applescript([[
+		tell application "Music"
+			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
+			set theBackup to AppleScript's text item delimiters
+			set AppleScript's text item delimiters to "
+			"
+			set theString to allplaylist as string
+			set AppleScript's text item delimiters to theBackup
+			return theString
+		end tell
+	]])
+	c_playlist:appendElements(
+		{
+			id = "test",
+			frame = {x = 0, y = 0, h = textsize, w = 1},
+			type = "text",
+			text = test,
+			textSize = textsize,
+			textLineBreak = "wordWrap",
+			trackMouseEnterExit = true,
+			trackMouseUp = true
+		}
+	)
+	playlistmenusize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
+	playlistframe = {x = playlistframe.x, y = playlistframe.y, h = playlistmenusize.h + border.y * playlistcount, w = playlistmenusize.w}
+	c_playlist:frame(playlistframe)
+	-- 生成菜单框架
+	c_playlist:replaceElements(
+		{-- 菜单背景
+			id = "background",
+			action = "fill",
+			type = "rectangle",
+			roundedRectRadii = {xRadius = 6, yRadius = 6},
+			fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
+			trackMouseEnterExit = true,
+			trackMouseUp = true
+		}
+	)
+	-- 菜单项目
+	count = 1
+	repeat
+		c_playlist:appendElements(
+			{-- 菜单项背景
+				id = "playlistback" .. count,
+				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
+				type = "rectangle",
+				roundedRectRadii = {xRadius = 6, yRadius = 6},
+				fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0},
+				strokeColor = {alpha = 0.8, white = 0.5},
+				trackMouseEnterExit = true,
+				trackMouseUp = true
+			}
+		)
+		c_playlist:appendElements(
+			{-- 菜单项
+				id = "playlist" .. count,
+				frame = {x = border.x, y = border.y * (count - 0.5) + playlistmenusize.h / 3 * (count - 1), h = playlistmenusize.h / 3, w = playlistmenusize.w},
+				type = "text",
+				text = playlistname[count],
+				textSize = textsize,
+				textLineBreak = "wordWrap",
+				trackMouseEnterExit = true,
+				trackMouseUp = true
+			}
+		)
+		c_playlist:appendElements(
+			{-- 菜单项overlay
+				id = "playlistoverlay" .. count,
+				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
+				type = "rectangle",
+				roundedRectRadii = {xRadius = 6, yRadius = 6},
+				fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
+				strokeColor = {alpha = 0.8, white = 0.5},
+				trackMouseEnterExit = true,
+				trackMouseUp = true
+			}
+		)
+		count = count + 1
+	until count > playlistcount
+	-- 鼠标行为
+	c_playlist:mouseCallback(function(canvas, event, id, x, y)
+		-- x,y为距离整个悬浮菜单边界的坐标
+		i = 1
+		repeat
+			if id == "playlistoverlay" .. i then
+				if event == "mouseEnter" then
+					c_playlist["playlistback" .. i].fillColor = {alpha = 0.8, white = 0.5}
+				elseif event == "mouseExit" then
+					if x > border.x and x < playlistframe.w - border.x and y > border.y and y < playlistframe.h - border.y then
+						c_playlist["playlistback" .. i].fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0}
+					else
+						hide(c_playlist)
+					end
+				elseif event == "mouseUp" then
+					Music.addtoplaylist(playlistname[i])
+					hide(c_playlist)
+				end
+			end
+			i = i + 1
+		until i > playlistcount
+		if id == "background" then
+			if event == "mouseExit" then
+				hide(c_playlist)
+			end
+		end
+	end)
+end
 -- 设置进度条悬浮菜单
 function setprogresscanvas()
 	-- 生成悬浮进度条
 	delete(c_progress)
 	local per = 60 / 100
-	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 1)
+	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
 	progressElement = {
 		id = "progress",
     	type = "rectangle",
@@ -618,6 +830,7 @@ function hide(canvas)
 		hide(c_localmusicmenu)
 		hide(c_controlmenu)
 		hide(c_progress)
+		hide(c_playlist)
 		hide(c_mainmenu)
 	end
 end
@@ -675,9 +888,13 @@ function togglecanvas()
 				show(c_controlmenu)
 				-- 自动隐藏悬浮菜单
 				hs.timer.waitUntil(function()
-						if c_mainmenu:isShowing() == true and mousePosition() == false then
-							return true
-						else
+						if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
+							if c_mainmenu:isShowing() == true and mousePosition() == false then
+								return true
+							else
+								return false
+							end
+						elseif c_playlist ~= nil and c_playlist:isShowing() == true then
 							return false
 						end
 					end, function()
@@ -700,7 +917,7 @@ function updatemenubar()
 				songloved = Music.loved()
 				songrating = Music.rating()
 				songkind = Music.kind()
-				delay(3, function() Music.saveartwork() end)
+				delay(5, function() Music.saveartwork() end)
 			else
 				songtitle = Music.title()
 				songloved = Music.loved()
