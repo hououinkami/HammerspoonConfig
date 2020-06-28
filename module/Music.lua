@@ -733,6 +733,11 @@ function setplaylistmenu()
 	-- 菜单项目
 	count = 1
 	repeat
+		if Music.existinplaylist(playlistname[count]) == false then
+			textcolor = {white = 1.0}
+		else
+			textcolor = {red = 0, green = 0.47, blue = 1}
+		end
 		c_playlist:appendElements(
 			{-- 菜单项背景
 				id = "playlistback" .. count,
@@ -752,6 +757,7 @@ function setplaylistmenu()
 				type = "text",
 				text = playlistname[count],
 				textSize = textsize,
+				textColor = textcolor;
 				textLineBreak = "wordWrap",
 				trackMouseEnterExit = true,
 				trackMouseUp = true
