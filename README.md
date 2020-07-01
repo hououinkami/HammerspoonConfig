@@ -37,6 +37,11 @@ cd ~/.hammerspoon && git pull
 
 <kbd>⌥</kbd> + <kbd>Space</kbd>
 
+1. 实时调用并显示DuckDuckGO的搜索建议
+
+2. 默认使用Google搜索
+
+3. 点击工具栏对应图标则将选用对应搜索引擎搜索当前高亮关键词
 
 ## 窗口管理
 
