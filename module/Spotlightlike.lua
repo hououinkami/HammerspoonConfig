@@ -1,74 +1,180 @@
-local search = nil
 local owner = hs.host.localizedName()
 if owner == "鳳凰院カミのMacBook Pro" then
-	base3 = { name = "ウィキペディア", baseurl = "https://ja.wikipedia.org/wiki/keyword", }
-	base4name = "Google翻訳"
-	tip = "検索したいキーワードを入力"
+	copied = "クリップボードにコピーしました"
+	wikiUrl = "https://ja.wikipedia.org/wiki/keyword"
 else
-	base3 = { name = "Wikipedia", baseurl = "https://en.wikipedia.org/wiki/keyword", }
-	base4name = "Google翻译"
-	tip = "输入检索关键词"
+	copied = "已复制到剪贴板"
+	wikiUrl = "https://en.wikipedia.org/wiki/keyword"
 end
-local base = {
-	[1] = { name = "百度", baseurl = "https://www.baidu.com/s?wd=keyword", },
-	[2] = { name = "Google", baseurl = "https://www.google.com/search?q=keyword", },
-	[3] = base3,
-	[4] = { name = base4name, baseurl = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=zh-CN&text=keyword", },
+-- 添加ToolBar
+local toolbarItems = {
+	{
+		id = "google",
+		label = false,
+		fn = function() searchFun("https://www.google.com/search?q=keyword") end,
+		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/google.png"):setSize(imagesize, absolute == true),
+	},
+	{
+		id = "baidu",
+		label = false,
+		fn = function() searchFun("https://www.baidu.com/s?wd=keyword") end,
+		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/baidu.png"):setSize(imagesize, absolute == true),
+	},
+	{
+		id = "wiki",
+		label = false,
+		fn = function() searchFun(wikiUrl) end,
+		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/wiki.png"):setSize(imagesize, absolute == true),
+	},
+	{
+		id = "translate",
+		label = false,
+		fn = function() searchFun("https://translate.google.com/#view=home&op=translate&sl=auto&tl=zh-CN&text=keyword") end,
+		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/translate.png"):setSize(imagesize, absolute == true),
 	}
--- 生成搜索列表
-function searchList()
+}
+local chooserToolbar = hs.webview.toolbar.new("chooserToolbarTest")
+chooserToolbar:addItems(toolbarItems)
+chooserToolbar:displayMode("default")
+chooserToolbar:canCustomize(true)
+-- 生成搜索框
+function searchBox()
+	local searchengine = 'https://duckduckgo.com/ac/?q=%s'
+	-- 若使用Google搜索建议，替换为"https://suggestqueries.google.com/complete/search?&output=toolbar&hl=jp&q=%s&gl=ja"，有被Ban IP的可能性
 	local choices = {}
-	local query = hs.http.encodeForQuery(search:query()):gsub("%%", "%%%%")
-       	for key,data in ipairs(base) do
-       		local full_url = data["baseurl"]:gsub ("keyword", query)
-       		local choice = {}
-        	choice["text"] = data["name"]
-			--choice["subText"] = full_url
-       		choice["fullurl"] = full_url
-       		table.insert(choices, choice)
-       	end
-	return choices
+    local tab = nil
+    local copy = nil
+    chooser = hs.chooser.new(function(choosen)
+		if copy then
+			copy:delete()
+		end
+		if tab then
+			tab:delete()
+		end
+		-- 搜索选中关键词
+		searchcompletionCallback(choosen)
+    end)
+    -- 删除框中所有项目
+    function reset()
+        chooser:choices({})
+	end
+	-- 利用Tab键键入高亮候选项（默认为第一项）
+    tab = hs.hotkey.bind('', 'tab', function()
+        local id = chooser:selectedRow()
+        local item = choices[id]
+        -- 如果无高亮选项
+		if not item then
+			return
+		end
+        chooser:query(item.text)
+        reset()
+        updateChooser()
+    end)
+	-- 复制高亮候选项
+    copy = hs.hotkey.bind('cmd', 'c', function()
+        local id = chooser:selectedRow()
+        local item = choices[id]
+        if item then
+            chooser:hide()
+            hs.pasteboard.setContents(item.text)
+            hs.alert.show(copied, 1)
+        end
+    end)
+	-- 实时更新搜索框候选
+    function updateChooser()
+        local string = chooser:query()
+        local query = hs.http.encodeForQuery(string)
+        -- 如果无输入则清空列表
+		if string:len() == 0 then
+			return reset()
+		end
+		-- 获取搜索建议并显示
+		hs.http.asyncGet(string.format(searchengine, query), nil, function(status, data)
+			if not data then 
+				return 
+			end
+			local ok, results = pcall(function() return hs.json.decode(data) end)
+			if not ok then 
+				return
+			end
+			choices = hs.fnutils.imap(results, function(result)
+				return {
+					["text"] = result["phrase"],
+				}
+			end)
+			--[[若使用Google搜索建议，上述imap代码替换为
+			choices = hs.fnutils.imap(results[2], function(result)
+                return {
+                    ["text"] = result,
+                }
+			end)
+			]]--
+			table.insert(choices,1,{text = chooser:query()})
+			if #choices > 1 then
+				if choices[1].text == choices[2].text then
+					table.remove(choices,1)
+				end
+			end
+			chooser:choices(choices)
+		end)
+	end
+	chooser:attachedToolbar(chooserToolbar)
+	chooser:queryChangedCallback(updateChooser)
+	chooser:searchSubText(false)
+	chooser:rows(12)
+	if chooser:isVisible() then
+		chooser:hide()
+	else
+		chooser:show()
+	end
+end
+-- 搜索函数
+function searchFun(engineUrl)
+	local script = [[tell application "Safari" to activate (open location "searchurl")]]
+	local baseUrl = engineUrl
+	-- Encode搜索词
+	if chooser:selectedRowContents() == nil then
+		return
+	else
+		encodedKeyword = hs.http.encodeForQuery(chooser:selectedRowContents()["text"])
+		if string.find(encodedKeyword, "%%") then
+			encodedKeyword = encodedKeyword:gsub("%%", "%%%%")
+		end
+		searchUrl = baseUrl:gsub("keyword", encodedKeyword)
+		if searchUrl:find("%%") then
+			searchUrl = searchUrl:gsub("%%", "%%%%")
+		else
+			searchUrl = searchUrl
+		end
+		urlscript = script:gsub("searchurl", searchUrl)
+    end
+	hs.osascript.applescript(urlscript)
+	chooser:hide()
 end
 -- 执行的动作
 function searchcompletionCallback(rowInfo)
 	local script = [[tell application "Safari" to activate (open location "searchurl")]]
-	if rowInfo == nil or string.len(search:query()) == 0 then
+	local baseUrl = "https://www.google.com/search?q=keyword"
+	-- Encode搜索词
+	if rowInfo == nil then
 		return
-	elseif string.find(search:query(), "://") ~= nil or string.find(search:query(), "www.") ~= nil or string.find(search:query(), ".com") ~= nil or string.find(search:query(), ".jp") ~= nil then
+	elseif string.find(rowInfo["text"], "://") ~= nil or string.find(rowInfo["text"], "www.") ~= nil or string.find(rowInfo["text"], ".com") ~= nil or string.find(rowInfo["text"], ".jp") ~= nil then
 		--hs.urlevent.openURLWithBundle(search:query(), "com.apple.Safari")
-		urlscript = script:gsub("searchurl", search:query())
+		urlscript = script:gsub("searchurl", rowInfo["text"])
 	else
-		--hs.urlevent.openURLWithBundle(rowInfo["fullurl"], "com.apple.Safari")
-		if rowInfo["fullurl"]:find("%%") then
-			fullurl = rowInfo["fullurl"]:gsub("%%", "%%%%")
-		else
-			fullurl = rowInfo["fullurl"]
+		encodedKeyword = hs.http.encodeForQuery(rowInfo["text"])
+		if string.find(encodedKeyword, "%%") then
+			encodedKeyword = encodedKeyword:gsub("%%", "%%%%")
 		end
-		urlscript = script:gsub("searchurl", fullurl)
+		searchUrl = baseUrl:gsub("keyword", encodedKeyword)
+		if searchUrl:find("%%") then
+			searchUrl = searchUrl:gsub("%%", "%%%%")
+		else
+			searchUrl = searchUrl
+		end
+		urlscript = script:gsub("searchurl", searchUrl)
     end
 	hs.osascript.applescript(urlscript)
 end
--- 搜索关键词改变时的行为
-function queryChangedCallback()
-	if queryChangedTimer then
-		queryChangedTimer:stop()
-	end
-	queryChangedTimer = hs.timer.doAfter(0.2, function()
-			search:choices(searchList())
-			search:refreshChoicesCallback()
-		end)
-end
--- 输出Spotlight式输入框
-function searchMain()
-	search = hs.chooser.new(searchcompletionCallback)
-	search:placeholderText(tip)
-	search:rows(4)
-	search:queryChangedCallback(queryChangedCallback)
-	if search:isVisible() then
-		search:hide()
-	else
-		search:show()
-	end
-	return search
-end
-hs.hotkey.bind({"option"}, 'space', searchMain)
+-- 触发快捷键
+hs.hotkey.bind({"option"}, 'space', searchBox)
