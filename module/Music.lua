@@ -820,12 +820,17 @@ function setprogresscanvas()
     	trackMouseUp = true
 	}
 	c_progress:appendElements(progressElement)
-	hs.timer.doWhile(function()
+	if Music.state() == "playing" then
+		hs.timer.doWhile(function()
 			return c_progress:isShowing()
-		end, function()
-			progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
-			c_progress:replaceElements(progressElement):show()
+			end, 
+			function()
+				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
+				c_progress:replaceElements(progressElement):show()
 		end, updatetime)
+	else
+		c_progress:show()
+	end
 end
 -- 功能函数
 function hide(canvas)
