@@ -1,6 +1,6 @@
 function toggleclashx()
     local ssid = hs.wifi.currentNetwork()
-    if (ssid == "BabyShrimp") or (ssid == "BabyShrimp-2.4G") then
+    if (ssid == "BabyShrimp") or (ssid == "BabyShrimp-2.4G") or (ssid == nil) then
         hs.osascript.applescript([[tell application "ClashX Pro" to quit]])
     else
         hs.osascript.applescript([[tell application "ClashX Pro" to activate]])
