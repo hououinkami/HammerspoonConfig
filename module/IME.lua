@@ -43,6 +43,7 @@ local App2Ime = {
 	{'/Applications/Hammerspoon.app', 'Chinese'},
 	{'/Applications/System Preferences.app', 'Chinese'},
 	{'/Applications/Utilities/Terminal.app', 'English'},
+	{'/Applications/Visual Studio Code.app', 'English'},
 	{'/System/Applications/Music.app', 'Japanese'},
 	{'/Applications/Safari.app', 'Chinese'},
 	{'/Applications/WeChat.app', 'Chinese'},
@@ -114,8 +115,8 @@ function applicationWatcher(appName, eventType, appObject)
 		updateFocusAppInputMethod()
 	end
 end
---appWatcher = hs.application.watcher.new(applicationWatcher)
---appWatcher:start()
+appWatcher = hs.application.watcher.new(applicationWatcher)
+appWatcher:start()
 -- 查看当前激活窗口的App路径及名称
 hs.hotkey.bind({'ctrl', 'option', 'command'}, ".", function()
 		hs.pasteboard.setContents(hs.window.focusedWindow():application():path())
