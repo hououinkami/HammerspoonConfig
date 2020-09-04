@@ -16,7 +16,7 @@ cd ~/.hammerspoon && git pull
 
 ## Music悬浮菜单栏
 
-(https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/Music.png)
+![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/Music.png)
 
 1. 菜单栏显示当前正在播放的歌曲标题及艺术家，单击后显示悬浮菜单，菜单长度根据歌名长度自动调节
 
