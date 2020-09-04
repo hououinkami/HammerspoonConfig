@@ -41,6 +41,8 @@ cd ~/.hammerspoon && git pull
 
 <kbd>⌥</kbd> + <kbd>Space</kbd>
 
+![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/SpotlightLike.png)
+
 1. 实时调用并显示DuckDuckGO的搜索建议
 
 2. 默认使用Google搜索
