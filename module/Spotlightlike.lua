@@ -44,42 +44,48 @@ function searchBox()
 	local choices = {}
     local tab = nil
     local copy = nil
-    chooser = hs.chooser.new(function(choosen)
+	chooser = hs.chooser.new(function(choosen)
 		if copy then
 			copy:delete()
 		end
 		if tab then
 			tab:delete()
 		end
+		-- 利用Tab键键入高亮候选项（默认为第一项）
+		tab = hs.hotkey.bind('', 'tab', function()
+			local id = chooser:selectedRow()
+			local item = choices[id]
+			-- 如果无高亮选项
+			if not item then
+				return
+			end
+			chooser:query(item.text)
+			reset()
+			updateChooser()
+		end)
+		-- 复制高亮候选项
+		copy = hs.hotkey.bind('cmd', 'c', function()
+			local id = chooser:selectedRow()
+			local item = choices[id]
+			if item then
+				chooser:hide()
+				hs.pasteboard.setContents(item.text)
+				hs.alert.show(copied, 1)
+			end
+		end)
 		-- 搜索选中关键词
 		searchcompletionCallback(choosen)
+		if copy then
+			copy:disable()
+		end
+		if tab then
+			tab:disable()
+		end
     end)
     -- 删除框中所有项目
     function reset()
         chooser:choices({})
 	end
-	-- 利用Tab键键入高亮候选项（默认为第一项）
-    tab = hs.hotkey.bind('', 'tab', function()
-        local id = chooser:selectedRow()
-        local item = choices[id]
-        -- 如果无高亮选项
-		if not item then
-			return
-		end
-        chooser:query(item.text)
-        reset()
-        updateChooser()
-    end)
-	-- 复制高亮候选项
-    copy = hs.hotkey.bind('cmd', 'c', function()
-        local id = chooser:selectedRow()
-        local item = choices[id]
-        if item then
-            chooser:hide()
-            hs.pasteboard.setContents(item.text)
-            hs.alert.show(copied, 1)
-        end
-    end)
 	-- 实时更新搜索框候选
     function updateChooser()
         local string = chooser:query()
@@ -122,11 +128,6 @@ function searchBox()
 	chooser:queryChangedCallback(updateChooser)
 	chooser:searchSubText(false)
 	chooser:rows(12)
-	if chooser:isVisible() then
-		chooser:hide()
-	else
-		chooser:show()
-	end
 end
 -- 搜索函数
 function searchFun(engineUrl)
@@ -176,5 +177,12 @@ function searchcompletionCallback(rowInfo)
     end
 	hs.osascript.applescript(urlscript)
 end
+searchBox()
 -- 触发快捷键
-hs.hotkey.bind({"option"}, 'space', searchBox)
+hs.hotkey.bind({"option"}, 'space', function()
+	if chooser:isVisible() then
+		chooser:hide()
+	else
+		chooser:show()
+	end
+end)
