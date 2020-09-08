@@ -184,5 +184,6 @@ hs.hotkey.bind({"option"}, 'space', function()
 		chooser:hide()
 	else
 		chooser:show()
+		hs.keycodes.setMethod("Pinyin - Simplified")
 	end
 end)
