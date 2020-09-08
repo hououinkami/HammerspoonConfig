@@ -13,7 +13,7 @@ local module_list = {
 	"module.window",
 	"module.Spotlightlike",
 	"module.IME",
-	"module.wifi",
+	"module.Network",
 	--"module.DesktopWidget",
 		}
 for _, v in ipairs(module_list) do
