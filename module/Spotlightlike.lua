@@ -183,6 +183,7 @@ hs.hotkey.bind({"option"}, 'space', function()
 	if chooser:isVisible() then
 		chooser:hide()
 	else
+		chooser:query(nil)
 		chooser:show()
 		hs.keycodes.setMethod("Pinyin - Simplified")
 	end
