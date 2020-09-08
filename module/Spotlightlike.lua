@@ -43,7 +43,7 @@ function searchBox()
 	-- 若使用Google搜索建议，替换为"https://suggestqueries.google.com/complete/search?&output=toolbar&hl=jp&q=%s&gl=ja"，有被Ban IP的可能性
 	local choices = {}
     local tab = nil
-    local copy = nil
+	local copy = nil
 	chooser = hs.chooser.new(function(choosen)
 		if copy then
 			copy:delete()
@@ -51,43 +51,43 @@ function searchBox()
 		if tab then
 			tab:delete()
 		end
-		-- 利用Tab键键入高亮候选项（默认为第一项）
-		tab = hs.hotkey.bind('', 'tab', function()
-			local id = chooser:selectedRow()
-			local item = choices[id]
-			-- 如果无高亮选项
-			if not item then
-				return
-			end
-			chooser:query(item.text)
-			reset()
-			updateChooser()
-		end)
-		-- 复制高亮候选项
-		copy = hs.hotkey.bind('cmd', 'c', function()
-			local id = chooser:selectedRow()
-			local item = choices[id]
-			if item then
-				chooser:hide()
-				hs.pasteboard.setContents(item.text)
-				hs.alert.show(copied, 1)
-			end
-		end)
+		copy = nil
+		tab = nil
 		-- 搜索选中关键词
 		searchcompletionCallback(choosen)
-		if copy then
-			copy:disable()
-		end
-		if tab then
-			tab:disable()
-		end
     end)
     -- 删除框中所有项目
     function reset()
         chooser:choices({})
 	end
 	-- 实时更新搜索框候选
-    function updateChooser()
+	function updateChooser()
+		if tab == nil then
+			-- 利用Tab键键入高亮候选项（默认为第一项）
+			tab = hs.hotkey.bind('', 'tab', function()
+				local id = chooser:selectedRow()
+				local item = choices[id]
+				-- 如果无高亮选项
+				if not item then
+					return
+				end
+				chooser:query(item.text)
+				reset()
+				updateChooser()
+			end)
+		end
+		if copy == nil then
+			-- 复制高亮候选项
+			copy = hs.hotkey.bind('cmd', 'c', function()
+				local id = chooser:selectedRow()
+				local item = choices[id]
+				if item then
+					chooser:hide()
+					hs.pasteboard.setContents(item.text)
+					hs.alert.show(copied, 1)
+				end
+			end)
+		end
         local string = chooser:query()
         local query = hs.http.encodeForQuery(string)
         -- 如果无输入则清空列表
@@ -127,7 +127,7 @@ function searchBox()
 	chooser:attachedToolbar(chooserToolbar)
 	chooser:queryChangedCallback(updateChooser)
 	chooser:searchSubText(false)
-	chooser:rows(12)
+	chooser:rows(11)
 end
 -- 搜索函数
 function searchFun(engineUrl)
