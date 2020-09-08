@@ -16,21 +16,21 @@ end
 local script = [[tell application "System Events" to tell process "TextInputMenuAgent" to tell (1st menu bar item of menu bar 2) to {click (menu item "tomethod" of menu 1), click}]]
 -- 切换为拼音
 local function Chinese()
-	hs.osascript.applescript(script:gsub("tomethod",inputs[1]))
+	--hs.osascript.applescript(script:gsub("tomethod",inputs[1]))
 	--k.currentSourceID("com.apple.inputmethod.SCIM.ITABC")
-	--k.setMethod("Pinyin - Simplified")
+	k.setMethod("Pinyin - Simplified")
 end
 -- 切换为日文
 local function Japanese()
-	hs.osascript.applescript(script:gsub("tomethod",inputs[3]))
+	--hs.osascript.applescript(script:gsub("tomethod",inputs[3]))
 	--k.currentSourceID("com.apple.inputmethod.Kotoeri.Japanese")
-	--k.setMethod("Hiragana")
+	k.setMethod("Hiragana")
 end
 -- 切换为英文
 local function English()
-	hs.osascript.applescript(script:gsub("tomethod",inputs[2]))
+	--hs.osascript.applescript(script:gsub("tomethod",inputs[2]))
 	--k.currentSourceID(eng)
-	--k.setMethod("Romaji")
+	k.setMethod("Romaji")
 end
 -- 切换输入法快捷键
 hs.hotkey.bind(hyper, '/', Chinese)
