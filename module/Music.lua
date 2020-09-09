@@ -400,7 +400,7 @@ function setmainmenu()
 			type = "rectangle",
 			action = "fill",
 			roundedRectRadii = {xRadius = 6, yRadius = 6},
-			fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0},
+			fillColor = {alpha = 0.96, red = 35 / 255, green = 37 / 255, blue = 34 / 255},
 			trackMouseEnterExit = true,
 			trackMouseUp = true
 		}, {-- 专辑封面
@@ -816,7 +816,8 @@ function setprogresscanvas()
     	type = "rectangle",
     	roundedRectRadii = {xRadius = 2, yRadius = 2},
     	frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / Music.duration()},
-    	fillColor = {alpha = 0.6, red = 1, green = 0.176, blue = 0.33},
+		fillColor = {alpha = 0.6, red = 186 / 255, green = 187 / 255, blue = 187 / 255},
+		-- fillColor = {alpha = 0.6, red = 1, green = 0.176, blue = 0.33}, AM红
     	trackMouseUp = true
 	}
 	c_progress:appendElements(progressElement)
