@@ -22,24 +22,63 @@ function data_diff()
     local in_diff = in_seq - inseq
     local out_diff = out_seq - outseq
     if in_diff/1024 > 1024 then
-        kbin = string.format("%6.2f", in_diff/1024/1024) .. ' MB/s'
+        kbin = string.format("%6.2f", in_diff/1024/1024):gsub(" ", "") .. ' MB/s'
     else
-        kbin = string.format("%6.2f", in_diff/1024) .. ' kB/s'
+        kbin = string.format("%6.2f", in_diff/1024):gsub(" ", "") .. ' kB/s'
     end
+    -- kbin = addNo(kbin)
     if out_diff/1024 > 1024 then
-        kbout = string.format("%6.2f", out_diff/1024/1024) .. ' MB/s'
+        kbout = string.format("%6.2f", out_diff/1024/1024):gsub(" ", "") .. ' MB/s'
     else
-        kbout = string.format("%6.2f", out_diff/1024) .. ' kB/s'
+        kbout = string.format("%6.2f", out_diff/1024):gsub(" ", "") .. ' kB/s'
     end
+    -- kbout = addNo(kbout)
     local disp_str = '⥄' .. kbout .. '\n⥂' .. kbin
+    local disp_str_no = kbout .. '\n' .. kbin
+    -- 适配黑暗模式选择
     if darkmode then
-        disp_str = hs.styledtext.new(disp_str, {font={size=9.0, color={hex="#FFFFFF"}}})
+        disp_str = hs.styledtext.new(disp_str_no, {font={size=9.0, color={hex="#FFFFFF"}}})
     else
         disp_str = hs.styledtext.new(disp_str, {font={size=9.0, color={hex="#000000"}}})
     end
-    menubar:setTitle(disp_str)
+    -- menubar:setTitle(disp_str)
+    delete(barIcon)
+    barIcon = c.new({x = 10, y = 10, h = 24, w = 57})
+    barIcon[1] = {
+        frame = {x = 0, y = -1, h = 24, w = 57},
+        text = hs.styledtext.new(kbout .. '\n' .. kbin, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
+        type = "text",
+    }
+    local menuIcon = barIcon:imageFromCanvas()
+    menubar:setIcon(menuIcon)
     inseq = in_seq
     outseq = out_seq
+end
+-- 绘制图标
+c = require("hs.canvas")
+function drawIcon(barText)
+    delete(barIcon)
+    barIcon = c.new({x = 10, y = 10, h = 22, w = 80})
+    barIcon[1] = {
+        frame = { h = 50, w = 50, x = 0, y = -6 },
+        text = hs.styledtext.new(barText, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
+        type = "text",
+    }
+    local menuIcon = barIcon:imageFromCanvas()
+    return menuIcon
+end
+-- 添加空格增加长度
+function addNo(var)
+    stringLen = string.len(var)
+    b = var
+    if stringLen < 11 then
+        a = stringLen
+        repeat
+            b =  " " .. b
+            a = a + 0.5
+        until(a == 11)
+    end
+    return b
 end
 function rescan()
     interface = hs.network.primaryInterfaces()
@@ -97,7 +136,7 @@ function rescan()
         title = "インターフェイスをスキャン",
         fn = function() rescan() end
     })
-    menubar:setTitle("⚠︎")
+    --menubar:setTitle("⚠︎")
     --menubar:setMenu(menuitems_table)
 end
 local owner = hs.host.localizedName()
