@@ -135,3 +135,106 @@ function Undo()
 		end
 	end
 end
+
+-- 自定义App窗口布局
+local layouts = {
+	{
+		name = {"Safari"},
+	  	func = function(index, win)
+			Resize.fullscreen()
+	  	end
+	},
+	{
+		name = {""},
+		func = function(index, win)
+			win:move({ 0, 140, win:frame().w, win:frame().h })
+		end
+	},
+}
+-- 应用窗口布局
+function applyLayout(layouts, app)
+	if (app) then
+		local appName = app:title()
+	  	for i, layout in ipairs(layouts) do
+			if (type(layout.name) == "table") then
+				for i, layAppName in ipairs(layout.name) do
+					if (layAppName == appName) then
+			  		-- hs.alert.show(appName)
+			  			local wins = app:allWindows()
+			  			local counter = 1
+			  			for j, win in ipairs(wins) do
+							if (win:isVisible() and layout.func) then
+				  				layout.func(counter, win)
+				  				counter = counter + 1
+							end
+			  			end
+					end
+		  		end
+			elseif (type(layout.name) == "string") then
+		  		if (layout.name == appName) then
+					local wins = app:allWindows()
+					local counter = 1
+					for j, win in ipairs(wins) do
+			  			if (win:isVisible() and layout.func) then
+							layout.func(counter, win)
+							counter = counter + 1
+			  			end
+					end
+		  		end
+			end
+	  	end
+	end
+end
+-- 设置触发函数
+windowWatcher = {}
+newWindowWatcher = {}
+function windowWatcherListener(element, event, watcher, userData) 
+	local appName = userData.name
+  	local app = hs.application.find(appName)
+  	if (app) then
+    	applyLayout(layouts, app)
+  	end
+end
+function applicationWatcher(appName, eventType, appObject)
+	-- 激活窗口
+	if (eventType == hs.application.watcher.activated) then
+    	if (appName == "QQ") then
+      		appObject:focusedWindow():move({ 0, 140, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
+		elseif (appName == "Finder") then
+			hs.osascript.applescript([[tell application "System Events" to tell process "Finder" to tell (menu bar 1's menu bar item 7) to {click (menu 1's menu item 16)}]])
+			-- appObject:selectMenuItem({"ウインドウ", "すべてを手前に移動"})
+		elseif (appName == "メール") then
+			if appObject:focusedWindow():isMaximizable() == false then
+				appObject:focusedWindow():close()
+			end
+    	end
+  	end
+  	-- 启动App
+  	if (eventType == hs.application.watcher.launched) then
+    	os.execute("sleep " .. tonumber(1))
+    	applyLayout(layouts, appObject)
+    	for i, aname in ipairs(newWindowWatcher) do
+      		if (appName == aname) then      
+        		if (not windowWatcher[aname]) then
+          			-- hs.alert.show("Watching " .. appName)
+          			windowWatcher[aname] = appObject:newWatcher(windowWatcherListener, { name = appName })
+          			windowWatcher[aname]:start({hs.uielement.watcher.windowCreated})
+        		end
+      		end
+    	end
+	end
+  	-- 退出App
+  	if (eventType == hs.application.watcher.terminated) then  
+    	for i, aname in ipairs(newWindowWatcher) do
+      		if (appName == aname) then      
+        		if (windowWatcher[aname]) then
+          			-- hs.alert.show("Stop watching " .. appName)
+          			windowWatcher[aname]:stop()
+          			windowWatcher[aname] = nil
+        		end
+      		end
+    	end
+  	end
+end
+appWatcherForresize = hs.application.watcher.new(applicationWatcher)
+appWatcherForresize:start()
