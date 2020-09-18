@@ -45,7 +45,7 @@ function data_diff()
     delete(barIcon)
     barIcon = c.new({x = 10, y = 10, h = 24, w = 57})
     barIcon[1] = {
-        frame = {x = 0, y = -1, h = 24, w = 57},
+        frame = {x = 0, y = 0, h = 24, w = 57},
         text = hs.styledtext.new(kbout .. '\n' .. kbin, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
         type = "text",
     }
@@ -53,19 +53,6 @@ function data_diff()
     menubar:setIcon(menuIcon)
     inseq = in_seq
     outseq = out_seq
-end
--- 绘制图标
-c = require("hs.canvas")
-function drawIcon(barText)
-    delete(barIcon)
-    barIcon = c.new({x = 10, y = 10, h = 22, w = 80})
-    barIcon[1] = {
-        frame = { h = 50, w = 50, x = 0, y = -6 },
-        text = hs.styledtext.new(barText, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
-        type = "text",
-    }
-    local menuIcon = barIcon:imageFromCanvas()
-    return menuIcon
 end
 -- 添加空格增加长度
 function addNo(var)
@@ -80,6 +67,11 @@ function addNo(var)
     end
     return b
 end
+-- 点击时的行为
+function clickCallback()
+    hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
+end
+-- 刷新函数
 function rescan()
     interface = hs.network.primaryInterfaces()
     darkmode = hs.osascript.applescript('tell application "System Events"\nreturn dark mode of appearance preferences\nend tell')
@@ -138,6 +130,7 @@ function rescan()
     })
     --menubar:setTitle("⚠︎")
     --menubar:setMenu(menuitems_table)
+    menubar:setClickCallback(clickCallback)
 end
 local owner = hs.host.localizedName()
 if owner == "鳳凰院カミのMacBook Pro" then
