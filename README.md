@@ -1,20 +1,20 @@
 # Hammerspoon-Config
 
-## 安装、更新及重新加载
+## 安装、更新及重新加载（Install & Update & Reload）
 
-### 安装
+### 安装（Install）
 
 git clone https://github.com/hououinkami/HammerspoonConfig.git ~/.hammerspoon
 
-### 更新
+### 更新（Update）
 
 cd ~/.hammerspoon && git pull
 
-### 重新加载
+### 重新加载（Reload）
 
 <kbd>⌃</kbd> + <kbd>⌘</kbd> + <kbd>shift</kbd> + <kbd>R</kbd>
 
-## Music悬浮菜单栏
+## Music悬浮菜单栏（Apple Music Canvas Menu）
 
 ![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/Music.png)
 
@@ -37,7 +37,7 @@ cd ~/.hammerspoon && git pull
 9. 鼠标移出悬浮菜单后自动隐藏，若没有正常触发隐藏，则当鼠标不在菜单栏文字或悬浮菜单范围内时一定时间后自动隐藏
 
 
-## 类Spotlight搜索
+## 类Spotlight搜索（SpotlightLike Search）
 
 <kbd>⌥</kbd> + <kbd>Space</kbd>
 
@@ -49,7 +49,7 @@ cd ~/.hammerspoon && git pull
 
 3. 点击工具栏对应图标则将选用对应搜索引擎搜索当前高亮关键词
 
-## 窗口管理
+## 窗口管理（Windows Manage）
 
 左半屏幕：<kbd>⌃</kbd> + <kbd>⌥</kbd> + <kbd>◀︎</kbd>
 
@@ -73,9 +73,9 @@ cd ~/.hammerspoon && git pull
 
 回到初始状态：<kbd>⌃</kbd> + <kbd>⌥</kbd> + <kbd>delete</kbd>
 
-## 输入法切换
+## 输入法切换（IME Switch）
 
-### 快捷键
+### 快捷键（Hot Keys）
 
 切换成拼音：<kbd>⌃</kbd> + <kbd>⌥</kbd> + <kbd>/</kbd>
 
@@ -83,7 +83,7 @@ cd ~/.hammerspoon && git pull
 
 切换成英文：<kbd>⌃</kbd> + <kbd>⌥</kbd> + <kbd>,</kbd>
 
-### 根据App自动切换输入法语言（暂时停用）
+### 根据App自动切换输入法语言（Auto switch IME with App）
 
 拼音：Finder、Spotlight、设置、Safari、WeChat、QQ、企业微信、Google Chrome、预览、Microsoft Office、iWorks
 
