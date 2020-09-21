@@ -21,6 +21,6 @@ for _, v in ipairs(module_list) do
 end
 -- Baby
 local owner = hs.host.localizedName()
-if owner ~= "鳳凰院カミのMacBook Pro" then
+if not string.find(owner,"カミ") then
 	require "module.autoupdate"
 end

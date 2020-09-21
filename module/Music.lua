@@ -8,7 +8,7 @@ local songalbum = nil
 local songkind = nil
 local musicstate = nil
 local owner = hs.host.localizedName()
-if owner == "鳳凰院カミのMacBook Pro" then
+if string.find(owner,"カミ") then
 	NoPlaying = "ミュージック"
 else
 	NoPlaying = "Music"

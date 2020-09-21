@@ -3,7 +3,7 @@
 --
 function toggleclashx()
     local ssid = hs.wifi.currentNetwork()
-    if (ssid == "BabyShrimp") or (ssid == "BabyShrimp-2.4G") or (ssid == nil) then
+    if string.find(ssid,"bySh") or (ssid == nil) then
         hs.osascript.applescript([[tell application "ClashX Pro" to quit]])
     else
         hs.osascript.applescript([[tell application "ClashX Pro" to activate]])
@@ -133,7 +133,7 @@ function rescan()
     menubar:setClickCallback(clickCallback)
 end
 local owner = hs.host.localizedName()
-if owner == "鳳凰院カミのMacBook Pro" then
+if string.find(owner,"カミ") then
 	menubar = hs.menubar.new()
     rescan()
 end
