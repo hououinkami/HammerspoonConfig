@@ -203,12 +203,9 @@ function applicationWatcher(appName, eventType, appObject)
 		elseif (appName == "WeChat") then
 				appObject:focusedWindow():move({ 440, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 		elseif (appName == "Finder") then
-			hs.osascript.applescript([[tell application "System Events" to tell process "Finder" to tell (menu bar 1's menu bar item 7) to {click (menu 1's menu item 16)}]])
+			appObject:setFrontmost(true)
+			-- hs.osascript.applescript([[tell application "System Events" to tell process "Finder" to tell (menu bar 1's menu bar item 7) to {click (menu 1's menu item 16)}]])
 			-- appObject:selectMenuItem({"ウインドウ", "すべてを手前に移動"})
-		elseif (appName == "メール") then
-			if appObject:focusedWindow():isMaximizable() == false then
-				appObject:focusedWindow():close()
-			end
     	end
   	end
   	-- 启动App
