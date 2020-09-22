@@ -69,7 +69,16 @@ function addNo(var)
 end
 -- 点击时的行为
 function clickCallback()
-    hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
+    local runningApp = hs.application.runningApplications()
+    local r = false
+    for i, app in pairs(runningApp) do
+        if string.find(app:name(),"ClashX") then
+            r = true
+        end
+    end
+    if r == true then
+        hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
+    end
 end
 -- 刷新函数
 function rescan()
