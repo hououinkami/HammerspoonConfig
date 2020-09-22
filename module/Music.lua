@@ -929,7 +929,15 @@ function updatemenubar()
 				songloved = Music.loved()
 				songrating = Music.rating()
 				songkind = Music.kind()
-				delay(5, function() Music.saveartwork() end)
+				-- delay(5, function() Music.saveartwork() end)
+				hs.timer.waitUntil(function()
+					if Music.currentposition() > 0 then
+						return true
+					else
+						return false
+					end
+				end, Music.saveartwork())
+				
 			else
 				songtitle = Music.title()
 				songloved = Music.loved()
@@ -963,10 +971,6 @@ function setmusicbar()
 end
 -- 创建菜单栏项目
 setmusicbar()
--- 点击菜单栏时的弹出悬浮菜单
-if MusicBar ~= nil then
-	MusicBar:setClickCallback(togglecanvas)
-end
 -- 更新菜单标题
 function MusicBarUpdate()
 	if Music.checkrunning() == true then
@@ -979,8 +983,19 @@ function MusicBarUpdate()
 		deletemenubar()
 		MusicBar = nil
 	end
+	-- 点击菜单栏时的弹出悬浮菜单
 	if MusicBar ~= nil then
-		MusicBar:setClickCallback(togglecanvas)
+		if Music.state() ~= "stopped" then
+			MusicBar:setClickCallback(togglecanvas)
+		else
+			MusicBar:setClickCallback(function ()
+				hs.osascript.applescript([[
+					tell application "Music"
+						activate
+					end tell
+				]])
+			end)
+		end
 	end
 end
 hs.timer.doWhile(function()
