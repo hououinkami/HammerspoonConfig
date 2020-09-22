@@ -45,7 +45,7 @@ function data_diff()
     delete(barIcon)
     barIcon = c.new({x = 10, y = 10, h = 24, w = 57})
     barIcon[1] = {
-        frame = {x = 0, y = 0, h = 24, w = 57},
+        frame = {x = 0, y = -0.3, h = 24, w = 57},
         text = hs.styledtext.new(kbout .. '\n' .. kbin, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
         type = "text",
     }
