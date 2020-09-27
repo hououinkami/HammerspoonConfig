@@ -1,5 +1,6 @@
 .DS_Store
 /*.jpg
 /*.png
+/module/Achieve
 /module/DesktopWidget.lua
 /image/Widget
