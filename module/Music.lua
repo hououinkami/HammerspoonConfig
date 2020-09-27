@@ -13,71 +13,72 @@ if string.find(owner,"カミ") then
 else
 	NoPlaying = "Music"
 end
+as = require("hs.osascript")
 -- Music功能函数集 --
 local Music = {}
 -- 曲目信息
 Music.title = function ()
-	local _,title,_ = hs.osascript.applescript([[tell application "Music" to get name of current track]])
+	local _,title,_ = as.applescript([[tell application "Music" to get name of current track]])
 	return title
 end
 Music.artist = function ()
-	local _,artist,_ = hs.osascript.applescript([[tell application "Music" to get artist of current track]])
+	local _,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
 	return artist
 end
 Music.album = function ()
-	local _,album,_ = hs.osascript.applescript([[tell application "Music" to get album of current track]])
+	local _,album,_ = as.applescript([[tell application "Music" to get album of current track]])
 	return album
 end
 Music.duration = function()
-	local _,duration,_ = hs.osascript.applescript([[tell application "Music" to get finish of current track]])
+	local _,duration,_ = as.applescript([[tell application "Music" to get finish of current track]])
 	return duration
 end
 Music.currentposition = function()
-	local _,currentposition,_ = hs.osascript.applescript([[tell application "Music" to get player position]])
+	local _,currentposition,_ = as.applescript([[tell application "Music" to get player position]])
 	return currentposition
 end
 Music.loved = function ()
-	local _,loved,_ = hs.osascript.applescript([[tell application "Music" to get loved of current track]])
+	local _,loved,_ = as.applescript([[tell application "Music" to get loved of current track]])
 	return loved
 end
 Music.disliked = function ()
-	local _,disliked,_ = hs.osascript.applescript([[tell application "Music" to get disliked of current track]])
+	local _,disliked,_ = as.applescript([[tell application "Music" to get disliked of current track]])
 	return disliked
 end
 Music.rating = function ()
-	local _,rating100,_ = hs.osascript.applescript([[tell application "Music" to get rating of current track]])
+	local _,rating100,_ = as.applescript([[tell application "Music" to get rating of current track]])
 	if rating100 ~= nil then
 		rating = rating100/20
 	end
 	return rating
 end
 Music.loop = function ()
-	local _,loop,_ = hs.osascript.applescript([[tell application "Music" to get song repeat as string]])
+	local _,loop,_ = as.applescript([[tell application "Music" to get song repeat as string]])
 	return loop
 end
 Music.shuffle = function ()
-	local _,shuffle,_ = hs.osascript.applescript([[tell application "Music" to get shuffle enabled]])
+	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
 	return shuffle
 end
 -- 星级评价
 Music.setrating = function (rating)
 	if rating == 5 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 100]])
+		as.applescript([[tell application "Music" to set rating of current track to 100]])
 	elseif rating == 4 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 80]])
+		as.applescript([[tell application "Music" to set rating of current track to 80]])
 	elseif rating == 3 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 60]])
+		as.applescript([[tell application "Music" to set rating of current track to 60]])
 	elseif rating == 2 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 40]])
+		as.applescript([[tell application "Music" to set rating of current track to 40]])
 	elseif rating == 1 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 20]])
+		as.applescript([[tell application "Music" to set rating of current track to 20]])
 	elseif rating == 0 then
-		hs.osascript.applescript([[tell application "Music" to set rating of current track to 0]])
+		as.applescript([[tell application "Music" to set rating of current track to 0]])
 	end
 end
 -- 设置为喜欢
 Music.toggleloved = function ()
-	hs.osascript.applescript([[
+	as.applescript([[
 		tell application "Music"
 			if loved of current track is false then
 				set loved of current track to true
@@ -89,7 +90,7 @@ Music.toggleloved = function ()
 end
 -- 设置为不喜欢
 Music.toggledisliked = function ()
-	hs.osascript.applescript([[
+	as.applescript([[
 		tell application "Music"
 			if disliked of current track is false then
 				set disliked of current track to true
@@ -101,9 +102,9 @@ Music.toggledisliked = function ()
 end
 -- 歌曲种类
 Music.kind = function()
-	local _,kind,_ = hs.osascript.applescript([[tell application "Music" to get kind of current track]])
-	local _,cloudstatus,_ = hs.osascript.applescript([[tell application "Music" to get cloud status of current track as string]])
-	local _,class,_ = hs.osascript.applescript([[tell application "Music" to get class of current track as string]])
+	local _,kind,_ = as.applescript([[tell application "Music" to get kind of current track]])
+	local _,cloudstatus,_ = as.applescript([[tell application "Music" to get cloud status of current track as string]])
+	local _,class,_ = as.applescript([[tell application "Music" to get class of current track as string]])
 	if kind ~= nil then
 		if (string.find(kind, "AAC") and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then --若为本地曲目
 			musictype = "localmusic"
@@ -119,17 +120,17 @@ Music.kind = function()
 end
 -- 检测播放状态
 Music.state = function ()
-	local _,state,_ = hs.osascript.applescript([[tell application "Music" to get player state as string]])
+	local _,state,_ = as.applescript([[tell application "Music" to get player state as string]])
 	return state
 end
 -- 检测Music是否在运行
 Music.checkrunning = function()
-	local _,isrunning,_ = hs.osascript.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
+	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
 	return isrunning
 end
 -- 跳转至当前播放的歌曲
 Music.locate = function ()
-	hs.osascript.applescript([[
+	as.applescript([[
 		tell application "Music"
 			activate
 			tell application "System Events" to keystroke "l" using command down
@@ -139,34 +140,34 @@ end
 -- 切换随机模式
 Music.toggleshuffle = function ()
 	if Music.shuffle() == false then
-		hs.osascript.applescript([[tell application "Music" to set shuffle enabled to true]])
+		as.applescript([[tell application "Music" to set shuffle enabled to true]])
 	else
-		hs.osascript.applescript([[tell application "Music" to set shuffle enabled to false]])
+		as.applescript([[tell application "Music" to set shuffle enabled to false]])
 	end
 end
 -- 切换重复模式
 Music.toggleloop = function ()
 	if Music.loop() == "all" then
-		hs.osascript.applescript([[tell application "Music" to set song repeat to one]])
+		as.applescript([[tell application "Music" to set song repeat to one]])
 	elseif Music.loop() == "one" then
-		hs.osascript.applescript([[tell application "Music" to set song repeat to off]])
+		as.applescript([[tell application "Music" to set song repeat to off]])
 	elseif Music.loop() == "off" then
-		hs.osascript.applescript([[tell application "Music" to set song repeat to all]])
+		as.applescript([[tell application "Music" to set song repeat to all]])
 	end
 end
 -- 随机播放指定播放列表中曲目
 Music.shuffleplay = function (playlist)
-	local _,shuffle,_ = hs.osascript.applescript([[tell application "Music" to get shuffle enabled]])
+	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
 	if shuffle == false then
-		hs.osascript.applescript([[tell application "Music" to set shuffle enabled to true]])
+		as.applescript([[tell application "Music" to set shuffle enabled to true]])
 	end
 	local playscript = [[tell application "Music" to play playlist named pname]]
 	local playlistscript = playscript:gsub("pname", playlist)
-	hs.osascript.applescript(playlistscript)
+	as.applescript(playlistscript)
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
 Music.existinlibrary = function ()
-	local _,existinlibrary,_ = hs.osascript.applescript([[
+	local _,existinlibrary,_ = as.applescript([[
 		tell application "Music"
 			set a to current track's name
 			set b to current track's artist
@@ -178,7 +179,7 @@ end
 -- 将Apple Music曲目添加到本地曲库
 Music.addtolibrary = function()
 	if Music.kind() == "applemusic" then
-		hs.osascript.applescript([[
+		as.applescript([[
 			tell application "Music"
 				try
 					duplicate current track to source "ライブラリ"
@@ -197,7 +198,7 @@ Music.existinplaylist = function (playlistname)
 		end tell
 	]]
 	local existinplaylistscript = existinscript:gsub("pname", playlistname)
-	local _,existinplaylist,_ = hs.osascript.applescript(existinplaylistscript)
+	local _,existinplaylist,_ = as.applescript(existinplaylistscript)
 	return existinplaylist
 end
 -- 将当前曲目添加到指定播放列表
@@ -216,14 +217,14 @@ Music.addtoplaylist = function(playlistname)
 			end tell
 		]]
 		local addtoplaylistscript = addscript:gsub("pname", playlistname)
-		hs.osascript.applescript(addtoplaylistscript)
+		as.applescript(addtoplaylistscript)
 	end
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
 	if Music.album() ~= songalbum then
 		songalbum = Music.album()
-		hs.osascript.applescript([[
+		as.applescript([[
 			tell application "Music"
 				set theartwork to raw data of current track's artwork 1
 				set theformat to format of current track's artwork 1
@@ -248,7 +249,7 @@ Music.saveartworkold = function ()
 	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
 			songalbum = Music.album()
-			hs.osascript.applescript([[
+			as.applescript([[
 				tell application "Music"
 						set theartwork to raw data of current track's artwork 1
 						set theformat to format of current track's artwork 1
@@ -303,7 +304,7 @@ end
 Music.getartworkpath = function()
 	if Music.kind() ~= "connecting" then --若为本地曲目或Apple Music
 		-- 获取图片后缀名
-		local _,format,_ = hs.osascript.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
+		local _,format,_ = as.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
 		if format == nil then
 			artwork = hs.image.imageFromPath(hs.configdir .. "/image/NoArtwork.jpg")
 		else
@@ -333,8 +334,9 @@ function deletemenubar()
 end
 -- 创建菜单栏标题
 function settitle()
-	local gaptext = "｜"	-- 间隔字符
-	--菜单栏标题长度
+	-- 间隔字符
+	local gaptext = "｜"
+	-- 菜单栏标题长度
 	if Music.state() ~= "stopped" then
 		c_menubar = c.new({x = 0, y = 0, h = 25, w = 100})
 		c_menubar:appendElements(
@@ -462,9 +464,18 @@ function setmainmenu()
     			local currentposition = (mousepoint.x - menuframe.x - border.x) / c_progress:frame().w * Music.duration()
     			c_progress:replaceElements(progressElement):show()
     			local setposition = [[tell application "Music" to set player position to "targetposition"]]
-    			hs.osascript.applescript(setposition:gsub("targetposition", currentposition))
+    			as.applescript(setposition:gsub("targetposition", currentposition))
     		end
-    	end
+		end
+		-- 点击左上角退出
+		if id == "background" and event == "mouseUp" and y < border.y and x < border.x then
+			hide("all")
+			progressTimer:stop()
+			Switch:stop()
+			as.applescript([[tell application "Music" to quit]])
+			as.applescript([[tell application "LyricsX" to quit]])
+			Switch:start()
+		end
 	end)
 end
 -- 设置Apple Music悬浮菜单项目
@@ -675,14 +686,14 @@ end
 function setplaylistmenu()
 	delete(c_playlist)
 	-- 获取播放列表个数
-	_,playlistcount,_ = hs.osascript.applescript([[
+	_,playlistcount,_ = as.applescript([[
 		tell application "Music"
 			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
 			get count of allplaylist
 		end tell
 	]])
 	-- 获取播放列表名称
-	_,playlistname,_ = hs.osascript.applescript([[
+	_,playlistname,_ = as.applescript([[
 		tell application "Music"
 			get name of every user playlist whose smart is false and special kind is none
 		end tell
@@ -692,7 +703,7 @@ function setplaylistmenu()
 	playlistframe = {x = controlmenuframe.x + c_controlmenu["playlist"].frame.x + c_controlmenu["playlist"].frame.w / 2, y = controlmenuframe.y + c_controlmenu["playlist"].frame.y + c_controlmenu["playlist"].frame.h / 2, h = textsize * playlistcount, w = smallsize}
 	c_playlist = c.new(playlistframe):level(c_mainmenu:level() + 1)
 	-- 设置菜单宽度
-	local _,test,_ = hs.osascript.applescript([[
+	local _,test,_ = as.applescript([[
 		tell application "Music"
 			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
 			set theBackup to AppleScript's text item delimiters
@@ -744,7 +755,7 @@ function setplaylistmenu()
 				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
-				fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0},
+				fillColor = {alpha = 0.96, red = 35 / 255, green = 37 / 255, blue = 34 / 255},
 				strokeColor = {alpha = 0.8, white = 0.5},
 				trackMouseEnterExit = true,
 				trackMouseUp = true
@@ -822,13 +833,14 @@ function setprogresscanvas()
 	}
 	c_progress:appendElements(progressElement)
 	if Music.state() == "playing" then
-		hs.timer.doWhile(function()
+		progressTimer = hs.timer.doWhile(function()
 			return c_progress:isShowing()
 			end, 
 			function()
 				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
 				c_progress:replaceElements(progressElement):show()
 		end, updatetime)
+		progressTimer:stop()
 	else
 		c_progress:show()
 	end
@@ -852,8 +864,15 @@ function show(canvas)
 	end
 end
 function delete(canvas)
-	if canvas ~= nil then
+	if canvas ~= nil and canvas ~= "all" then
 		canvas:delete(fadetime)
+	elseif canvas == "all" then
+		delete(c_applemusicmenu)
+		delete(c_localmusicmenu)
+		delete(c_controlmenu)
+		delete(c_progress)
+		delete(c_playlist)
+		delete(c_mainmenu)
 	end
 end
 -- 判断鼠标指针是否处于悬浮菜单内
@@ -879,6 +898,7 @@ function togglecanvas()
 		if c_mainmenu ~= nil then
 			if c_mainmenu:isShowing() == true then
 				hide("all")
+				progressTimer:stop()
 			else
 				setmainmenu()
 				if Music.kind() == "applemusic" then
@@ -894,6 +914,7 @@ function togglecanvas()
 					show(c_localmusicmenu)
 				end
 				setprogresscanvas()
+				progressTimer:start()
 				setcontrolmenu()
 				show(c_mainmenu)
 				show(c_progress)
@@ -910,7 +931,10 @@ function togglecanvas()
 							return false
 						end
 					end, function()
-						delay(staytime, function() hide("all") end)
+						delay(staytime, function()
+							hide("all")
+							progressTimer:stop()
+						end)
         		end)
 			end
 		end
@@ -918,7 +942,7 @@ function togglecanvas()
 end
 -- 更新Menubar
 function updatemenubar()
-	if Music.state() ~= "stopped" and Music.checkrunning() == true then
+	if Music.state() ~= "stopped"  then
 		--若更换了曲目
 		if Music.kind() == "connecting" then
 			settitle()
@@ -931,13 +955,12 @@ function updatemenubar()
 				songkind = Music.kind()
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
-					if Music.currentposition() > 0 then
+					if Music.currentposition() > 1 then
 						return true
 					else
 						return false
 					end
-				end, Music.saveartwork())
-				
+				end, Music.saveartwork())	
 			else
 				songtitle = Music.title()
 				songloved = Music.loved()
@@ -959,7 +982,8 @@ function updatemenubar()
 end
 -- 创建Menubar
 function setmusicbar()
-	if Music.checkrunning() == true then -- 若Music正在运行
+	-- 若Music正在运行
+	if Music.checkrunning() == true then
 		-- 若首次播放则新建menubar item
 		if MusicBar == nil then
 			MusicBar = hs.menubar.new()
@@ -979,25 +1003,24 @@ function MusicBarUpdate()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
 		updatemenubar()
+		-- 点击菜单栏时的弹出悬浮菜单
+		if MusicBar ~= nil then
+			if Music.state() ~= "stopped" then
+				MusicBar:setClickCallback(togglecanvas)
+			else
+				MusicBar:setClickCallback(function ()
+					as.applescript([[tell application "Music" to activate]])
+				end)
+			end
+		end
 	else
 		deletemenubar()
+		progressTimer = nil
 		MusicBar = nil
 	end
-	-- 点击菜单栏时的弹出悬浮菜单
-	if MusicBar ~= nil then
-		if Music.state() ~= "stopped" then
-			MusicBar:setClickCallback(togglecanvas)
-		else
-			MusicBar:setClickCallback(function ()
-				hs.osascript.applescript([[
-					tell application "Music"
-						activate
-					end tell
-				]])
-			end)
-		end
-	end
 end
-hs.timer.doWhile(function()
-			return true
-		end, MusicBarUpdate)
+-- hs.timer.doWhile(function()
+-- 			return true
+-- 		end, MusicBarUpdate)
+Switch = hs.timer.new(1, MusicBarUpdate)
+Switch:start()
