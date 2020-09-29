@@ -1,3 +1,12 @@
+--
+-- 定义变量 --
+--
+-- 定义Hammerspoon模块
+as = require("hs.osascript")
+c = require("hs.canvas")
+-- 系统变量
+screenframe = hs.screen.mainScreen():fullFrame()
+-- 缓存变量初始化
 local MusicBar = nil
 local songtitle = nil
 local songalbum = nil
@@ -7,6 +16,32 @@ local songrating = nil
 local songalbum = nil
 local songkind = nil
 local musicstate = nil
+-- 可更改的自定义变量
+gaptext = "｜" -- 菜单栏标题的间隔字符
+fadetime = 0.6 -- 淡入淡出时间
+staytime = 2 -- 显示时间
+updatetime = 0.5 -- 刷新时间
+artworksize = {h = 200, w = 200} -- 专辑封面显示尺寸
+border = {x = 10, y = 10} -- 边框尺寸
+gap = {x = 10, y = 10} -- 项目之间的间隔
+smallsize = 600 -- 默认最小尺寸
+textsize = 20 -- 悬浮菜单字体大小
+imagesize = {h = 15, w = 15} -- 菜单图标大小
+bgColor = {35, 37, 34} -- 背景颜色（RGB）
+bgAlpha = 0.96 -- 背景透明度
+menubgColor = {35, 37, 34} -- 菜单背景默认颜色（RGB）
+menubgAlpha = 0.96 -- 菜单背景透明度
+menubgColorS = {255, 255, 255} -- 菜单背景选中颜色（RGB）
+menubgAlphaS = 0.5 -- 菜单背景选中透明度
+menuTextColor = {255, 255, 255} -- 菜单字体默认颜色（RGB）
+menuTextColorS = {0, 120, 255} -- 菜单字体选中颜色（RGB）
+menuStrokeColor = {255, 255, 255} -- 菜单边框颜色（RGB）
+menuStrokeAlpha = 0.8 -- 菜单边框透明度
+progressColor = {186, 187, 187} -- 进度条颜色
+progressColorAM = {255, 45, 84} -- 进度条颜色(AM红)
+progressAlpha = 0.6 -- 进度条透明度
+--{alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255}
+-- 本地化适配
 local owner = hs.host.localizedName()
 if string.find(owner,"カミ") then
 	NoPlaying = "ミュージック"
@@ -19,8 +54,9 @@ else
 	connectingFile = "正在连接…"
 	streamingFile = "互联网音频流"
 end
-as = require("hs.osascript")
+--
 -- Music功能函数集 --
+--
 local Music = {}
 -- 曲目信息
 Music.title = function ()
@@ -82,7 +118,7 @@ Music.setrating = function (rating)
 		as.applescript([[tell application "Music" to set rating of current track to 0]])
 	end
 end
--- 设置为喜欢
+-- 标记为喜爱
 Music.toggleloved = function ()
 	as.applescript([[
 		tell application "Music"
@@ -94,7 +130,7 @@ Music.toggleloved = function ()
 		end tell
 	]])
 end
--- 设置为不喜欢
+-- 标记为不喜欢
 Music.toggledisliked = function ()
 	as.applescript([[
 		tell application "Music"
@@ -112,13 +148,17 @@ Music.kind = function()
 	local _,cloudstatus,_ = as.applescript([[tell application "Music" to get cloud status of current track as string]])
 	local _,class,_ = as.applescript([[tell application "Music" to get class of current track as string]])
 	if kind ~= nil then
-		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then --若为本地曲目
+		--若为本地曲目
+		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then
 			musictype = "localmusic"
-		elseif Music.title() == connectingFile or string.find(kind, streamingFile) then -- 若Apple Μsic连接中
+		-- 若Apple Μsic连接中
+		elseif Music.title() == connectingFile or string.find(kind, streamingFile) then
 			musictype = "connecting"
-		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then -- 若为Apple Music
+		-- 若为Apple Music
+		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then
 			musictype = "applemusic"
-		elseif cloudstatus == "matched" then -- 若为匹配Apple Music的本地歌曲
+		-- 若为匹配Apple Music的本地歌曲
+		elseif cloudstatus == "matched" then
 			musictype = "matched"
 		end
 	end
@@ -160,16 +200,6 @@ Music.toggleloop = function ()
 	elseif Music.loop() == "off" then
 		as.applescript([[tell application "Music" to set song repeat to all]])
 	end
-end
--- 随机播放指定播放列表中曲目
-Music.shuffleplay = function (playlist)
-	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
-	if shuffle == false then
-		as.applescript([[tell application "Music" to set shuffle enabled to true]])
-	end
-	local playscript = [[tell application "Music" to play playlist named pname]]
-	local playlistscript = playscript:gsub("pname", playlist)
-	as.applescript(playlistscript)
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
 Music.existinlibrary = function ()
@@ -226,6 +256,16 @@ Music.addtoplaylist = function(playlistname)
 		as.applescript(addtoplaylistscript)
 	end
 end
+-- 随机播放指定播放列表中曲目
+Music.shuffleplay = function (playlist)
+	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
+	if shuffle == false then
+		as.applescript([[tell application "Music" to set shuffle enabled to true]])
+	end
+	local playscript = [[tell application "Music" to play playlist named pname]]
+	local playlistscript = playscript:gsub("pname", playlist)
+	as.applescript(playlistscript)
+end
 -- 保存专辑封面
 Music.saveartwork = function ()
 	if Music.album() ~= songalbum then
@@ -249,7 +289,7 @@ Music.saveartwork = function ()
 		]])
 	end
 end
--- 保存专辑封面（BackUp）
+-- 保存专辑封面（利用iTunes的API）
 Music.saveartworkold = function ()
 	-- 判断是否为Apple Music
 	if Music.kind() ~= "connecting" then --若为本地曲目
@@ -308,7 +348,8 @@ Music.saveartworkold = function ()
 end
 -- 获取专辑封面路径
 Music.getartworkpath = function()
-	if Music.kind() ~= "connecting" then --若为本地曲目或Apple Music
+	-- 若为本地曲目或Apple Music
+	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
 		local _,format,_ = as.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
 		if format == nil then
@@ -321,12 +362,15 @@ Music.getartworkpath = function()
 			end
 			artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork." .. ext):setSize({h = 300, w = 300}, absolute == true)
 		end
-	elseif Music.kind() == "connecting"	then	-- 若连接中
+	-- 若连接中
+	elseif Music.kind() == "connecting"	then
 		artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 	end
 	return artwork
 end
+--
 -- MenuBar函数集 --
+--
 -- 延迟函数
 function delay(gap, func)
 	local delaytimer = hs.timer.delayed.new(gap, func)
@@ -340,8 +384,6 @@ function deletemenubar()
 end
 -- 创建菜单栏标题
 function settitle()
-	-- 间隔字符
-	local gaptext = "｜"
 	-- 菜单栏标题长度
 	if Music.state() ~= "stopped" then
 		c_menubar = c.new({x = 0, y = 0, h = 25, w = 100})
@@ -362,8 +404,8 @@ function settitle()
 	end
 	local maxlen = 400
 	if Music.state() == "playing" then
-		if Music.title() == "接続中…" then
-			MusicBar:setTitle('♫ 接続中…')
+		if Music.title() == connectingFile then
+			MusicBar:setTitle('♫ ' .. connectingFile)
 		else
 			local infolength = string.len(Music.title() .. gaptext .. Music.artist())
 			if titlesize.w < maxlen then
@@ -383,19 +425,10 @@ function settitle()
 		MusicBar:setTitle('◼ 停止中')
 	end
 end
--- 创建桌面悬浮式菜单
-c = require("hs.canvas")
-fadetime = 0.6 -- 淡入淡出时间
-staytime = 2 -- 显示时间
-updatetime = 0.5 -- 刷新时间
-screenframe = hs.screen.mainScreen():fullFrame()
-artworksize = {h = 200, w = 200}
-border = {x = 10, y = 10}
-gap = {x = 10, y = 10}
-smallsize = 600
-textsize = 20 -- 悬浮菜单字体大小
-imagesize = {h = 15, w = 15} -- 菜单图标大小
--- 设置桌面悬浮主菜单
+--
+-- 悬浮菜单函数集
+--
+-- 设置悬浮主菜单
 function setmainmenu()
 	barframe = MusicBar:frame()
 	delete(c_mainmenu)
@@ -408,7 +441,7 @@ function setmainmenu()
 			type = "rectangle",
 			action = "fill",
 			roundedRectRadii = {xRadius = 6, yRadius = 6},
-			fillColor = {alpha = 0.96, red = 35 / 255, green = 37 / 255, blue = 34 / 255},
+			fillColor = {alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
 			trackMouseEnterExit = true,
 			trackMouseUp = true
 		}, {-- 专辑封面
@@ -429,7 +462,7 @@ function setmainmenu()
 			trackMouseUp = true
 		}
 	)
-	-- 设置悬浮菜单宽度
+	-- 设置悬浮菜单宽度(自适应)
 	infosize = c_mainmenu:minimumTextSize(3, c_mainmenu["info"].text)
 	local defaultsize = infosize.w + artworksize.w + border.x * 2 + gap.x
 	if defaultsize < smallsize then
@@ -487,7 +520,7 @@ end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
 	delete(c_applemusicmenu)
-	-- 喜欢
+	-- 喜爱
 	if Music.loved() == true then
 		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
 	else
@@ -497,7 +530,7 @@ function setapplemusicmenu()
 	if Music.kind() == "applemusic" then
 		c_applemusicmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 3}):level(c_mainmenu:level() + 2)
 		c_applemusicmenu:replaceElements(
-			 {--喜欢
+			 {-- 喜爱
 				id = "loved",
 				frame = {x = 0, y = 0, h = imagesize.h, w = imagesize.w},
 				type = "image",
@@ -510,7 +543,7 @@ function setapplemusicmenu()
 	elseif Music.kind() == "matched" then
 		c_applemusicmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h, w = imagesize.w}):level(c_mainmenu:level() + 2)
 		c_applemusicmenu:replaceElements(
-			 {--喜欢
+			 {-- 喜爱
 				id = "loved",
 				frame = {x = 0, y = 0, h = imagesize.h, w = imagesize.w},
 				type = "image",
@@ -524,7 +557,7 @@ function setapplemusicmenu()
 	-- 鼠标行为
 	c_applemusicmenu:mouseCallback(function(canvas, event, id, x, y)
 		-- x,y为距离整个悬浮菜单边界的坐标
-    	-- 喜欢
+    	-- 喜爱
     	if id == "loved" and (y > c_applemusicmenu["loved"].frame.y and y < c_applemusicmenu["loved"].frame.y + c_applemusicmenu["loved"].frame.h) and event == "mouseUp" then
     		if x > c_applemusicmenu["loved"].frame.x and x < c_applemusicmenu["loved"].frame.x + c_applemusicmenu["loved"].frame.w then
     			Music.toggleloved()
@@ -606,7 +639,7 @@ function setlocalmusicmenu()
    			end
    		end)
 end
--- 设置控制悬浮菜单项目
+-- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
 	delete(c_controlmenu)
 	-- 随机菜单项目
@@ -751,9 +784,9 @@ function setplaylistmenu()
 	count = 1
 	repeat
 		if Music.existinplaylist(playlistname[count]) == false then
-			textcolor = {white = 1.0}
+			textcolor = {red = menuTextColor[1] / 255, green = menuTextColor[2] / 255, blue = menuTextColor[3] / 255}
 		else
-			textcolor = {red = 0, green = 0.47, blue = 1}
+			textcolor = {red = menuTextColorS[1] / 255, green = menuTextColorS[2] / 255, blue = menuTextColorS[3] / 255}
 		end
 		c_playlist:appendElements(
 			{-- 菜单项背景
@@ -761,8 +794,8 @@ function setplaylistmenu()
 				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
-				fillColor = {alpha = 0.96, red = 35 / 255, green = 37 / 255, blue = 34 / 255},
-				strokeColor = {alpha = 0.8, white = 0.5},
+				fillColor = {alpha = menubgAlpha, red = menubgColor[1] / 255, green = menubgColor[2] / 255, blue = menubgColor[3] / 255},
+				strokeColor = {alpha = menuStrokeAlpha, red = menuStrokeColor[1] / 255, green = menuStrokeColor[2] / 255, blue = menuStrokeColor[3] / 255},
 				trackMouseEnterExit = true,
 				trackMouseUp = true
 			}
@@ -787,7 +820,7 @@ function setplaylistmenu()
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
 				fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
-				strokeColor = {alpha = 0.8, white = 0.5},
+				strokeColor = {alpha = menuStrokeAlpha, red = menuStrokeColor[1] / 255, green = menuStrokeColor[2] / 255, blue = menuStrokeColor[3] / 255},
 				trackMouseEnterExit = true,
 				trackMouseUp = true
 			}
@@ -801,10 +834,10 @@ function setplaylistmenu()
 		repeat
 			if id == "playlistoverlay" .. i then
 				if event == "mouseEnter" then
-					c_playlist["playlistback" .. i].fillColor = {alpha = 0.8, white = 0.5}
+					c_playlist["playlistback" .. i].fillColor = {alpha = menubgAlphaS, red = menubgColorS[1] / 255, green = menubgColorS[2] / 255, blue = menubgColorS[3] / 255}
 				elseif event == "mouseExit" then
 					if x > border.x and x < playlistframe.w - border.x and y > border.y and y < playlistframe.h - border.y then
-						c_playlist["playlistback" .. i].fillColor = {alpha = 0.8, red = 0, green = 0, blue = 0}
+						c_playlist["playlistback" .. i].fillColor = {alpha = menubgAlpha, red = menubgColor[1] / 255, green = menubgColor[2] / 255, blue = menubgColor[3] / 255}
 					else
 						hide(c_playlist)
 					end
@@ -833,8 +866,7 @@ function setprogresscanvas()
     	type = "rectangle",
     	roundedRectRadii = {xRadius = 2, yRadius = 2},
     	frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / Music.duration()},
-		fillColor = {alpha = 0.6, red = 186 / 255, green = 187 / 255, blue = 187 / 255},
-		-- fillColor = {alpha = 0.6, red = 1, green = 0.176, blue = 0.33}, AM红
+		fillColor = {alpha = progressAlpha, red = progressColor[1] / 255, green = progressColor[2] / 255, blue = progressColor[3] / 255},
     	trackMouseUp = true
 	}
 	c_progress:appendElements(progressElement)
@@ -851,7 +883,10 @@ function setprogresscanvas()
 		c_progress:show()
 	end
 end
--- 功能函数
+--
+-- 悬浮菜单功能函数集
+--
+-- 隐藏
 function hide(canvas)
 	if canvas ~= nil and canvas ~= "all" then
 		canvas:hide(fadetime)
@@ -864,11 +899,13 @@ function hide(canvas)
 		hide(c_mainmenu)
 	end
 end
+-- 显示
 function show(canvas)
 	if canvas ~= nil then
 		canvas:show(fadetime)
 	end
 end
+-- 删除
 function delete(canvas)
 	if canvas ~= nil and canvas ~= "all" then
 		canvas:delete(fadetime)
@@ -895,7 +932,7 @@ function mousePosition()
 	end
 	return mp
 end
--- 点击时的行为
+-- 鼠标点击时的行为
 function togglecanvas()
 	if Music.state() ~= "stopped" then
 		if c_mainmenu == nil then
