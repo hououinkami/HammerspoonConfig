@@ -10,8 +10,14 @@ local musicstate = nil
 local owner = hs.host.localizedName()
 if string.find(owner,"カミ") then
 	NoPlaying = "ミュージック"
+	localFile = "AACオーディオファイル"
+	connectingFile = "接続中…"
+	streamingFile = "インターネットオーディオストリーム"
 else
 	NoPlaying = "Music"
+	localFile = "AAC音频文件"
+	connectingFile = "正在连接…"
+	streamingFile = "互联网音频流"
 end
 as = require("hs.osascript")
 -- Music功能函数集 --
@@ -106,9 +112,9 @@ Music.kind = function()
 	local _,cloudstatus,_ = as.applescript([[tell application "Music" to get cloud status of current track as string]])
 	local _,class,_ = as.applescript([[tell application "Music" to get class of current track as string]])
 	if kind ~= nil then
-		if (string.find(kind, "AAC") and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then --若为本地曲目
+		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then --若为本地曲目
 			musictype = "localmusic"
-		elseif Music.title() == "接続中…" or kind == "インターネットオーディオストリーム" or string.find(kind, "流") then -- 若Apple Μsic连接中
+		elseif Music.title() == connectingFile or string.find(kind, streamingFile) then -- 若Apple Μsic连接中
 			musictype = "connecting"
 		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then -- 若为Apple Music
 			musictype = "applemusic"
@@ -898,7 +904,9 @@ function togglecanvas()
 		if c_mainmenu ~= nil then
 			if c_mainmenu:isShowing() == true then
 				hide("all")
-				progressTimer:stop()
+				if progressTimer then
+					progressTimer:stop()
+				end
 			else
 				setmainmenu()
 				if Music.kind() == "applemusic" then
@@ -914,7 +922,9 @@ function togglecanvas()
 					show(c_localmusicmenu)
 				end
 				setprogresscanvas()
-				progressTimer:start()
+				if progressTimer then
+					progressTimer:start()
+				end
 				setcontrolmenu()
 				show(c_mainmenu)
 				show(c_progress)
@@ -933,7 +943,9 @@ function togglecanvas()
 					end, function()
 						delay(staytime, function()
 							hide("all")
-							progressTimer:stop()
+							if progressTimer then
+								progressTimer:stop()
+							end
 						end)
         		end)
 			end
