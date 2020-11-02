@@ -198,12 +198,19 @@ end
 function applicationWatcher(appName, eventType, appObject)
 	-- 激活窗口
 	if (eventType == hs.application.watcher.activated) then
-    	if (appName == "QQ") then
+		if (appName == "QQ") then
+			if appObject:focusedWindow() then
 			  appObject:focusedWindow():move({ 0, 140, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
+			end
 		elseif (appName == "WeChat") then
+			if appObject:focusedWindow() then
 				appObject:focusedWindow():move({ 440, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
-		elseif (appName == "Finder") then
-			appObject:setFrontmost(true)
+			end
+		elseif (appName == "") then
+			print(appObject:focusedWindow())
+			if appObject:focusedWindow() and appObject:focusedWindow():title() then
+				appObject:setFrontmost(true)
+			end
 			-- hs.osascript.applescript([[tell application "System Events" to tell process "Finder" to tell (menu bar 1's menu bar item 7) to {click (menu 1's menu item 16)}]])
 			-- appObject:selectMenuItem({"ウインドウ", "すべてを手前に移動"})
     	end
