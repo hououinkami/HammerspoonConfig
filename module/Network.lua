@@ -78,6 +78,13 @@ function clickCallback()
     end
     if r == true then
         hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
+    else
+        hs.osascript.applescript([[
+            tell application "Safari"
+	            activate
+	            tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1:9090/ui/#/proxies"})
+            end tell
+        ]])
     end
 end
 -- 刷新函数
