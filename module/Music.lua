@@ -700,19 +700,25 @@ function setcontrolmenu()
    		elseif id == "loop" and event == "mouseUp" then
 			Music.toggleloop()
 		elseif id == "playlist" and event == "mouseUp" then
-			if Music.existinlibrary() == "false" then
+			if Music.existinlibrary() == false then
 				Music.addtolibrary()
-			elseif c_playlist == nil then
-				setplaylistmenu()
-				c_playlist:orderAbove(c_mainmenu)
-				show(c_playlist)
-			elseif c_playlist ~= nil then
-				if c_playlist:isShowing() == false then
+				repeat
+					delay(1, function() return false end)
+				until(Music.existinlibrary() == true)
+				setcontrolmenu()
+			else
+				if c_playlist == nil then
 					setplaylistmenu()
 					c_playlist:orderAbove(c_mainmenu)
 					show(c_playlist)
-				else
-					hide(c_playlist)
+				elseif c_playlist ~= nil then
+					if c_playlist:isShowing() == false then
+						setplaylistmenu()
+						c_playlist:orderAbove(c_mainmenu)
+						show(c_playlist)
+					else
+						hide(c_playlist)
+					end
 				end
 			end
    		end
