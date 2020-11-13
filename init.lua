@@ -1,25 +1,27 @@
 -- Hammerspoon设置
 hs.preferencesDarkMode = true
 hotkey = require "hs.hotkey"
-hyperkey = {"ctrl", "command", "shift"}
-hyper = {"ctrl", "option"}
-Hyper = {"ctrl", "option", "command"}
+hyperkey = {"control", "command", "shift"}
+hyper = {"control", "option"}
+Hyper = {"control", "option", "command"}
+keymap = {"control"}
 hotkey.bind(hyperkey, "r", hs.reload)
 hotkey.bind(hyperkey, "p", hs.openPreferences)
 hotkey.bind({"option"}, "z", hs.toggleConsole)
 -- 组件加载管理
 local module_list = {
 	"module.Music",
-	"module.window",
+	"module.Window",
 	"module.Spotlightlike",
 	"module.IME",
 	"module.Network",
+	"module.AppKeyMap",
 	--"module.DesktopWidget",
 		}
 for _, v in ipairs(module_list) do
 	require (v)
 end
--- Baby
+-- 自动更新
 local owner = hs.host.localizedName()
 if not string.find(owner,"カミ") then
 	require "module.autoupdate"
