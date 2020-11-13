@@ -41,27 +41,32 @@ local Resize = {}
 Resize.halfleft = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
-	this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
+	pushWindow(this.window, 0, 0, 1/2, 1)
+	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
 end
 Resize.halfright = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
-	this.window:setFrame({ this.screenFrame.x+this.screenFrame.w / 2, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
+	pushWindow(this.window, 1/2, 0, 1/2, 1)
+	--this.window:setFrame({ this.screenFrame.x+this.screenFrame.w / 2, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
 end
 Resize.halfup = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
-	this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w, this.screenFrame.h / 2 })
+	pushWindow(this.window, 0, 0, 1, 1/2)
+	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w, this.screenFrame.h / 2 })
 end
 Resize.halfdown = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
-	this.window:setFrame({ this.screenFrame.x, this.screenFrame.y + this.screenFrame.h / 2, this.screenFrame.w, this.screenFrame.h / 2 })
+	pushWindow(this.window, 0, 1/2, 1, 1/2)
+	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y + this.screenFrame.h / 2, this.screenFrame.w, this.screenFrame.h / 2 })
 end
 Resize.maximize = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
-	this.window:setFrame({ x = this.resolution.x, y = this.resolution.y, w = this.resolution.w, h = this.resolution.h})
+	pushWindow(this.window, 0, 0, 1, 1)
+	--this.window:setFrame({ x = this.resolution.x, y = this.resolution.y, w = this.resolution.w, h = this.resolution.h})
 end
 Resize.fullscreen = function ()
 	local this = windowMeta.new()
@@ -124,6 +129,22 @@ windowsManagement(Hyper,{
 		down = Resize.todown,
 		delete = Resize.reset,
 	})
+-- 按比例缩放当前窗口
+function pushCurrent(x, y, w, h)
+    local window = hs.window.focusedWindow()
+    pushWindow(window, x, y, w, h)
+end
+-- 按比例缩放指定窗口
+function pushWindow(window, x, y, w, h)
+    local frame = window:frame()
+    local screen = window:screen()
+    local max = screen:frame()
+    frame.x = max.x + (max.w * x)
+    frame.y = max.y + (max.h * y)
+    frame.w = max.w * w
+    frame.h = max.h * h
+    window:setFrame(frame)
+end
 -- 撤销最近一次动作
 function Undo()
 	local cwin = hs.window.focusedWindow()
