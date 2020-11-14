@@ -37,8 +37,8 @@ menuTextColor = {255, 255, 255} -- 菜单字体默认颜色（RGB）
 menuTextColorS = {0, 120, 255} -- 菜单字体选中颜色（RGB）
 menuStrokeColor = {255, 255, 255} -- 菜单边框颜色（RGB）
 menuStrokeAlpha = 0.8 -- 菜单边框透明度
-progressColor = {186, 187, 187} -- 进度条颜色
-progressColorAM = {255, 45, 84} -- 进度条颜色(AM红)
+progressColor = {185, 185, 185} -- 进度条颜色
+AMRed = {232, 68, 79} -- Apple Music红
 progressAlpha = 0.6 -- 进度条透明度
 --{alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255}
 -- 本地化适配
