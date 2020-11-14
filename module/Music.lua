@@ -1057,7 +1057,16 @@ function MusicBarUpdate()
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
-		updatemenubar()
+		------------- Big Sur暂时解决办法 Start -------------
+		local _,am,_ = as.applescript([[
+			try
+				tell application "Music" to get kind of current track
+			end try
+		]])
+		if am ~= nil then
+
+		------保留-------
+		updatemenubar() 
 		-- 点击菜单栏时的弹出悬浮菜单
 		if MusicBar ~= nil then
 			if Music.state() ~= "stopped" then
@@ -1068,6 +1077,17 @@ function MusicBarUpdate()
 				end)
 			end
 		end
+		------保留-------
+
+		else
+			if Music.state() == "playing" then
+				MusicBar:setTitle('♫ Apple Music')
+			else
+				MusicBar:setTitle('❙ ❙ Apple Music')
+			end
+			MusicBar:setClickCallback(Music.locate)
+		end
+		------------- Big Sur暂时解决办法 End -------------
 	else
 		deletemenubar()
 		progressTimer = nil
