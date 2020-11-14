@@ -148,8 +148,5 @@ function rescan()
     --menubar:setMenu(menuitems_table)
     menubar:setClickCallback(clickCallback)
 end
-local owner = hs.host.localizedName()
-if string.find(owner,"カミ") then
-	menubar = hs.menubar.new()
-    rescan()
-end
+menubar = hs.menubar.new()
+rescan()
