@@ -10,32 +10,32 @@ end
 local toolbarItems = {
 	{
 		id = "google",
-		label = false,
+		label = "Google",
 		fn = function() searchFun("https://www.google.com/search?q=keyword") end,
 		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/google.png"):setSize(imagesize, absolute == true),
 	},
 	{
 		id = "baidu",
-		label = false,
+		label = "Baidu",
 		fn = function() searchFun("https://www.baidu.com/s?wd=keyword") end,
 		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/baidu.png"):setSize(imagesize, absolute == true),
 	},
 	{
 		id = "wiki",
-		label = false,
+		label = "Wiki",
 		fn = function() searchFun(wikiUrl) end,
 		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/wiki.png"):setSize(imagesize, absolute == true),
 	},
 	{
 		id = "translate",
-		label = false,
+		label = "翻訳",
 		fn = function() searchFun("https://translate.google.com/#view=home&op=translate&sl=auto&tl=zh-CN&text=keyword") end,
 		image = hs.image.imageFromPath(hs.configdir .. "/image/ToolBar/translate.png"):setSize(imagesize, absolute == true),
 	}
 }
 local chooserToolbar = hs.webview.toolbar.new("chooserToolbarTest")
 chooserToolbar:addItems(toolbarItems)
-chooserToolbar:displayMode("default")
+chooserToolbar:displayMode("icon")
 chooserToolbar:canCustomize(true)
 -- 生成搜索框
 function searchBox()
