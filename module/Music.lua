@@ -63,6 +63,12 @@ end
 --
 -- Music功能函数集 for Apple Music in Big Sur（临时）--
 --
+local _,cachePath,_ = as.applescript([[
+		tell application "Finder"
+			set userfolder to POSIX path of (path to home folder)
+			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
+		end tell
+	]])
 local MusicA = {}
 MusicA.isAM = function ()
 	local _,am,_ = as.applescript([[
@@ -107,16 +113,10 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	local _,cachePath,_ = as.applescript([[
-		tell application "Finder"
-			set userfolder to POSIX path of (path to home folder)
-			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
-		end tell
-	]])
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
-	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	songInfo = hs.json.read(cachePath)
 	if songInfo then
 		return songInfo[2]
 	else
@@ -124,7 +124,7 @@ MusicA.title = function ()
 	end
 end
 MusicA.artist = function ()
-	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	songInfo = hs.json.read(cachePath)
 	if songInfo then
 		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
 		artist = stringSplit(artistandalbum, "|")[1]:match("^[%s]*(.-)[%s]*$")
@@ -134,7 +134,7 @@ MusicA.artist = function ()
 	end
 end
 MusicA.album = function ()
-	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	songInfo = hs.json.read(cachePath)
 	if songInfo then
 		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
 		if stringSplit(artistandalbum, "|")[2] then
@@ -148,7 +148,7 @@ MusicA.album = function ()
 	end
 end
 MusicA.loved = function ()
-	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	songInfo = hs.json.read(cachePath)
 	if songInfo then
 		if songInfo[6] == "loved" then
 			return true
@@ -160,7 +160,7 @@ MusicA.loved = function ()
 	end
 end
 MusicA.disliked = function ()
-	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	songInfo = hs.json.read(cachePath)
 	if songInfo then
 		if songInfo[7] == "disliked" then
 			return true
@@ -205,12 +205,6 @@ MusicA.toggleloved = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
-	local _,cachePath,_ = as.applescript([[
-		tell application "Finder"
-			set userfolder to POSIX path of (path to home folder)
-			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
-		end tell
-	]])
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.toggledisliked = function ()
@@ -247,12 +241,6 @@ MusicA.toggledisliked = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
-	local _,cachePath,_ = as.applescript([[
-		tell application "Finder"
-			set userfolder to POSIX path of (path to home folder)
-			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
-		end tell
-	]])
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.saveartwork = function () 
