@@ -79,7 +79,10 @@ end
 MusicA.getInfo = function ()
 	local aminfoScript = [[
 		tell application "System Events"
-			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			tell application "Finder"
+				set userfolder to path to home folder as string
+				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
+			end tell
 			if isExist is true then
 				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
 			end if
@@ -165,7 +168,10 @@ end
 MusicA.toggleloved = function ()
 	local amLovedscript = [[
 		tell application "System Events"
-			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			tell application "Finder"
+				set userfolder to path to home folder as string
+				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
+			end tell
 			if isExist is true then
 				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
 			end if
@@ -198,7 +204,10 @@ end
 MusicA.toggledisliked = function ()
 	local amDislikedscript = [[
 		tell application "System Events"
-			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			tell application "Finder"
+				set userfolder to path to home folder as string
+				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
+			end tell
 			if isExist is true then
 				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
 			end if
@@ -1324,8 +1333,7 @@ function updatemenubar()
 		if MusicA.isAM() == true then
 			if Music.kind() == "connecting" then
 				MusicA.getInfo()
-			end
-			if Music.currentposition() < 0.3 and Music.kind() == "applemusic" then
+			elseif Music.currentposition() < 0.5 and Music.kind() == "applemusic" then
 				MusicA.getInfo()
 			end
 			songtitle = Music.title()
@@ -1345,7 +1353,7 @@ function updatemenubar()
 				songloved = Music.loved()
 				songrating = Music.rating()
 				songkind = Music.kind()
-				currentposition = 0.3
+				currentposition = 0.5
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
 					if Music.currentposition() > 1 then
