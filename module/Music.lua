@@ -34,58 +34,308 @@ menubgAlpha = 0.96 -- 菜单背景透明度
 menubgColorS = {127.5, 127.5, 127.5} -- 菜单背景选中颜色（RGB）
 menubgAlphaS = 0.8 -- 菜单背景选中透明度
 menuTextColor = {255, 255, 255} -- 菜单字体默认颜色（RGB）
-menuTextColorS = {0, 120, 255} -- 菜单字体选中颜色（RGB）
+menuTextColorS = {232, 68, 79} -- 菜单字体选中颜色（RGB）
 menuStrokeColor = {255, 255, 255} -- 菜单边框颜色（RGB）
 menuStrokeAlpha = 0.8 -- 菜单边框透明度
 progressColor = {185, 185, 185} -- 进度条颜色
 AMRed = {232, 68, 79} -- Apple Music红
+AMBlue = {0, 120, 255}
 progressAlpha = 0.6 -- 进度条透明度
---{alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255}
 -- 本地化适配
 local owner = hs.host.localizedName()
 if string.find(owner,"カミ") then
 	NoPlaying = "ミュージック"
+	MusicApp = "ミュージック"
+	MusicLibrary = "ライブラリ"
 	localFile = "AACオーディオファイル"
 	connectingFile = "接続中…"
 	streamingFile = "インターネットオーディオストリーム"
-else
+else -- Edit here for other languages!
 	NoPlaying = "Music"
+	MusicApp = "音乐"
+	MusicLibrary = "资料库"
 	localFile = "AAC音频文件"
 	connectingFile = "正在连接…"
 	streamingFile = "互联网音频流"
 end
+
+------------- Big Sur暂时解决办法 Start -------------
+--
+-- Music功能函数集 for Apple Music in Big Sur（临时）--
+--
+local MusicA = {}
+MusicA.isAM = function ()
+	local _,am,_ = as.applescript([[
+		try
+			tell application "Music" to get kind of current track
+		end try
+	]])
+	if am == nil then
+		return true
+	else
+		return false
+	end
+end
+MusicA.getInfo = function ()
+	local aminfoScript = [[
+		tell application "System Events"
+			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			if isExist is true then
+				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			end if
+			tell process "Dock"
+				tell list 1
+					tell UI element "Music"
+						perform action "AXShowMenu"
+						set songInfo to the name of every menu item of menu 1
+						set lovedInfo to value of attribute "AXMenuItemMarkChar" of menu item 6 of menu 1
+						set dislikedInfo to value of attribute "AXMenuItemMarkChar" of menu item 7 of menu 1
+						if lovedInfo is not missing value then
+							set item 6 of songInfo to "loved"
+						end if
+						if dislikedInfo is not missing value then
+							set item 7 of songInfo to "disliked"
+						end if
+						perform action "AXShowMenu"
+						get songInfo
+					end tell
+				end tell
+			end tell
+		end tell
+	]]
+	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
+	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+end
+MusicA.title = function ()
+	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	if songInfo then
+		return songInfo[2]
+	else
+		return " "
+	end
+end
+MusicA.artist = function ()
+	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	if songInfo then
+		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
+		artist = stringSplit(artistandalbum, "|")[1]:match("^[%s]*(.-)[%s]*$")
+		return artist
+	else
+		return " "
+	end
+end
+MusicA.album = function ()
+	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	if songInfo then
+		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
+		if stringSplit(artistandalbum, "|")[2] then
+			album = stringSplit(artistandalbum, "|")[2]:match("^[%s]*(.-)[%s]*$")
+			return album
+		else
+			return " "
+		end
+	else
+		return " "
+	end
+end
+MusicA.loved = function ()
+	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	if songInfo then
+		if songInfo[6] == "loved" then
+			return true
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+MusicA.disliked = function ()
+	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
+	if songInfo then
+		if songInfo[7] == "disliked" then
+			return true
+		else
+			return false
+		end
+	else
+		return false
+	end
+end
+MusicA.toggleloved = function ()
+	local amLovedscript = [[
+		tell application "System Events"
+			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			if isExist is true then
+				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			end if
+			tell process "Dock"
+				tell list 1
+					tell UI element "Music"
+						perform action "AXShowMenu"
+						set songInfo to the name of every menu item of menu 1
+						set lovedInfo to value of attribute "AXMenuItemMarkChar" of menu item 6 of menu 1
+						set dislikedInfo to value of attribute "AXMenuItemMarkChar" of menu item 7 of menu 1
+						if lovedInfo is not missing value then
+							click menu item 6 of menu 1
+							set item 6 of songInfo to "noloved"
+						else
+							click menu item 6 of menu 1
+							set item 6 of songInfo to "loved"
+						end if
+						if dislikedInfo is not missing value then
+							set item 7 of songInfo to "disliked"
+						end if
+						get songInfo
+					end tell
+				end tell
+			end tell
+		end tell
+	]]
+	_,amInfo,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
+	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+end
+MusicA.toggledisliked = function ()
+	local amDislikedscript = [[
+		tell application "System Events"
+			tell application "Finder" to set isExist to exists POSIX file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			if isExist is true then
+				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+			end if
+			tell process "Dock"
+				tell list 1
+					tell UI element "Music"
+						perform action "AXShowMenu"
+						set songInfo to the name of every menu item of menu 1
+						set lovedInfo to value of attribute "AXMenuItemMarkChar" of menu item 6 of menu 1
+						set dislikedInfo to value of attribute "AXMenuItemMarkChar" of menu item 7 of menu 1
+						if lovedInfo is not missing value then
+							set item 6 of songInfo to "loved"
+						end if
+						if dislikedInfo is not missing value then
+							click menu item 7 of menu 1
+							set item 7 of songInfo to "nodisliked"
+						else
+							click menu item 7 of menu 1
+							set item 7 of songInfo to "disliked"
+						end if
+						get songInfo
+					end tell
+				end tell
+			end tell
+		end tell
+	]]
+	_,amInfo,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
+	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+end
+MusicA.saveartwork = function () 
+	if MusicA.album() ~= songalbum then
+		songalbum = MusicA.album()
+		local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.album()) .. "&country=jp&entity=album&limit=10&output=json"
+		--local status,body,headers = hs.http.get(amurl, nil)
+		hs.http.asyncGet(amurl, nil, function(status,body,headers)
+			if status == 200 then
+				local songdata = hs.json.decode(body)
+				if songdata.resultCount ~= 0 then
+					i = 1
+					condition = false
+					repeat
+						if songdata.results[i].artistName == MusicA.artist() then
+							artworkurl100 = songdata.results[i].artworkUrl100
+							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
+							condition = true
+						end
+						i = i + 1
+					until(i > 10 or condition == true)
+				end
+			end
+			if artworkurl ~= nil then
+				artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
+			else
+				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
+			end
+			return artwork
+		end)
+	end
+end
+------------- Big Sur暂时解决办法 End -------------
+
 --
 -- Music功能函数集 --
 --
 local Music = {}
 -- 曲目信息
 Music.title = function ()
-	local _,title,_ = as.applescript([[tell application "Music" to get name of current track]])
-	return title
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,title,_ = as.applescript([[tell application "Music" to get name of current track]])
+		return title
+	------------- 保留 -------------
+	else
+		local title = MusicA.title()
+		return title
+	end
 end
 Music.artist = function ()
-	local _,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
-	return artist
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
+		return artist
+	------------- 保留 -------------
+	else
+		local artist = MusicA.artist()
+		return artist
+	end
 end
 Music.album = function ()
-	local _,album,_ = as.applescript([[tell application "Music" to get album of current track]])
-	return album
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,album,_ = as.applescript([[tell application "Music" to get album of current track]])
+		return album
+	------------- 保留 -------------
+	else 
+		local album = MusicA.album()
+		return album
+	end
 end
 Music.duration = function()
-	local _,duration,_ = as.applescript([[tell application "Music" to get finish of current track]])
-	return duration
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,duration,_ = as.applescript([[tell application "Music" to get finish of current track]])
+		return duration
+	------------- 保留 -------------
+	else
+		local duration = 360
+		return duration
+	end
 end
 Music.currentposition = function()
 	local _,currentposition,_ = as.applescript([[tell application "Music" to get player position]])
 	return currentposition
 end
 Music.loved = function ()
-	local _,loved,_ = as.applescript([[tell application "Music" to get loved of current track]])
-	return loved
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,loved,_ = as.applescript([[tell application "Music" to get loved of current track]])
+		return loved
+	------------- 保留 -------------
+	else
+		local loved = MusicA.loved()
+		return loved
+	end
 end
 Music.disliked = function ()
-	local _,disliked,_ = as.applescript([[tell application "Music" to get disliked of current track]])
-	return disliked
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		local _,disliked,_ = as.applescript([[tell application "Music" to get disliked of current track]])
+		return disliked
+	------------- 保留 -------------
+	else
+		local disliked = MusicA.disliked()
+		return disliked
+	end
 end
 Music.rating = function ()
 	local _,rating100,_ = as.applescript([[tell application "Music" to get rating of current track]])
@@ -120,7 +370,9 @@ Music.setrating = function (rating)
 end
 -- 标记为喜爱
 Music.toggleloved = function ()
-	as.applescript([[
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		as.applescript([[
 		tell application "Music"
 			if loved of current track is false then
 				set loved of current track to true
@@ -128,11 +380,17 @@ Music.toggleloved = function ()
 				set loved of current track to false
 			end if
 		end tell
-	]])
+		]])
+	------------- 保留 -------------
+	else
+		MusicA.toggleloved()
+	end
 end
 -- 标记为不喜欢
 Music.toggledisliked = function ()
-	as.applescript([[
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+		as.applescript([[
 		tell application "Music"
 			if disliked of current track is false then
 				set disliked of current track to true
@@ -140,10 +398,22 @@ Music.toggledisliked = function ()
 				set disliked of current track to false
 			end if
 		end tell
-	]])
+		]])
+	------------- 保留 -------------
+	else
+		MusicA.toggledisliked()
+	end
 end
 -- 歌曲种类
 Music.kind = function()
+	if MusicA.isAM() == true then
+		if string.find(MusicA.title(),connectingFile) or string.find(MusicA.artist(),"Genius") then
+			musictype = "connecting"
+		else
+			musictype = "applemusic"
+		end
+	else
+	------------- 保留 -------------
 	local _,kind,_ = as.applescript([[tell application "Music" to get kind of current track]])
 	local _,cloudstatus,_ = as.applescript([[tell application "Music" to get cloud status of current track as string]])
 	local _,class,_ = as.applescript([[tell application "Music" to get class of current track as string]])
@@ -161,6 +431,8 @@ Music.kind = function()
 		elseif cloudstatus == "matched" then
 			musictype = "matched"
 		end
+	end
+	------------- 保留 -------------
 	end
 	return musictype
 end
@@ -203,25 +475,34 @@ Music.toggleloop = function ()
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
 Music.existinlibrary = function ()
-	local _,existinlibrary,_ = as.applescript([[
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
+	local existinlibraryScript = [[
 		tell application "Music"
 			set a to current track's name
 			set b to current track's artist
-			exists (some track of playlist "ミュージック" whose name is a and artist is b)
+			exists (some track of playlist "Music" whose name is a and artist is b)
 		end tell
-	]])
+	]]
+	local _,existinlibrary,_ = as.applescript(existinlibraryScript:gsub("Music",MusicApp))
 	return existinlibrary
+	------------- 保留 -------------
+	else
+		existinlibrary = false
+		return existinlibrary
+	end
 end
 -- 将Apple Music曲目添加到本地曲库
 Music.addtolibrary = function()
-	if Music.kind() == "applemusic" then
-		as.applescript([[
-			tell application "Music"
-				try
-					duplicate current track to source "ライブラリ"
-				end try
-			end tell
-		]])
+	local addtolibraryScript = [[
+		tell application "Music"
+			try
+				duplicate current track to source "Library"
+			end try
+		end tell
+	]]
+	if Music.kind() == "applemusic_改" then--还原则删掉_改
+		as.applescript(addtolibraryScript:gsub("Library",MusicLibrary))
 	end
 end
 -- 判断Apple Music曲目是否存在于播放列表中
@@ -268,6 +549,8 @@ Music.shuffleplay = function (playlist)
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
 	if Music.album() ~= songalbum then
 		songalbum = Music.album()
 		as.applescript([[
@@ -287,6 +570,10 @@ Music.saveartwork = function ()
 			write theartwork to outFile
 			close access outFile
 		]])
+	end
+	------------- 保留 -------------
+	else
+		MusicA.saveartwork()
 	end
 end
 -- 保存专辑封面（利用iTunes的API）
@@ -348,6 +635,8 @@ Music.saveartworkold = function ()
 end
 -- 获取专辑封面路径
 Music.getartworkpath = function()
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
 	-- 若为本地曲目或Apple Music
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
@@ -367,7 +656,35 @@ Music.getartworkpath = function()
 		artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 	end
 	return artwork
+	------------- 保留 -------------
+	else
+		local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.album()) .. "&country=jp&entity=album&limit=10&output=json"
+		hs.http.asyncGet(amurl, nil, function(status,body,headers)
+			if status == 200 then
+				local songdata = hs.json.decode(body)
+				if songdata.resultCount ~= 0 then
+					i = 1
+					condition = false
+					repeat
+						if songdata.results[i].artistName == MusicA.artist() then
+							artworkurl100 = songdata.results[i].artworkUrl100
+							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+							condition = true
+						end
+						i = i + 1
+					until(i > 10 or condition == true)
+				end
+			end
+			if artworkurl ~= nil then
+				artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
+			else
+				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
+			end
+		end)
+		return artwork
+	end
 end
+
 --
 -- MenuBar函数集 --
 --
@@ -381,6 +698,12 @@ function deletemenubar()
 	if MusicBar ~= nil then
 		MusicBar:delete()
 	end
+end
+-- 文本分割函数
+function stringSplit(s, p)
+    local rt= {}
+    string.gsub(s, '[^'..p..']+', function(w) table.insert(rt, w) end)
+    return rt
 end
 -- 创建菜单栏标题
 function settitle()
@@ -998,6 +1321,20 @@ end
 -- 更新Menubar
 function updatemenubar()
 	if Music.state() ~= "stopped"  then
+		if MusicA.isAM() == true then
+			if Music.kind() == "connecting" then
+				MusicA.getInfo()
+			end
+			if Music.currentposition() < 0.3 and Music.kind() == "applemusic" then
+				MusicA.getInfo()
+			end
+			songtitle = Music.title()
+			songloved = Music.loved()
+			songrating = Music.rating()
+			Music.saveartwork()
+			settitle()
+		else
+		------------- 保留 -------------
 		--若更换了曲目
 		if Music.kind() == "connecting" then
 			settitle()
@@ -1008,6 +1345,7 @@ function updatemenubar()
 				songloved = Music.loved()
 				songrating = Music.rating()
 				songkind = Music.kind()
+				currentposition = 0.3
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
 					if Music.currentposition() > 1 then
@@ -1028,6 +1366,12 @@ function updatemenubar()
 				delay(0.6, togglecanvas)
 			end
 		end
+		------------- 保留 -------------
+			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
+				hide("all")
+				delay(0.6, togglecanvas)
+			end
+		end
 	end
 	-- 若更换了播放状态
 	if Music.state() ~= musicstate then
@@ -1041,6 +1385,9 @@ function setmusicbar()
 	if Music.checkrunning() == true then
 		-- 若首次播放则新建menubar item
 		if MusicBar == nil then
+			------------- Big Sur暂时解决办法 Start -------------
+			MusicA.getInfo()
+			------------- Big Sur暂时解决办法 End -------------
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
@@ -1057,15 +1404,6 @@ function MusicBarUpdate()
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
-		------------- Big Sur暂时解决办法 Start -------------
-		local _,am,_ = as.applescript([[
-			try
-				tell application "Music" to get kind of current track
-			end try
-		]])
-		if am ~= nil then
-
-		------保留-------
 		updatemenubar() 
 		-- 点击菜单栏时的弹出悬浮菜单
 		if MusicBar ~= nil then
@@ -1077,17 +1415,6 @@ function MusicBarUpdate()
 				end)
 			end
 		end
-		------保留-------
-
-		else
-			if Music.state() == "playing" then
-				MusicBar:setTitle('♫ Apple Music')
-			else
-				MusicBar:setTitle('❙ ❙ Apple Music')
-			end
-			MusicBar:setClickCallback(Music.locate)
-		end
-		------------- Big Sur暂时解决办法 End -------------
 	else
 		deletemenubar()
 		progressTimer = nil
