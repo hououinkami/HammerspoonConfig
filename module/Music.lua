@@ -84,7 +84,7 @@ MusicA.getInfo = function ()
 				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
 			end tell
 			if isExist is true then
-				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+				delete file (userfolder & ".hammerspoon:songInfo.json")
 			end if
 			tell process "Dock"
 				tell list 1
@@ -107,7 +107,13 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+	local _,cachePath,_ = as.applescript([[
+		tell application "Finder"
+			set userfolder to POSIX path of (path to home folder)
+			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
+		end tell
+	]])
+	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
 	songInfo = hs.json.read("/Users/hououinkami/.hammerspoon/songInfo.json")
@@ -173,7 +179,7 @@ MusicA.toggleloved = function ()
 				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
 			end tell
 			if isExist is true then
-				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+				delete file (userfolder & ".hammerspoon:songInfo.json")
 			end if
 			tell process "Dock"
 				tell list 1
@@ -199,7 +205,13 @@ MusicA.toggleloved = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+	local _,cachePath,_ = as.applescript([[
+		tell application "Finder"
+			set userfolder to POSIX path of (path to home folder)
+			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
+		end tell
+	]])
+	hs.json.write(amInfo, cachePath)
 end
 MusicA.toggledisliked = function ()
 	local amDislikedscript = [[
@@ -209,7 +221,7 @@ MusicA.toggledisliked = function ()
 				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
 			end tell
 			if isExist is true then
-				delete file "/Users/hououinkami/.hammerspoon/songInfo.json"
+				delete file (userfolder & ".hammerspoon:songInfo.json")
 			end if
 			tell process "Dock"
 				tell list 1
@@ -235,7 +247,13 @@ MusicA.toggledisliked = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, "/Users/hououinkami/.hammerspoon/songInfo.json")
+	local _,cachePath,_ = as.applescript([[
+		tell application "Finder"
+			set userfolder to POSIX path of (path to home folder)
+			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
+		end tell
+	]])
+	hs.json.write(amInfo, cachePath)
 end
 MusicA.saveartwork = function () 
 	if MusicA.album() ~= songalbum then
