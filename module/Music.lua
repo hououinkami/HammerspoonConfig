@@ -422,7 +422,7 @@ end
 -- 歌曲种类
 Music.kind = function()
 	if MusicA.isAM() == true then
-		if string.find(MusicA.title(),connectingFile) or string.find(MusicA.artist(),"Genius") then
+		if string.find(MusicA.title(),connectingFile) or string.find(MusicA.title(),"未知") or string.find(MusicA.artist(),"Genius")  or string.find(MusicA.artist(),"妙选")then
 			musictype = "connecting"
 		else
 			musictype = "applemusic"
