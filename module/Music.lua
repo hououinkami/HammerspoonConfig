@@ -243,8 +243,9 @@ MusicA.toggledisliked = function ()
 	_,amInfo,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
 	hs.json.write(amInfo, cachePath)
 end
-MusicA.saveartwork = function () 
+MusicA.saveartwork = function ()
 	if MusicA.album() ~= songalbum then
+		artworkurl = nil
 		songalbum = MusicA.album()
 		local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.album()) .. "&country=jp&entity=album&limit=10&output=json"
 		--local status,body,headers = hs.http.get(amurl, nil)
@@ -263,7 +264,13 @@ MusicA.saveartwork = function ()
 							condition = true
 						end
 						i = i + 1
-					until(i > 10 or condition == true)
+					until(i > songdata.resultCount or condition == true)
+					if artworkurl == nil then
+						artworkurl100 = songdata.results[1].artworkUrl100
+						artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+						artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+						artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
+					end
 				end
 			end
 			if artworkurl ~= nil then
@@ -596,6 +603,7 @@ Music.saveartworkold = function ()
 	-- 判断是否为Apple Music
 	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
+			artworkurl = nil
 			songalbum = Music.album()
 			as.applescript([[
 				tell application "Music"
@@ -635,7 +643,13 @@ Music.saveartworkold = function ()
 								condition = true
 							end
 							i = i + 1
-						until(i > 10 or condition == true)
+						until(i > songdata.resultCount or condition == true)
+						if artworkurl == nil then
+							artworkurl100 = songdata.results[1].artworkUrl100
+							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
+						end
 					end
 				end
 				if artworkurl ~= nil then
@@ -673,6 +687,7 @@ Music.getartworkpath = function()
 	return artwork
 	------------- 保留 -------------
 	else
+		artworkurl = nil
 		local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.album()) .. "&country=jp&entity=album&limit=10&output=json"
 		hs.http.asyncGet(amurl, nil, function(status,body,headers)
 			if status == 200 then
@@ -687,12 +702,18 @@ Music.getartworkpath = function()
 							condition = true
 						end
 						i = i + 1
-					until(i > 10 or condition == true)
+					until(i > songdata.resultCount or condition == true)
+					if artworkurl == nil then
+						artworkurl100 = songdata.results[1].artworkUrl100
+						artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+						artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+						artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
+					end
 				end
 			end
 			if artworkurl ~= nil then
 				artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
-			else
+			else					
 				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 			end
 		end)
@@ -1336,6 +1357,7 @@ end
 -- 更新Menubar
 function updatemenubar()
 	if Music.state() ~= "stopped"  then
+		------------- Big Sur暂时解决办法 Start -------------
 		if MusicA.isAM() == true then
 			if Music.kind() == "connecting" then
 				MusicA.getInfo()
@@ -1345,10 +1367,10 @@ function updatemenubar()
 			songtitle = Music.title()
 			songloved = Music.loved()
 			songrating = Music.rating()
-			Music.saveartwork()
+			MusicA.saveartwork()
 			settitle()
 		else
-		------------- 保留 -------------
+		------------- Big Sur暂时解决办法 End -------------
 		--若更换了曲目
 		if Music.kind() == "connecting" then
 			settitle()
@@ -1380,12 +1402,7 @@ function updatemenubar()
 				delay(0.6, togglecanvas)
 			end
 		end
-		------------- 保留 -------------
-			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
-				hide("all")
-				delay(0.6, togglecanvas)
-			end
-		end
+		end------------- Big Sur暂时解决办法 -------------
 	end
 	-- 若更换了播放状态
 	if Music.state() ~= musicstate then
