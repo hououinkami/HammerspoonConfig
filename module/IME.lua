@@ -117,15 +117,3 @@ function applicationWatcher(appName, eventType, appObject)
 end
 appWatcher = hs.application.watcher.new(applicationWatcher)
 appWatcher:start()
--- 查看当前激活窗口的App路径及名称
-hs.hotkey.bind({'ctrl', 'option', 'command'}, ".", function()
-		hs.pasteboard.setContents(hs.window.focusedWindow():application():path())
-		hs.alert.show("App Path:        "
-			..hs.window.focusedWindow():application():path()
-			.."\n"
-			.."App Name:      "
-			..hs.window.focusedWindow():application():name()
-			.."\n"
-			.."IME Source ID:  "
-			..hs.keycodes.currentSourceID())
-	end)
