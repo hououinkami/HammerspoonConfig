@@ -227,8 +227,11 @@ function applicationWatcher(appName, eventType, appObject)
 			if appObject:focusedWindow() then
 				appObject:focusedWindow():move({ 440, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 			end
+		elseif (appName == "ミュージック") then
+			if appObject:focusedWindow() and appObject:focusedWindow():title() then
+				hs.osascript.applescript([[tell application "Music" to activate]])
+			end
 		elseif (appName == "") then
-			print(appObject:focusedWindow())
 			if appObject:focusedWindow() and appObject:focusedWindow():title() then
 				appObject:setFrontmost(true)
 			end
@@ -263,5 +266,25 @@ function applicationWatcher(appName, eventType, appObject)
     	end
   	end
 end
+-- 查看当前激活窗口的App路径及名称
+hs.hotkey.bind(Hyper, ".", function()
+	hs.pasteboard.setContents(hs.window.focusedWindow():application():path())
+	hs.alert.show(
+		"App Path:        "
+		..hs.window.focusedWindow():application():path()
+		.."\n"
+		.."App Name:      "
+		..hs.window.focusedWindow():application():name()
+		.."\n"
+		.."IME Source ID: "
+		..hs.keycodes.currentSourceID()
+		.."\n"
+		.."Window Title:  "
+		..hs.window.focusedWindow():title()
+		.."\n"
+		.."App Bundle ID: "
+		..hs.window.focusedWindow():application():bundleID()
+	)
+end)
 appWatcherForresize = hs.application.watcher.new(applicationWatcher)
 appWatcherForresize:start()
