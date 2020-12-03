@@ -671,7 +671,7 @@ Music.getartworkpath = function()
 		-- 获取图片后缀名
 		local _,format,_ = as.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
 		if format == nil then
-			artwork = hs.image.imageFromPath(hs.configdir .. "/image/NoArtwork.jpg")
+			artwork = hs.image.imageFromPath(hs.configdir .. "/image/NoArtwork.png")
 		else
 			if string.find(format, "PNG") then
 				ext = "png"
