@@ -245,7 +245,7 @@ MusicA.toggledisliked = function ()
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.saveartwork = function ()
-	if MusicA.album() ~= nil then
+	if MusicA.album() ~= " " then
 		if MusicA.album() ~= songalbum then
 			artworkurl = nil
 			songalbum = MusicA.album()
@@ -283,42 +283,40 @@ MusicA.saveartwork = function ()
 			end)
 		end
 	else
-		if MusicA.title() ~= songtitle then
-			artworkurl = nil
-			songtitle = MusicA.title()
-			local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.title()) .. "&country=jp&entity=album&limit=10&output=json"
-			hs.http.asyncGet(amurl, nil, function(status,body,headers)
-				if status == 200 then
-					local songdata = hs.json.decode(body)
-					if songdata.resultCount ~= 0 then
-						i = 1
-						condition = false
-						repeat
-							if songdata.results[i].artistName == MusicA.artist() then
-								artworkurl100 = songdata.results[i].artworkUrl100
-								artworkurl = artworkurl100:gsub("100x100", "1000x1000")
-								artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
-								artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
-								condition = true
-							end
-							i = i + 1
-						until(i > songdata.resultCount or condition == true)
-						if artworkurl == nil then
-							artworkurl100 = songdata.results[1].artworkUrl100
+		artworkurl = nil
+		songtitle = MusicA.title()
+		local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.title()) .. "&country=jp&entity=album&limit=10&output=json"
+		hs.http.asyncGet(amurl, nil, function(status,body,headers)
+			if status == 200 then
+				local songdata = hs.json.decode(body)
+				if songdata.resultCount ~= 0 then
+					i = 1
+					condition = false
+					repeat
+						if songdata.results[i].artistName == MusicA.artist() then
+							artworkurl100 = songdata.results[i].artworkUrl100
 							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
 							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
 							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
+							condition = true
 						end
+						i = i + 1
+					until(i > songdata.resultCount or condition == true)
+					if artworkurl == nil then
+						artworkurl100 = songdata.results[1].artworkUrl100
+						artworkurl = artworkurl100:gsub("100x100", "1000x1000")
+						artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+						artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
 					end
 				end
-				if artworkurl ~= nil then
-					artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
-				else
-					artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
-				end
-				return artwork
-			end)
-		end
+			end
+			if artworkurl ~= nil then
+				artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
+			else
+				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
+			end
+			return artwork
+		end)
 	end
 end
 ------------- Big Sur暂时解决办法 End -------------
