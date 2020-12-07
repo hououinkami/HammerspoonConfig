@@ -289,7 +289,6 @@ MusicA.saveartwork = function ()
 			local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(MusicA.title()) .. "&country=jp&entity=album&limit=10&output=json"
 			hs.http.asyncGet(amurl, nil, function(status,body,headers)
 				if status == 200 then
-					print("232323")
 					local songdata = hs.json.decode(body)
 					if songdata.resultCount ~= 0 then
 						i = 1
