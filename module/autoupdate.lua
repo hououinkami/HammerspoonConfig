@@ -10,6 +10,9 @@ function runAutoScripts()
     end
     hs.reload()
 end
+-- 定时触发自动更新
 hs.timer.doWhile(function()
 			return true
-		end, runAutoScripts, 86400)
+        end, runAutoScripts, 86400)
+-- 手动触发快捷键
+hs.hotkey.bind(Hyper, 'r', runAutoScripts)
