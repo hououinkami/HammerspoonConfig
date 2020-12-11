@@ -1350,7 +1350,7 @@ function updatemenubar()
 	if Music.state() ~= "stopped"  then
 		------------- Big Sur暂时解决办法 Start -------------
 		if MusicA.isAM() == true then
-			if Music.kind() == "connecting" and songkind ~= "connecting" then
+			if Music.kind() == "connecting" then
 				songkind = Music.kind()
 				MusicA.getInfo()
 			elseif Music.currentposition() < 0.5 and Music.kind() == "applemusic" and Music.currentposition() ~= songposition then
