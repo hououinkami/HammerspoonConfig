@@ -114,6 +114,9 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
+	if amInfo  == nil then
+		amInfo = {"","Apple Music"," — ","","","",""}
+	end
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
