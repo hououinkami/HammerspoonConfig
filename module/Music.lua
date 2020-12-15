@@ -106,7 +106,7 @@ MusicA.getInfo = function ()
 						if dislikedInfo is not missing value then
 							set item 7 of songInfo to "disliked"
 						end if
-						perform action "AXShowMenu"
+						key code 53
 						get songInfo
 					end tell
 				end tell
