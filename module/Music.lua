@@ -16,7 +16,12 @@ local songrating = nil
 local songalbum = nil
 local songkind = nil
 local musicstate = nil
+
+------------- Big Sur暂时解决办法 Start -------------
 local songposition = 1
+local radiosong = false
+------------- Big Sur暂时解决办法 End -------------
+
 -- 可更改的自定义变量
 gaptext = "｜" -- 菜单栏标题的间隔字符
 fadetime = 0.6 -- 淡入淡出时间
@@ -114,9 +119,12 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	if amInfo  == nil then
-		amInfo = {"","Apple Music"," — ","","","",""}
-	end
+	repeat
+		if amInfo  == nil then
+			-- amInfo = {"","Apple Music","  —  ","","","",""}
+			MusicA.getInfo()
+		end
+	until(amInfo ~= nil)
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
@@ -149,6 +157,19 @@ MusicA.album = function ()
 		end
 	else
 		return " "
+	end
+end
+MusicA.isRadio = function ()
+	songInfo = hs.json.read(cachePath)
+	if songInfo then
+		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
+		if stringSplit(artistandalbum, "|")[3] then
+			return true
+		else
+			return false
+		end
+	else
+		return false
 	end
 end
 MusicA.loved = function ()
@@ -474,6 +495,11 @@ Music.kind = function()
 	------------- 保留 -------------
 	end
 	return musictype
+end
+-- 音量调整
+Music.volume = function (volumeValue)
+	local volumeScript = [[tell application "Music" to set sound volume to sound volume + Value]]
+	as.applescript(volumeScript:gsub("Value", volumeValue))
 end
 -- 检测播放状态
 Music.state = function ()
@@ -1353,11 +1379,17 @@ function updatemenubar()
 	if Music.state() ~= "stopped"  then
 		------------- Big Sur暂时解决办法 Start -------------
 		if MusicA.isAM() == true then
+			radiosong = MusicA.isRadio()
 			if Music.kind() == "connecting" then
 				songkind = Music.kind()
 				MusicA.getInfo()
 			elseif Music.currentposition() < 0.5 and Music.kind() == "applemusic" and Music.currentposition() ~= songposition then
 				MusicA.getInfo()
+			end
+			if MusicA.isRadio() == true and MusicA.isRadio() ~= radiosong then
+				Music.volume(30)
+			elseif MusicA.isRadio() == false and MusicA.isRadio() ~= radiosong then
+				Music.volume(-30)
 			end
 			MusicA.saveartwork()
 			songposition = Music.currentposition()
