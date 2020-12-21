@@ -122,7 +122,7 @@ MusicA.getInfo = function ()
 	repeat
 		if amInfo  == nil then
 			-- amInfo = {"","Apple Music","  —  ","","","",""}
-			MusicA.getInfo()
+			_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
 		end
 	until(amInfo ~= nil)
 	hs.json.write(amInfo, cachePath)
