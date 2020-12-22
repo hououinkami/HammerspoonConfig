@@ -96,6 +96,9 @@ MusicA.getInfo = function ()
 				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
 			end tell
 			if isExist is true then
+				try
+					make new file at alias (userfolder & ".hammerspoon") with properties {name:"songInfo.json"}
+				end try
 				delete file (userfolder & ".hammerspoon:songInfo.json")
 			end if
 			tell process "Dock"
@@ -119,12 +122,7 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	repeat
-		if amInfo  == nil then
-			-- amInfo = {"","Apple Music","  —  ","","","",""}
-			_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-		end
-	until(amInfo ~= nil)
+	
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
