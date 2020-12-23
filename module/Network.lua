@@ -82,7 +82,7 @@ function clickCallback()
         hs.osascript.applescript([[
             tell application "Safari"
 	            activate
-	            tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1:9090/ui/#/proxies"})
+	            tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1/luci-static/openclash/?hostname=192.168.1.1&port=9090&secret=123456#/proxies"})
             end tell
         ]])
     end
