@@ -94,13 +94,13 @@ MusicA.getInfo = function ()
 			tell application "Finder"
 				set userfolder to path to home folder as string
 				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
+				if isExist is true then
+					try
+						make new file at alias (userfolder & ".hammerspoon") with properties {name:"songInfo.json"}
+					end try
+					delete file (userfolder & ".hammerspoon:songInfo.json")
+				end if
 			end tell
-			if isExist is true then
-				try
-					make new file at alias (userfolder & ".hammerspoon") with properties {name:"songInfo.json"}
-				end try
-				delete file (userfolder & ".hammerspoon:songInfo.json")
-			end if
 			tell process "Dock"
 				tell list 1
 					tell UI element "Music"
@@ -122,7 +122,6 @@ MusicA.getInfo = function ()
 		end tell
 	]]
 	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	
 	hs.json.write(amInfo, cachePath)
 end
 MusicA.title = function ()
