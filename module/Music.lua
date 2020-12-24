@@ -93,12 +93,15 @@ MusicA.getInfo = function ()
 		tell application "System Events"
 			tell application "Finder"
 				set userfolder to path to home folder as string
-				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
+				set hsfolder to userfolder & ".hammerspoon"
+				set jsonfile to hsfolder & ":songInfo.json"
+				set isExist to exists file jsonfile
 				if isExist is true then
 					try
-						make new file at alias (userfolder & ".hammerspoon") with properties {name:"songInfo.json"}
+						make new file at alias hsfolder with properties {name:"songInfo.json"}
 					end try
-					delete file (userfolder & ".hammerspoon:songInfo.json")
+					-- delete file (userfolder & ".hammerspoon:songInfo.json")
+					do shell script "rm " & POSIX path of jsonfile
 				end if
 			end tell
 			tell process "Dock"
