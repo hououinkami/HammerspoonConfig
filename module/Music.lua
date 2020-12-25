@@ -902,6 +902,10 @@ function setapplemusicmenu()
 	-- 喜爱
 	if Music.loved() == true then
 		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
+	------------- Big Sur暂时解决办法 Start -------------
+	elseif MusicA.isRadio() == true then
+		lovedimage = nil
+	------------- Big Sur暂时解决办法 End -------------
 	else
 		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/notLoved.png"):setSize(imagesize, absolute == true)
 	end
