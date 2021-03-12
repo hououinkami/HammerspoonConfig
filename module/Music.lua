@@ -878,7 +878,7 @@ function setmainmenu()
        	-- 进度条
     	if id == "background" and (x >= c_progress:frame().x - menuframe.x and x <= c_progress:frame().x - menuframe.x + c_progress:frame().w and y >= c_progress:frame().y - menuframe.y and y <= c_progress:frame().y - menuframe.y + c_progress:frame().h) then
     		if event == "mouseUp" then
-    			local mousepoint = hs.mouse.getAbsolutePosition()
+    			local mousepoint = hs.mouse.absolutePosition()
     			local currentposition = (mousepoint.x - menuframe.x - border.x) / c_progress:frame().w * Music.duration()
     			c_progress:replaceElements(progressElement):show()
     			local setposition = [[tell application "Music" to set player position to "targetposition"]]
@@ -1309,7 +1309,7 @@ function delete(canvas)
 end
 -- 判断鼠标指针是否处于悬浮菜单内
 function mousePosition()
-	local mousepoint = hs.mouse.getAbsolutePosition()
+	local mousepoint = hs.mouse.absolutePosition()
 	if (
 		(mousepoint.x > barframe.x and mousepoint.x < barframe.x + barframe.w and mousepoint.y > barframe.y and mousepoint.y < barframe.y + barframe.h + gap.y)
 		or
