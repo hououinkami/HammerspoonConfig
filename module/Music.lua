@@ -1392,8 +1392,10 @@ function updatemenubar()
 			end
 			if MusicA.isRadio() == true and MusicA.isRadio() ~= radiosong then
 				Music.volume(30)
-			elseif MusicA.isRadio() == false and MusicA.isRadio() ~= radiosong then
+				volumeA = true
+			elseif MusicA.isRadio() == false and MusicA.isRadio() ~= radiosong and volumeA == true then
 				Music.volume(-30)
+				volumeA = false
 			end
 			MusicA.saveartwork()
 			songposition = Music.currentposition()
@@ -1401,6 +1403,10 @@ function updatemenubar()
 			songloved = Music.loved()
 			settitle()
 		else
+			if volumeA == true then
+				Music.volume(-30)
+				volumeA = false
+			end
 		------------- Big Sur暂时解决办法 End -------------
 		--若更换了曲目
 		if Music.kind() == "connecting" then
