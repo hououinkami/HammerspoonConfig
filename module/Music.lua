@@ -69,12 +69,6 @@ end
 --
 -- Music功能函数集 for Apple Music in Big Sur（临时）--
 --
-local _,cachePath,_ = as.applescript([[
-		tell application "Finder"
-			set userfolder to POSIX path of (path to home folder)
-			set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
-		end tell
-	]])
 local MusicA = {}
 MusicA.isAM = function ()
 	local _,am,_ = as.applescript([[
@@ -88,8 +82,14 @@ MusicA.isAM = function ()
 		return false
 	end
 end
+local _,cachePath,_ = as.applescript([[
+	tell application "Finder"
+		set userfolder to POSIX path of (path to home folder)
+		set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
+	end tell
+]])
 MusicA.getInfo = function ()
-	local aminfoScript = [[
+	local aminfoScript_JSON = [[
 		tell application "System Events"
 			tell application "Finder"
 				set userfolder to path to home folder as string
@@ -124,88 +124,135 @@ MusicA.getInfo = function ()
 			end tell
 		end tell
 	]]
-	_,amInfo,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, cachePath)
+	--hs.json.write(amInfo, cachePath)
+	local aminfoScript = [[
+		tell application "System Events"
+			tell process "Dock"
+				tell list 1
+					tell UI element "Music"
+						perform action "AXShowMenu"
+						set songInfo to the name of every menu item of menu 1
+						set lovedInfo to value of attribute "AXMenuItemMarkChar" of menu item 6 of menu 1
+						set dislikedInfo to value of attribute "AXMenuItemMarkChar" of menu item 7 of menu 1
+						if lovedInfo is not missing value then
+							set item 6 of songInfo to "loved"
+						end if
+						if dislikedInfo is not missing value then
+							set item 7 of songInfo to "disliked"
+						end if
+						key code 53
+						get songInfo
+					end tell
+				end tell
+			end tell
+		end tell
+	]]
+	_,amInfoRaw,_ = as.applescript(aminfoScript:gsub("Music", MusicApp))
+	return amInfoRaw
 end
-MusicA.title = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		return songInfo[2]
-	else
-		return " "
-	end
-end
-MusicA.artist = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
-		artist = stringSplit(artistandalbum, "|")[1]:match("^[%s]*(.-)[%s]*$")
-		return artist
-	else
-		return " "
-	end
-end
-MusicA.album = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
-		if stringSplit(artistandalbum, "|")[2] then
-			album = stringSplit(artistandalbum, "|")[2]:match("^[%s]*(.-)[%s]*$")
-			return album
+MusicA.setPlist = function (amInfoRaw)
+	local am = {}
+	am.Title = function ()
+		if amInfoRaw then
+			return amInfoRaw[2]
 		else
 			return " "
 		end
-	else
-		return " "
 	end
+	am.Artist = function ()
+		if amInfoRaw then
+			artistandalbum = string.gsub(amInfoRaw[3], " — ", "|", 2)
+			artist = stringSplit(artistandalbum, "|")[1]:match("^[%s]*(.-)[%s]*$")
+			return artist
+		else
+			return " "
+		end
+	end
+	am.Album = function ()
+		if amInfoRaw then
+			artistandalbum = string.gsub(amInfoRaw[3], " — ", "|", 2)
+			if stringSplit(artistandalbum, "|")[2] then
+				album = stringSplit(artistandalbum, "|")[2]:match("^[%s]*(.-)[%s]*$")
+				return album
+			else
+				return " "
+			end
+		else
+			return " "
+		end
+	end
+	am.isRadio = function ()
+		if amInfoRaw then
+			artistandalbum = string.gsub(amInfoRaw[3], " — ", "|", 2)
+			if stringSplit(artistandalbum, "|")[3] then
+				return true
+			else
+				return false
+			end
+		else
+			return false
+		end
+	end
+	am.Loved = function ()
+		if amInfoRaw then
+			if amInfoRaw[6] == "loved" then
+				return true
+			else
+				return false
+			end
+		else
+			return false
+		end
+	end
+	am.Disliked = function ()
+		if amInfoRaw then
+			if amInfoRaw[7] == "disliked" then
+				return true
+			else
+				return false
+			end
+		else
+			return false
+		end
+	end
+	local amInfo = {
+		["title"] = am.Title(),
+		["artist"] = am.Artist(),
+		["album"] = am.Album(),
+		["loved"] = am.Loved(),
+		["disliked"] = am.Disliked(),
+		["isradio"] = am.isRadio(),
+	}
+	hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist", amInfo)
+end
+MusicA.title = function ()
+	-- songInfo = hs.json.read(cachePath)
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["title"]
+end
+MusicA.artist = function ()
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["artist"]
+end
+MusicA.album = function ()
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["album"]
 end
 MusicA.isRadio = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		artistandalbum = string.gsub(songInfo[3], " — ", "|", 2)
-		if stringSplit(artistandalbum, "|")[3] then
-			return true
-		else
-			return false
-		end
-	else
-		return false
-	end
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["isradio"]
 end
 MusicA.loved = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		if songInfo[6] == "loved" then
-			return true
-		else
-			return false
-		end
-	else
-		return false
-	end
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["loved"]
 end
 MusicA.disliked = function ()
-	songInfo = hs.json.read(cachePath)
-	if songInfo then
-		if songInfo[7] == "disliked" then
-			return true
-		else
-			return false
-		end
-	else
-		return false
-	end
+	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
+	return songInfo["disliked"]
 end
 MusicA.toggleloved = function ()
 	local amLovedscript = [[
 		tell application "System Events"
-			tell application "Finder"
-				set userfolder to path to home folder as string
-				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
-			end tell
-			if isExist is true then
-				delete file (userfolder & ".hammerspoon:songInfo.json")
-			end if
 			tell process "Dock"
 				tell list 1
 					tell UI element "Music"
@@ -229,19 +276,13 @@ MusicA.toggleloved = function ()
 			end tell
 		end tell
 	]]
-	_,amInfo,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, cachePath)
+	local _,amInfoRaw,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
+	--hs.json.write(amInfo, cachePath)
+	MusicA.setPlist(amInfoRaw)
 end
 MusicA.toggledisliked = function ()
 	local amDislikedscript = [[
 		tell application "System Events"
-			tell application "Finder"
-				set userfolder to path to home folder as string
-				set isExist to exists file (userfolder & ".hammerspoon:songInfo.json")
-			end tell
-			if isExist is true then
-				delete file (userfolder & ".hammerspoon:songInfo.json")
-			end if
 			tell process "Dock"
 				tell list 1
 					tell UI element "Music"
@@ -265,8 +306,9 @@ MusicA.toggledisliked = function ()
 			end tell
 		end tell
 	]]
-	_,amInfo,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
-	hs.json.write(amInfo, cachePath)
+	_,amInfoRaw,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
+	--hs.json.write(amInfo, cachePath)
+	MusicA.setPlist(amInfoRaw)
 end
 MusicA.saveartwork = function ()
 	if MusicA.album() ~= " " then
@@ -1386,9 +1428,9 @@ function updatemenubar()
 			radiosong = MusicA.isRadio()
 			if Music.kind() == "connecting" then
 				songkind = Music.kind()
-				MusicA.getInfo()
+				MusicA.setPlist(MusicA.getInfo())
 			elseif Music.currentposition() < 0.5 and Music.kind() == "applemusic" and Music.currentposition() ~= songposition then
-				MusicA.getInfo()
+				MusicA.setPlist(MusicA.getInfo())
 			end
 			if MusicA.isRadio() == true and MusicA.isRadio() ~= radiosong then
 				Music.volume(30)
@@ -1454,7 +1496,7 @@ function setmusicbar()
 		-- 若首次播放则新建menubar item
 		if MusicBar == nil then
 			------------- Big Sur暂时解决办法 Start -------------
-			MusicA.getInfo()
+			MusicA.setPlist(MusicA.getInfo())
 			------------- Big Sur暂时解决办法 End -------------
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
