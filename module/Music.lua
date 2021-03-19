@@ -67,7 +67,7 @@ end
 
 ------------- Big Sur暂时解决办法 Start -------------
 --
--- Music功能函数集 for Apple Music in Big Sur（临时）--
+-- Music功能函数集 for Apple Music in Big Sur --
 --
 local MusicA = {}
 MusicA.isAM = function ()
@@ -82,49 +82,7 @@ MusicA.isAM = function ()
 		return false
 	end
 end
-local _,cachePath,_ = as.applescript([[
-	tell application "Finder"
-		set userfolder to POSIX path of (path to home folder)
-		set cachePath to (userfolder & ".hammerspoon/songInfo.json") as string
-	end tell
-]])
 MusicA.getInfo = function ()
-	local aminfoScript_JSON = [[
-		tell application "System Events"
-			tell application "Finder"
-				set userfolder to path to home folder as string
-				set hsfolder to userfolder & ".hammerspoon"
-				set jsonfile to hsfolder & ":songInfo.json"
-				set isExist to exists file jsonfile
-				if isExist is true then
-					try
-						make new file at alias hsfolder with properties {name:"songInfo.json"}
-					end try
-					-- delete file (userfolder & ".hammerspoon:songInfo.json")
-					do shell script "rm " & POSIX path of jsonfile
-				end if
-			end tell
-			tell process "Dock"
-				tell list 1
-					tell UI element "Music"
-						perform action "AXShowMenu"
-						set songInfo to the name of every menu item of menu 1
-						set lovedInfo to value of attribute "AXMenuItemMarkChar" of menu item 6 of menu 1
-						set dislikedInfo to value of attribute "AXMenuItemMarkChar" of menu item 7 of menu 1
-						if lovedInfo is not missing value then
-							set item 6 of songInfo to "loved"
-						end if
-						if dislikedInfo is not missing value then
-							set item 7 of songInfo to "disliked"
-						end if
-						key code 53
-						get songInfo
-					end tell
-				end tell
-			end tell
-		end tell
-	]]
-	--hs.json.write(amInfo, cachePath)
 	local aminfoScript = [[
 		tell application "System Events"
 			tell process "Dock"
@@ -226,7 +184,6 @@ MusicA.setPlist = function (amInfoRaw)
 	hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist", amInfo)
 end
 MusicA.title = function ()
-	-- songInfo = hs.json.read(cachePath)
 	songInfo = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/songInfo.plist")
 	return songInfo["title"]
 end
@@ -277,7 +234,6 @@ MusicA.toggleloved = function ()
 		end tell
 	]]
 	local _,amInfoRaw,_ = as.applescript(amLovedscript:gsub("Music", MusicApp))
-	--hs.json.write(amInfo, cachePath)
 	MusicA.setPlist(amInfoRaw)
 end
 MusicA.toggledisliked = function ()
@@ -307,7 +263,6 @@ MusicA.toggledisliked = function ()
 		end tell
 	]]
 	_,amInfoRaw,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
-	--hs.json.write(amInfo, cachePath)
 	MusicA.setPlist(amInfoRaw)
 end
 MusicA.saveartwork = function ()
@@ -608,7 +563,7 @@ Music.addtolibrary = function()
 			end try
 		end tell
 	]]
-	if Music.kind() == "applemusic_改" then--还原则删掉_改
+	if Music.kind() == "applemusic" then
 		as.applescript(addtolibraryScript:gsub("Library",MusicLibrary))
 	end
 end
@@ -1082,6 +1037,8 @@ function setcontrolmenu()
 		loopimage = hs.image.imageFromPath(hs.configdir .. "/image/loop_off.png"):setSize(imagesize, absolute == true)
 	end
 	-- 添加进曲库
+	if MusicA.isAM() == false then
+	------------- 保留 -------------
 	if Music.kind() == "applemusic" then
 		if Music.existinlibrary() == false then
 			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
@@ -1090,6 +1047,10 @@ function setcontrolmenu()
 		end
 	elseif Music.kind() == "localmusic" or Music.kind() == "matched" then
 		addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+	end
+	------------- 保留 -------------
+	else
+		addedimage = nil
 	end
 	-- 生成菜单框架和菜单项目
 	c_controlmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * (1 + 1.5 * 2)}):level(c_mainmenu:level() + 1)
