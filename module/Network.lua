@@ -1,3 +1,4 @@
+c = require("hs.canvas")
 --
 -- 自动触发ClashX Pro
 --
@@ -41,8 +42,8 @@ function data_diff()
     else
         disp_str = hs.styledtext.new(disp_str, {font={size=9.0, color={hex="#000000"}}})
     end
-    -- menubar:setTitle(disp_str)
-    delete(barIcon)
+    -- NetBar:setTitle(disp_str)
+    -- NetBar:delete(barIcon)
     barIcon = c.new({x = 10, y = 10, h = 24, w = 57})
     barIcon[1] = {
         frame = {x = 0, y = -0.3, h = 24, w = 57},
@@ -50,7 +51,7 @@ function data_diff()
         type = "text",
     }
     local menuIcon = barIcon:imageFromCanvas()
-    menubar:setIcon(menuIcon)
+    NetBar:setIcon(menuIcon)
     inseq = in_seq
     outseq = out_seq
 end
@@ -144,9 +145,9 @@ function rescan()
         title = "インターフェイスをスキャン",
         fn = function() rescan() end
     })
-    --menubar:setTitle("⚠︎")
-    --menubar:setMenu(menuitems_table)
-    menubar:setClickCallback(clickCallback)
+    --NetBar:setTitle("⚠︎")
+    --NetBar:setMenu(menuitems_table)
+    NetBar:setClickCallback(clickCallback)
 end
-menubar = hs.menubar.new()
+NetBar = hs.menubar.new()
 rescan()
