@@ -15,9 +15,9 @@ local module_list = {
 	"module.Window",
 	"module.Spotlightlike",
 	"module.IME",
-	"module.AppKeyMap",
+	"module.AppKeyMap",	
 	--"module.DesktopWidget",
-		}
+}
 for _, v in ipairs(module_list) do
 	require (v)
 end
