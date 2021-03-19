@@ -6,6 +6,7 @@ else
 	copied = "已复制到剪贴板"
 	wikiUrl = "https://en.wikipedia.org/wiki/keyword"
 end
+imagesize = {h = 15, w = 15}
 -- 添加ToolBar
 local toolbarItems = {
 	{
