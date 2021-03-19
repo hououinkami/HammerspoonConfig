@@ -1,6 +1,7 @@
 .DS_Store
 /*.jpg
 /*.png
+/*.plist
 /*.json
 /module/Achieve
 /module/DesktopWidget.lua
