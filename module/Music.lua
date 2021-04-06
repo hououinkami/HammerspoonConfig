@@ -1338,6 +1338,7 @@ function togglecanvas()
 				end
 			else
 				setmainmenu()
+				show(c_mainmenu)
 				if Music.kind() == "applemusic" then
 					setapplemusicmenu()
 					show(c_applemusicmenu)
@@ -1350,14 +1351,13 @@ function togglecanvas()
 					setlocalmusicmenu()
 					show(c_localmusicmenu)
 				end
+				setcontrolmenu()
+				show(c_controlmenu)
 				setprogresscanvas()
 				if progressTimer then
 					progressTimer:start()
 				end
-				setcontrolmenu()
-				show(c_mainmenu)
 				show(c_progress)
-				show(c_controlmenu)
 				-- 自动隐藏悬浮菜单
 				hs.timer.waitUntil(function()
 						if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
