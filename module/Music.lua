@@ -1262,18 +1262,15 @@ function setprogresscanvas()
     	trackMouseUp = true
 	}
 	c_progress:appendElements(progressElement)
-	if Music.state() == "playing" then
-		progressTimer = hs.timer.doWhile(function()
-			return c_progress:isShowing()
-			end, 
-			function()
-				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
-				c_progress:replaceElements(progressElement):show()
-		end, updatetime)
-		progressTimer:stop()
-	else
-		c_progress:show()
-	end
+	progressTimer = hs.timer.doWhile(function()
+		return c_progress:isShowing()
+		end, 
+		function()
+			progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
+			c_progress:replaceElements(progressElement):show()
+		end,
+		updatetime)
+	progressTimer:stop()
 end
 --
 -- 悬浮菜单功能函数集
@@ -1286,6 +1283,9 @@ function hide(canvas)
 		hide(c_applemusicmenu)
 		hide(c_localmusicmenu)
 		hide(c_controlmenu)
+		if progressTimer then
+			progressTimer:stop()
+		end
 		hide(c_progress)
 		hide(c_playlist)
 		hide(c_mainmenu)
@@ -1324,12 +1324,41 @@ function mousePosition()
 	end
 	return mp
 end
+-- 建立悬浮菜单元素
+function setMenu()
+	if c_mainmenu == nil then
+		setmainmenu()
+	end
+	if c_mainmenu ~= nil then
+		if c_mainmenu:isShowing() == true then
+			hide("all")
+			if progressTimer then
+				progressTimer:stop()
+			end
+		else
+			setmainmenu()
+			c_applemusicmenu = nil
+			c_localmusicmenu = nil
+			if Music.kind() == "applemusic" then
+				setapplemusicmenu()
+			elseif Music.kind() == "localmusic" then
+				setlocalmusicmenu()
+			elseif Music.kind() == "matched" then
+				setapplemusicmenu()
+				setlocalmusicmenu()
+			end
+			setcontrolmenu()
+			setprogresscanvas()
+			if progressTimer then
+				progressTimer:start()
+			end
+		end
+	end
+end
 -- 鼠标点击时的行为
 function togglecanvas()
+	--setMenu()
 	if Music.state() ~= "stopped" then
-		if c_mainmenu == nil then
-			setmainmenu()
-		end
 		if c_mainmenu ~= nil then
 			if c_mainmenu:isShowing() == true then
 				hide("all")
@@ -1337,19 +1366,6 @@ function togglecanvas()
 					progressTimer:stop()
 				end
 			else
-				setmainmenu()
-				c_applemusicmenu = nil
-				c_localmusicmenu = nil
-				if Music.kind() == "applemusic" then
-					setapplemusicmenu()
-				elseif Music.kind() == "localmusic" then
-					setlocalmusicmenu()
-				elseif Music.kind() == "matched" then
-					setapplemusicmenu()
-					setlocalmusicmenu()
-				end
-				setcontrolmenu()
-				setprogresscanvas()
 				if progressTimer then
 					progressTimer:start()
 				end
@@ -1412,10 +1428,18 @@ function updatemenubar()
 			end
 		------------- Big Sur暂时解决办法 End -------------
 		--若更换了曲目
+		---连接中
 		if Music.kind() == "connecting" then
 			settitle()
 			songkind = Music.kind()
+			c_mainmenu = nil
+			c_applemusicmenu = nil
+			c_localmusicmenu = nil
+			c_controlmenu = nil
+			c_progress = nil
+		---连接完成
 		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
+			--获取新歌曲信息
 			if songkind == "connecting" then
 				songtitle = Music.title()
 				songloved = Music.loved()
@@ -1437,8 +1461,12 @@ function updatemenubar()
 				Music.saveartwork()
 			end
 			settitle()
+			--建立新歌曲悬浮元素
+			setMenu()
+			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
 				hide("all")
+				setMenu()
 				delay(0.6, togglecanvas)
 			end
 		end
