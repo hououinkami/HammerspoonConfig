@@ -24,7 +24,7 @@ local radiosong = false
 
 -- 可更改的自定义变量
 gaptext = "｜" -- 菜单栏标题的间隔字符
-fadetime = 0 -- 淡入淡出时间
+fadetime = 0.6 -- 淡入淡出时间
 staytime = 2 -- 显示时间
 updatetime = 0.5 -- 刷新时间
 artworksize = {h = 200, w = 200} -- 专辑封面显示尺寸
@@ -862,14 +862,14 @@ function setmainmenu()
 		-- 隐藏悬浮菜单
     	if id == "background" and (x < border.x or x > menuframe.w - border.x or y > menuframe.h - border.y ) then
     		if event == "mouseExit" then
-    			hide("all")
+    			togglecanvas()
         	end
 		end
     	-- 跳转至当前曲目
     	if id == "info" and y < infosize.h - gap.y then
     		if event == "mouseUp" then
     			Music.locate()
-        		hide("all")
+        		togglecanvas()
     		end
     	end
        	-- 进度条
@@ -1293,8 +1293,17 @@ function hide(canvas)
 end
 -- 显示
 function show(canvas)
-	if canvas ~= nil then
+	if canvas ~= nil and canvas ~= "all" then
 		canvas:show(fadetime)
+	elseif canvas == "all" then
+		if progressTimer then
+			progressTimer:start()
+		end
+		show(c_mainmenu)
+		show(c_applemusicmenu)
+		show(c_localmusicmenu)
+		show(c_controlmenu)
+		show(c_progress)
 	end
 end
 -- 删除
@@ -1356,46 +1365,42 @@ function setMenu()
 	end
 end
 -- 鼠标点击时的行为
+local isFading = false
 function togglecanvas()
-	--setMenu()
-	if Music.state() ~= "stopped" then
-		if c_mainmenu ~= nil then
-			if c_mainmenu:isShowing() == true then
-				hide("all")
-				if progressTimer then
-					progressTimer:stop()
-				end
-			else
-				if progressTimer then
-					progressTimer:start()
-				end
-				show(c_mainmenu)
-				show(c_applemusicmenu)
-				show(c_localmusicmenu)
-				show(c_controlmenu)
-				show(c_progress)
-				-- 自动隐藏悬浮菜单
-				hs.timer.waitUntil(function()
-						if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
-							if c_mainmenu:isShowing() == true and mousePosition() == false then
-								return true
-							else
+	local toggleFunction = function ()
+		if Music.state() ~= "stopped" then
+			if c_mainmenu ~= nil then
+				if c_mainmenu:isShowing() == true then
+					hide("all")
+				else
+					show("all")
+					-- 自动隐藏悬浮菜单
+					hs.timer.waitUntil(function()
+							if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
+								if c_mainmenu:isShowing() == true and mousePosition() == false then
+									return true
+								else
+									return false
+								end
+							elseif c_playlist ~= nil and c_playlist:isShowing() == true then
 								return false
 							end
-						elseif c_playlist ~= nil and c_playlist:isShowing() == true then
-							return false
-						end
-					end, function()
-						delay(staytime, function()
-							hide("all")
-							if progressTimer then
-								progressTimer:stop()
-							end
-						end)
-        		end)
+						end, function()
+							delay(staytime, function()
+								hide("all")
+							end)
+					end)
+				end
 			end
 		end
 	end
+	if isFading then
+		hs.timer.doAfter(fadetime, toggleFunction)
+	else
+		isFading = true
+		toggleFunction()
+	end
+	hs.timer.doAfter(fadetime, function() isFading = false end)
 end
 -- 更新Menubar
 function updatemenubar()
