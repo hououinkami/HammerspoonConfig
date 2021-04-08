@@ -17,6 +17,7 @@ local module_list = {
 	"module.IME",
 	"module.AppKeyMap",	
 	--"module.DesktopWidget",
+	--"module.test",
 }
 for _, v in ipairs(module_list) do
 	require (v)
