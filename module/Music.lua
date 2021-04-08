@@ -24,7 +24,7 @@ local radiosong = false
 
 -- 可更改的自定义变量
 gaptext = "｜" -- 菜单栏标题的间隔字符
-fadetime = 0.6 -- 淡入淡出时间
+fadetime = 0 -- 淡入淡出时间
 staytime = 2 -- 显示时间
 updatetime = 0.5 -- 刷新时间
 artworksize = {h = 200, w = 200} -- 专辑封面显示尺寸
