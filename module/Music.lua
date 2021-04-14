@@ -1428,6 +1428,7 @@ function updatemenubar()
 			songtitle = Music.title()
 			songloved = Music.loved()
 			settitle()
+			setMenu()
 		else
 			if volumeA == true then
 				Music.volume(-30)
