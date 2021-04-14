@@ -1266,8 +1266,10 @@ function setprogresscanvas()
 		return c_progress:isShowing()
 		end, 
 		function()
-			progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
-			c_progress:replaceElements(progressElement):show()
+			if c_progress:frame().w and Music.currentposition() and Music.duration() then
+				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
+				c_progress:replaceElements(progressElement):show()
+			end
 		end,
 		updatetime)
 	progressTimer:stop()
