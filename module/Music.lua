@@ -288,6 +288,7 @@ MusicA.saveartwork = function ()
 				if songdata.resultCount ~= 0 then
 					i = 1
 					condition = false
+					hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist", {["hasArtwork"]=false})
 					repeat
 						if songdata.results[i].artistName == MusicA.artist() then
 							artworkurl100 = songdata.results[i].artworkUrl100
@@ -295,6 +296,7 @@ MusicA.saveartwork = function ()
 							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
 							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
 							condition = true
+							hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist", {["hasArtwork"]=true})
 						end
 						i = i + 1
 					until(i > songdata.resultCount or condition == true)
@@ -729,7 +731,8 @@ Music.getartworkpath = function()
 	return artwork
 	------------- 保留 -------------
 	else
-		if condition == true then
+		hasArtwork = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist")["hasArtwork"]
+		if hasArtwork == true then
 			artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
 		else					
 			artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
@@ -1338,7 +1341,7 @@ end
 -- 建立悬浮菜单元素
 function setMenu()
 	if c_mainmenu == nil then
-		setmainmenu()
+		c_mainmenu = c.new({x = 1, y = 1, h = 1, w = 1})
 	end
 	if c_mainmenu ~= nil then
 		if c_mainmenu:isShowing() == true then
@@ -1423,17 +1426,12 @@ function updatemenubar()
 				Music.volume(-30)
 				volumeA = false
 			end
-			MusicA.saveartwork()
-			songposition = Music.currentposition()
-			songtitle = Music.title()
-			songloved = Music.loved()
-			settitle()
-			setMenu()
 		else
 			if volumeA == true then
 				Music.volume(-30)
 				volumeA = false
 			end
+		end
 		------------- Big Sur暂时解决办法 End -------------
 		--若更换了曲目
 		---连接中
@@ -1461,7 +1459,7 @@ function updatemenubar()
 					else
 						return false
 					end
-				end, Music.saveartwork())	
+				end, function() Music.saveartwork() end)	
 			else
 				songtitle = Music.title()
 				songloved = Music.loved()
@@ -1469,7 +1467,6 @@ function updatemenubar()
 				Music.saveartwork()
 			end
 			settitle()
-			--建立新歌曲悬浮元素
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
@@ -1478,7 +1475,6 @@ function updatemenubar()
 				delay(0.6, togglecanvas)
 			end
 		end
-		end------------- Big Sur暂时解决办法 -------------
 	end
 	-- 若更换了播放状态
 	if Music.state() ~= musicstate then
@@ -1511,21 +1507,21 @@ function MusicBarUpdate()
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
-		updatemenubar() 
-		-- 点击菜单栏时的弹出悬浮菜单
-		if MusicBar ~= nil then
-			if Music.state() ~= "stopped" then
-				MusicBar:setClickCallback(togglecanvas)
-			else
-				MusicBar:setClickCallback(function ()
-					as.applescript([[tell application "Music" to activate]])
-				end)
-			end
-		end
+		updatemenubar()
 	else
 		deletemenubar()
 		progressTimer = nil
 		MusicBar = nil
+	end
+end
+-- 点击菜单栏时的弹出悬浮菜单
+if MusicBar ~= nil then
+	if Music.state() ~= "stopped" then
+		MusicBar:setClickCallback(togglecanvas)
+	else
+		MusicBar:setClickCallback(function ()
+			as.applescript([[tell application "Music" to activate]])
+		end)
 	end
 end
 -- hs.timer.doWhile(function()
