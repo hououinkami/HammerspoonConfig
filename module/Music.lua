@@ -265,7 +265,7 @@ MusicA.toggledisliked = function ()
 	_,amInfoRaw,_ = as.applescript(amDislikedscript:gsub("Music", MusicApp))
 	MusicA.setPlist(amInfoRaw)
 end
-MusicA.saveartwork = function ()
+MusicA.saveartwork = function (set_artwork_object)
 	if MusicA.album() ~= " " then
 		if MusicA.album() ~= songalbum then
 			songalbum = MusicA.album()
@@ -315,7 +315,8 @@ MusicA.saveartwork = function ()
 			else
 				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 			end
-			return artwork
+			--return artwork
+			set_artwork_object(artwork)
 		end)
 	end
 end
@@ -637,7 +638,7 @@ Music.saveartwork = function ()
 	end
 	------------- 保留 -------------
 	else
-		MusicA.saveartwork()
+		MusicA.saveartwork(set_AppleMusic_artwort)
 	end
 end
 -- 保存专辑封面（利用iTunes的API）
@@ -708,9 +709,6 @@ Music.saveartworkbyapi = function ()
 end
 -- 获取专辑封面路径
 Music.getartworkpath = function()
-	if MusicA.isAM() == false then
-	------------- 保留 -------------
-	-- 若为本地曲目或Apple Music
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
 		local _,format,_ = as.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
@@ -729,16 +727,10 @@ Music.getartworkpath = function()
 		artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 	end
 	return artwork
-	------------- 保留 -------------
-	else
-		hasArtwork = hs.plist.read(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist")["hasArtwork"]
-		if hasArtwork == true then
-			artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
-		else					
-			artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
-		end
-		return artwork
-	end
+end
+-- 若为Apple Music则获取专辑封面时则在封面下载完毕后重新设置新封面
+function set_AppleMusic_artwort(artwork)
+	c_mainmenu:elementAttribute(2,"image",artwork)
 end
 
 --
