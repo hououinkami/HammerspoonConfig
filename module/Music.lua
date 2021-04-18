@@ -1463,6 +1463,7 @@ function updatemenubar()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
 				hide("all")
+				setmainmenu()
 				setMenu()
 				delay(0.6, togglecanvas)
 			end
