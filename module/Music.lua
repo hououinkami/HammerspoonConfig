@@ -616,8 +616,8 @@ end
 Music.saveartwork = function ()
 	if MusicA.isAM() == false then
 	------------- 保留 -------------
-	if Music.album() ~= songalbum then
-		songalbum = Music.album()
+	--if Music.album() ~= songalbum then
+		--songalbum = Music.album()
 		as.applescript([[
 			tell application "Music"
 				set theartwork to raw data of current track's artwork 1
@@ -635,7 +635,7 @@ Music.saveartwork = function ()
 			write theartwork to outFile
 			close access outFile
 		]])
-	end
+	--end
 	------------- 保留 -------------
 	else
 		MusicA.saveartwork(set_AppleMusic_artwort)
