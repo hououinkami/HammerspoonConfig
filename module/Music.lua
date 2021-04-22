@@ -288,7 +288,6 @@ MusicA.saveartwork = function (set_artwork_object)
 				if songdata.resultCount ~= 0 then
 					i = 1
 					condition = false
-					hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist", {["hasArtwork"]=false})
 					repeat
 						if songdata.results[i].artistName == MusicA.artist() then
 							artworkurl100 = songdata.results[i].artworkUrl100
@@ -296,7 +295,6 @@ MusicA.saveartwork = function (set_artwork_object)
 							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
 							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
 							condition = true
-							hs.plist.write(hs.fs.pathToAbsolute("~/.hammerspoon") .. "/hasArtwork.plist", {["hasArtwork"]=true})
 						end
 						i = i + 1
 					until(i > songdata.resultCount or condition == true)
@@ -315,7 +313,6 @@ MusicA.saveartwork = function (set_artwork_object)
 			else
 				artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 			end
-			--return artwork
 			set_artwork_object(artwork)
 		end)
 	end
@@ -642,7 +639,7 @@ Music.saveartwork = function ()
 	end
 end
 -- 保存专辑封面（利用iTunes的API）
-Music.saveartworkbyapi = function ()
+Music.saveartworkbyapi = function (set_artwork_object)
 	-- 判断是否为Apple Music
 	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
@@ -666,9 +663,21 @@ Music.saveartworkbyapi = function ()
 			]])
 		end
 	elseif Music.kind() == "applemusic"	then -- 若为Apple Music
-		if Music.album() ~= songalbum then
+		if MusicA.album() ~= " " then
+			if MusicA.album() ~= songalbum then
+				songalbum = MusicA.album()
+				keyWord = MusicA.album()
+				needGet = true
+			end
+		else
+			if MusicA.title() ~= songtitle then
+				songtitle = MusicA.title()
+				keyWord = MusicA.title()
+				needGet = true
+			end
+		end
+		if needGet == true then
 			artworkurl = nil
-			songalbum = Music.album()
 			local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(Music.album()) .. "&country=jp&entity=album&limit=10&output=json"
 			--local status,body,headers = hs.http.get(amurl, nil)
 			hs.http.asyncGet(amurl, nil, function(status,body,headers)
@@ -702,7 +711,7 @@ Music.saveartworkbyapi = function ()
 				else
 					artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 				end
-				return artwork
+				set_artwork_object(artwork)
 			end)
 		end
 	end
@@ -1382,16 +1391,18 @@ function togglecanvas()
 							elseif c_playlist ~= nil and c_playlist:isShowing() == true then
 								return false
 							end
-						end, function()
-							delay(staytime, function()
-								hide("all")
+						end,function()
+							delay(staytime, function() 
+								hide("all") 
 							end)
-					end)
+						end
+					)
 				end
 			end
 		end
 	end
-	if isFading then
+	-- 判断渐入渐出是否已经完成
+	if isFading == true then
 		hs.timer.doAfter(fadetime, toggleFunction)
 	else
 		isFading = true
