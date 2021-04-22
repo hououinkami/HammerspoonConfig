@@ -737,9 +737,11 @@ Music.getartworkpath = function()
 	end
 	return artwork
 end
--- 若为Apple Music则获取专辑封面时则在封面下载完毕后重新设置新封面
+-- 若为Apple Music则获取专辑封面时在封面下载完毕后重新设置新封面
 function set_AppleMusic_artwort(artwork)
-	c_mainmenu:elementAttribute(2,"image",artwork)
+	if c_mainmenu:elementCount() > 2 then
+		c_mainmenu:elementAttribute(2,"image",artwork)
+	end
 end
 
 --
