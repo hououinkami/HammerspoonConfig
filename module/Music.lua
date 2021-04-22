@@ -1402,12 +1402,22 @@ function togglecanvas()
 		end
 	end
 	-- 判断渐入渐出是否已经完成
+	--[[
+	-- 延迟触发
 	if isFading == true then
 		hs.timer.doAfter(fadetime, toggleFunction)
 	else
 		isFading = true
 		toggleFunction()
 	end
+	hs.timer.doAfter(fadetime, function() isFading = false end)
+	]]
+	-- 忽略点击
+	if isFading == true then
+		return
+	end
+	isFading = true
+	toggleFunction()
 	hs.timer.doAfter(fadetime, function() isFading = false end)
 end
 -- 更新Menubar
