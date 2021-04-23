@@ -1395,7 +1395,9 @@ function togglecanvas()
 							end
 						end,function()
 							delay(staytime, function() 
-								hide("all") 
+								isFading = true
+								hide("all")
+								hs.timer.doAfter(fadetime, function() isFading = false end)
 							end)
 						end
 					)
