@@ -793,7 +793,7 @@ function setplaylistmenu()
 			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
 			set theBackup to AppleScript's text item delimiters
 			set AppleScript's text item delimiters to "
-			"
+	"
 			set theString to allplaylist as string
 			set AppleScript's text item delimiters to theBackup
 			return theString
@@ -811,6 +811,7 @@ function setplaylistmenu()
 			trackMouseUp = true
 		}
 	)
+	minTextSize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
 	playlistmenusize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
 	playlistframe = {x = playlistframe.x, y = playlistframe.y, h = playlistmenusize.h + border.y * playlistcount, w = playlistmenusize.w}
 	c_playlist:frame(playlistframe)
@@ -837,7 +838,7 @@ function setplaylistmenu()
 		c_playlist:appendElements(
 			{-- 菜单项背景
 				id = "playlistback" .. count,
-				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
+				frame = {x = 0, y = playlistframe.h / playlistcount * (count - 1), h = playlistframe.h / playlistcount, w = playlistframe.w},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
 				fillColor = {alpha = menubgAlpha, red = menubgColor[1] / 255, green = menubgColor[2] / 255, blue = menubgColor[3] / 255},
@@ -849,7 +850,7 @@ function setplaylistmenu()
 		c_playlist:appendElements(
 			{-- 菜单项
 				id = "playlist" .. count,
-				frame = {x = border.x, y = border.y * (count - 0.5) + playlistmenusize.h / 3 * (count - 1), h = playlistmenusize.h / 3, w = playlistmenusize.w},
+				frame = {x = border.x, y = border.y * (count - 0.5) + playlistmenusize.h / playlistcount * (count - 1), h = playlistmenusize.h / playlistcount, w = playlistmenusize.w},
 				type = "text",
 				text = playlistname[count],
 				textSize = textsize,
@@ -862,7 +863,7 @@ function setplaylistmenu()
 		c_playlist:appendElements(
 			{-- 菜单项overlay
 				id = "playlistoverlay" .. count,
-				frame = {x = 0, y = playlistframe.h / 3 * (count - 1), h = playlistframe.h / 3, w = playlistframe.w},
+				frame = {x = 0, y = playlistframe.h / playlistcount * (count - 1), h = playlistframe.h / playlistcount, w = playlistframe.w},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
 				fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
