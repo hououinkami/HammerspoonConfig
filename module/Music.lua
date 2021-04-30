@@ -51,6 +51,8 @@ if string.find(owner,"カミ") then
 	localFile = "AACオーディオファイル"
 	connectingFile = "接続中…"
 	streamingFile = "インターネットオーディオストリーム"
+	genius = "Genius"
+	unknowTitle = "未知"
 else -- Edit here for other languages!
 	NoPlaying = "Music"
 	MusicApp = "音乐"
@@ -58,6 +60,8 @@ else -- Edit here for other languages!
 	localFile = "AAC音频文件"
 	connectingFile = "正在连接…"
 	streamingFile = "互联网音频流"
+	genius = "妙选"
+	unknowTitle = "未知"
 end
 
 --
@@ -158,7 +162,7 @@ Music.kind = function()
 		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then
 			musictype = "localmusic"
 		-- 若Apple Μsic连接中
-		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),"未知") or string.find(Music.artist(),"Genius") or string.find(Music.artist(),"妙选") or string.find(kind, streamingFile) then
+		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),unknowTitle) or string.find(Music.artist(),genius) or string.find(kind, streamingFile) then
 			musictype = "connecting"
 		-- 若为Apple Music
 		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then
