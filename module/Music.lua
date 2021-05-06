@@ -9,6 +9,7 @@ screenframe = hs.screen.mainScreen():fullFrame()
 -- 缓存变量初始化
 local MusicBar = nil
 local songtitle = nil
+local songartist = nil
 local songalbum = nil
 local songloved = nil
 local songdisliked = nil
@@ -285,7 +286,6 @@ Music.shuffleplay = function (playlist)
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
-	print(Music.album())
 	if Music.album() ~= songalbum or Music.album() == "" then
 		songalbum = Music.album()
 		as.applescript([[
@@ -1081,6 +1081,11 @@ end
 -- 更新Menubar
 function updatemenubar()
 	if Music.state() ~= "stopped"  then
+		if songkind == nil then
+			songkind = Music.kind()
+			songtitle = Music.title()
+			songartist = Music.artist()
+		end
 		--若更换了曲目
 		---连接中
 		if Music.kind() == "connecting" then
@@ -1093,13 +1098,16 @@ function updatemenubar()
 			c_progress = nil
 		---连接完成
 		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
+			preKind = songkind
+			preTitle = songtitle
+			preArtist = songartist
 			--获取新歌曲信息
 			if songkind == "connecting" then
+				songkind = Music.kind()
 				songtitle = Music.title()
+				songartist = Music.artist()
 				songloved = Music.loved()
 				songrating = Music.rating()
-				songkind = Music.kind()
-				currentposition = 0.5
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
 					if Music.currentposition() > 1 then
@@ -1109,10 +1117,25 @@ function updatemenubar()
 					end
 				end, function() Music.saveartwork() end)	
 			else
+				songkind = Music.kind()
 				songtitle = Music.title()
+				songartist = Music.artist()
 				songloved = Music.loved()
 				songrating = Music.rating()
 				Music.saveartwork()
+			end
+			-- 删除临时歌词
+			if preKind == "applemusic" then
+				deleteLyrics = [[
+					set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
+					tell application "Finder"
+						--delete file deleteFile
+						try
+							do shell script "rm \"" & POSIX path of deleteFile & "\""
+						end try
+					end tell
+				]]
+				delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
 			end
 			settitle()
 			setMenu()
