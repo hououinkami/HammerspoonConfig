@@ -285,7 +285,8 @@ Music.shuffleplay = function (playlist)
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
-	if Music.album() ~= songalbum then
+	print(Music.album())
+	if Music.album() ~= songalbum or Music.album() == "" then
 		songalbum = Music.album()
 		as.applescript([[
 			tell application "Music"
