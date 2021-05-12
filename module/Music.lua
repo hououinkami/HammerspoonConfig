@@ -16,6 +16,7 @@ local songdisliked = nil
 local songrating = nil
 local songalbum = nil
 local songkind = nil
+local songexistinlibrary = nil
 local musicstate = nil
 
 -- 可更改的自定义变量
@@ -1097,10 +1098,12 @@ function updatemenubar()
 				preKind = Music.kind()
 				preTitle = Music.title()
 				preArtist = Music.artist()
+				preExistinlibrary = Music.existinlibrary()
 			else
 				preKind = songkind
 				preTitle = songtitle
 				preArtist = songartist
+				preExistinlibrary = songexistinlibrary
 			end
 			--获取新歌曲信息
 			if songkind == "connecting" then
@@ -1119,6 +1122,7 @@ function updatemenubar()
 				end, function() Music.saveartwork() end)	
 			else
 				songkind = Music.kind()
+				songexistinlibrary = Music.existinlibrary()
 				songtitle = Music.title()
 				songartist = Music.artist()
 				songloved = Music.loved()
@@ -1126,7 +1130,7 @@ function updatemenubar()
 				Music.saveartwork()
 			end
 			-- 删除临时歌词
-			if preKind == "applemusic" then
+			if preKind == "applemusic" and preExistinlibrary == false then
 				deleteLyrics = [[
 					set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
 					tell application "Finder"
