@@ -1080,12 +1080,7 @@ function togglecanvas()
 end
 -- 更新Menubar
 function updatemenubar()
-	if Music.state() ~= "stopped"  then
-		if songkind == nil then
-			songkind = Music.kind()
-			songtitle = Music.title()
-			songartist = Music.artist()
-		end
+	if Music.state() ~= "stopped" then
 		--若更换了曲目
 		---连接中
 		if Music.kind() == "connecting" then
@@ -1098,9 +1093,15 @@ function updatemenubar()
 			c_progress = nil
 		---连接完成
 		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
-			preKind = songkind
-			preTitle = songtitle
-			preArtist = songartist
+			if songkind == nil then
+				preKind = Music.kind()
+				preTitle = Music.title()
+				preArtist = Music.artist()
+			else
+				preKind = songkind
+				preTitle = songtitle
+				preArtist = songartist
+			end
 			--获取新歌曲信息
 			if songkind == "connecting" then
 				songkind = Music.kind()
