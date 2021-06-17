@@ -17,7 +17,6 @@ cd ~/.hammerspoon && git pull
 ## Music悬浮菜单栏（Apple Music Canvas Menu）
 
 ### Big Sur对应
-由于Big Sur下通过AppleScript获取Apple Music命令失效（本地音乐正常），暂时只发现从Dock栏的“音乐”App图标右键菜单获取Apple Music的信息的方法，此方法的“副作用”是每次获取Apple Music信息或是更改其Loved或Disliked状态时会有右键菜单闪现！等Apple修复后无需更新代码即可恢复正常！
 
 ![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/Music.png)
 
