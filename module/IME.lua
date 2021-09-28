@@ -63,7 +63,6 @@ local App2Ime = {
 function imeStash()
 	local imehistory = {}
 	currentapp = hs.window.frontmostWindow():application():path()
-	end
 	local currentime = k.currentSourceID()
 	if #imehistory > 50 then
 		table.remove(App2Ime)
