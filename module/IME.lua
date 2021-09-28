@@ -62,10 +62,7 @@ local App2Ime = {
 -- 记录App输入法状态
 function imeStash()
 	local imehistory = {}
-	if hs.window.frontmostWindow() ~= nil then
-		if hs.window.frontmostWindow():application() ~= nil then
-			currentapp = hs.window.frontmostWindow():application():path()
-		end
+	currentapp = hs.window.frontmostWindow():application():path()
 	end
 	local currentime = k.currentSourceID()
 	if #imehistory > 50 then
