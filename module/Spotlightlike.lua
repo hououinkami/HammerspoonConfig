@@ -6,6 +6,12 @@ else
 	copied = "已复制到剪贴板"
 	wikiUrl = "https://en.wikipedia.org/wiki/keyword"
 end
+local engineList = {
+	d = "https://www.baidu.com/s?wd=keyword",
+	w = wikiUrl,
+	zh = "https://www.zhihu.com/search?q=keyword&type=content",
+	git = "https://github.com/search?q=keyword",
+}
 imagesize = {h = 15, w = 15}
 -- 添加ToolBar
 local toolbarItems = {
@@ -90,6 +96,11 @@ function searchBox()
 			end)
 		end
         local string = chooser:query()
+		for kw, surl in pairs(engineList) do
+			if string.find(string, "^"..kw.."%s") then
+				string = string.sub(string, 3)
+			end
+		end
         local query = hs.http.encodeForQuery(string)
         -- 如果无输入则清空列表
 		if string:len() == 0 then
@@ -104,6 +115,7 @@ function searchBox()
 			if not ok then 
 				return
 			end
+			-- 使用DuckDuckGo搜索建议
 			choices = hs.fnutils.imap(results, function(result)
 				return {
 					["text"] = result["phrase"],
@@ -116,7 +128,7 @@ function searchBox()
                 }
 			end)
 			]]--
-			table.insert(choices,1,{text = chooser:query()})
+			table.insert(choices,1,{text = string})
 			if #choices > 1 then
 				if choices[1].text == choices[2].text then
 					table.remove(choices,1)
@@ -128,7 +140,7 @@ function searchBox()
 	chooser:attachedToolbar(chooserToolbar)
 	chooser:queryChangedCallback(updateChooser)
 	chooser:searchSubText(false)
-	chooser:rows(11)
+	chooser:rows(9)
 end
 -- 搜索函数
 function searchFun(engineUrl)
@@ -157,6 +169,13 @@ end
 function searchcompletionCallback(rowInfo)
 	local script = [[tell application "Safari" to activate (open location "searchurl")]]
 	local baseUrl = "https://www.google.com/search?q=keyword"
+	if rowInfo ~= nil then
+		for kw, surl in pairs(engineList) do
+			if string.find(chooser:query(), "^"..kw.."%s") then
+				baseUrl = surl
+			end
+		end
+	end
 	-- Encode搜索词
 	if rowInfo == nil then
 		return
