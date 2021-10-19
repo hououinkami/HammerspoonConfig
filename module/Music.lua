@@ -20,6 +20,8 @@ local songexistinlibrary = nil
 local musicstate = nil
 
 -- 可更改的自定义变量
+highVolume = 80
+lowVolume = highVolume - 40
 gaptext = "｜" -- 菜单栏标题的间隔字符
 fadetime = 0.6 -- 淡入淡出时间
 staytime = 2 -- 显示时间
@@ -178,7 +180,7 @@ Music.kind = function()
 end
 -- 音量调整
 Music.volume = function (volumeValue)
-	local volumeScript = [[tell application "Music" to set sound volume to sound volume + Value]]
+	local volumeScript = [[tell application "Music" to set sound volume to Value]]
 	as.applescript(volumeScript:gsub("Value", volumeValue))
 end
 -- 检测播放状态
@@ -1141,6 +1143,12 @@ function updatemenubar()
 					end tell
 				]]
 				delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
+			end
+			-- 音量调整
+			if Music.kind() == "localmusic" or Music.kind() == "matched" then
+				Music.volume(highVolume)
+			else
+				Music.volume(lowVolume)
 			end
 			settitle()
 			setMenu()
