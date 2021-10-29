@@ -226,10 +226,10 @@ Music.existinlibrary = function ()
 		tell application "Music"
 			set a to current track's name
 			set b to current track's artist
-			exists (some track of playlist "Music" whose name is a and artist is b)
+			exists (some track of playlist "MusicList" whose name is a and artist is b)
 		end tell
 	]]
-	local _,existinlibrary,_ = as.applescript(existinlibraryScript:gsub("Music",MusicApp))
+	local _,existinlibrary,_ = as.applescript(existinlibraryScript:gsub("MusicList",MusicApp))
 	return existinlibrary
 end
 -- 将Apple Music曲目添加到本地曲库
@@ -237,7 +237,7 @@ Music.addtolibrary = function()
 	local addtolibraryScript = [[
 		tell application "Music"
 			try
-				duplicate current track to source "Library"
+				duplicate current track to library playlist "Library"
 			end try
 		end tell
 	]]
@@ -707,7 +707,8 @@ function setcontrolmenu()
 	-- 添加进曲库
 	if Music.kind() == "applemusic" then
 		if Music.existinlibrary() == false then
-			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+			addedimage = nil
+			-- addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 		else
 			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
 		end
