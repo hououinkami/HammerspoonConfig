@@ -1,4 +1,5 @@
 hs.window.animationDuration = 0
+resizeStep = 10
 local winhistory = {}
 local windowMeta = {}
 -- 记录窗口初始位置
@@ -9,7 +10,7 @@ function windowStash(window)
 		table.remove(winhistory)
 	end
 	local winstru = {winid, winf}
-	-- table.insert(winhistory, winstru) 注释掉本栏目后面几行取消注释该行则为记录窗口历史
+	-- table.insert(winhistory, winstru) 注释掉本栏后面几行取消注释该行则为记录窗口历史
 	local exist = false
 	for idx,val in ipairs(winhistory) do
 		if val[1] == winid then
@@ -107,6 +108,27 @@ Resize.todown = function ()
 	windowStash(this.window)
 	this.window:move({ this.windowFrame.x, this.screenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h })
 end
+Resize.wider = function ()
+	local this = windowMeta.new()
+	windowStash(this.window)
+	resizeWindow(this.window, "right", resizeStep)
+end
+Resize.thinner = function ()
+	local this = windowMeta.new()
+	windowStash(this.window)
+	resizeWindow(this.window, "left", resizeStep)
+end
+Resize.shorter = function ()
+	local this = windowMeta.new()
+	windowStash(this.window)
+	resizeWindow(this.window, "up", resizeStep)
+end
+Resize.taller = function ()
+	local this = windowMeta.new()
+	windowStash(this.window)
+	resizeWindow(this.window, "down", resizeStep)
+end
+--　定义快捷键
 function windowsManagement(hyperkey,keyFuncTable)
 	for key,fn in pairs(keyFuncTable) do
 		hotkey.bind(hyperkey, key, fn)
@@ -129,6 +151,11 @@ windowsManagement(Hyper,{
 		down = Resize.todown,
 		delete = Resize.reset,
 	})
+	mash = {"control", "shift"}
+	hotkey.bind(mash, "left", Resize.thinner, nil, Resize.thinner)
+	hotkey.bind(mash, "right", Resize.wider, nil, Resize.wider)
+	hotkey.bind(mash, "up", Resize.shorter, nil, Resize.shorter)
+	hotkey.bind(mash, "down", Resize.taller, nil, Resize.taller)
 -- 按比例缩放当前窗口
 function pushCurrent(x, y, w, h)
     local window = hs.window.focusedWindow()
@@ -143,6 +170,22 @@ function pushWindow(window, x, y, w, h)
     frame.y = max.y + (max.h * y)
     frame.w = max.w * w
     frame.h = max.h * h
+    window:setFrame(frame)
+end
+-- 平滑调节窗口大小
+function resizeWindow(window, dir, step)
+	local frame = window:frame()
+    local screen = window:screen()
+    local max = screen:frame()
+	if dir == "right" then
+		frame.w = frame.w + step
+	elseif dir == "left" then
+		frame.w = frame.w - step
+	elseif dir == "up" then
+		frame.h = frame.h - step
+	elseif dir == "down" then
+		frame.h = frame.h + step
+	end
     window:setFrame(frame)
 end
 -- 撤销最近一次动作
@@ -236,7 +279,7 @@ function applicationWatcher(appName, eventType, appObject)
 				appObject:setFrontmost(true)
 			end
 			-- hs.osascript.applescript([[tell application "System Events" to tell process "Finder" to tell (menu bar 1's menu bar item 7) to {click (menu 1's menu item 16)}]])
-			-- appObject:selectMenuItem({"ウインドウ", "すべてを手前に移動"})
+			-- appObject:selectMenuItem({"ウィンドウ", "すべてを手前に移動"})
     	end
   	end
   	-- 启动App
