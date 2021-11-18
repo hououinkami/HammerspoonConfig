@@ -13,6 +13,7 @@ local module_list = {
 	"module.Network",
 	"module.Music",
 	"module.Window",
+	"module.Space",
 	"module.Spotlightlike",
 	"module.IME",
 	"module.AppKeyMap",	
