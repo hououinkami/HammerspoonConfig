@@ -1,35 +1,23 @@
-c = require("hs.canvas")
-function setCanvas()
-    a = c.new{x = 100, y = 100, w = 200, h = 200 }
-    a[1] = {
-        type="image",
-        -- the Hammerspoon menu icon has this name within the Application bundle, so we can get it this way:
-        image = hs.image.imageFromName("statusicon"):template(false),
-        imageScaling = "scaleToFit"
-    }
-    a[2] = {
-        type = "rectangle",
-        action = "fill",
-        fillGradientColors = {
-            { red = 1 },
-            { red = 1, green = .65 },
-            { red = 1, green = 1 },
-            { green = 1 },
-            { blue = 1 },
-            { red = .30, blue = .5 },
-            { red = .93, green = .5, blue = .93 }
-        },
-    fillGradient = "radial"
-    }
-end
-function togglecanvas()
-    if a:isShowing() == true then
-        a:hide(0.6)
-    else
-        a:show(0.6)
-    end
-end
-setCanvas()
-testBar = hs.menubar.new()
-testBar:setTitle('TEST')
-testBar:setClickCallback(togglecanvas)
+hs.window.animationDuration = 0
+local screen = hs.window.focusedWindow():screen()
+local w = screen:fullFrame().w
+local h = screen:fullFrame().h
+hs.grid.setGrid(w .. 'x' .. h, screen, screen:fullFrame())
+local win = hs.window.focusedWindow()
+mash = {"control", "shift"}
+hs.hotkey.bind(mash, 'k', function() 
+    hs.grid.adjustWindow(
+    function(cell)
+        cell.x = 0
+        cell.y = 0
+        cell.w = 10
+        cell.h = 20
+        return hs.grid
+    end, window)
+end)
+hs.hotkey.bind(mash, 'j', function() 
+    local currentSize = hs.grid.get(win)
+    hs.grid.set(win,{currentSize.x,currentSize.y,currentSize.w+1,currentSize.h}, screen)
+end)
+hs.hotkey.bind(mash, 'l', function() hs.grid.pushWindowRight(win) end)
+hs.hotkey.bind(mash, 'h', function() hs.grid.pushWindowLeft(win) end)
