@@ -1146,10 +1146,13 @@ function updatemenubar()
 				delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
 			end
 			-- 音量调整
-			if Music.kind() == "localmusic" or Music.kind() == "matched" then
-				Music.volume(highVolume)
-			else
-				Music.volume(lowVolume)
+			local owner = hs.host.localizedName()
+			if string.find(owner,"カミ") then
+				if Music.kind() == "localmusic" or Music.kind() == "matched" then
+					Music.volume(highVolume)
+				else
+					Music.volume(lowVolume)
+				end
 			end
 			settitle()
 			setMenu()
