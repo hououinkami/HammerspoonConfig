@@ -1,3 +1,6 @@
+--------**--------
+-- 变量设置
+--------**--------
 hs.window.animationDuration = 0
 resizeStep = 10
 local winhistory = {}
@@ -37,8 +40,81 @@ function windowMeta.new()
 	end
 	return self
 end
--- 窗口动作
+
+--------**--------
+-- 窗口调节函数
+--------**--------
+-- 按比例缩放当前窗口
+function pushCurrent(x, y, w, h)
+    local window = hs.window.focusedWindow()
+    pushWindow(window, x, y, w, h)
+end
+-- 按比例缩放指定窗口
+function pushWindow(window, x, y, w, h)
+    local frame = window:frame()
+    local screen = window:screen()
+    local max = screen:frame()
+    frame.x = max.x + (max.w * x)
+    frame.y = max.y + (max.h * y)
+    frame.w = max.w * w
+    frame.h = max.h * h
+    window:setFrame(frame)
+end
+-- 平滑调节窗口大小
+function resizeWindow(window, dir, step)
+	local frame = window:frame()
+    local screen = window:screen()
+    local max = screen:frame()
+	if dir == "right" then
+		if frame.x + frame.w  < max.w then
+			frame.w = frame.w + step
+		else
+			frame.x = frame.x + step
+			frame.w = frame.w - step
+		end
+	elseif dir == "left" then
+		if frame.x + frame.w  < max.w then
+			frame.w = frame.w - step
+		else
+			frame.x = frame.x - step
+			frame.w = frame.w + step
+		end
+	elseif dir == "up" then
+		if frame.y + frame.h  < max.h then
+			print("123123")
+			frame.h = frame.h - step
+		else
+			frame.y = frame.y - step
+			frame.h = frame.h + step
+		end
+	elseif dir == "down" then
+		if frame.y + frame.h  < max.h then
+			print("343434")
+			frame.h = frame.h + step
+		else
+			frame.y = frame.y + step
+			frame.h = frame.h - step
+		end
+	end
+    window:setFrame(frame)
+end
+-- 撤销最近一次动作
+function Undo()
+	local cwin = hs.window.focusedWindow()
+	local cwinid = cwin:id()
+	for idx,val in ipairs(winhistory) do
+        -- Has this window been stored previously?
+		if val[1] == cwinid then
+			cwin:setFrame(val[2])
+		end
+	end
+end
+
+--------**--------
+-- 窗口动作函数
+--------**--------
 local Resize = {}
+-- 半屏
 Resize.halfleft = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
@@ -88,6 +164,7 @@ Resize.reset = function ()
 		end
 	end
 end
+-- 平移至贴近屏幕边缘
 Resize.toleft = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
@@ -108,98 +185,123 @@ Resize.todown = function ()
 	windowStash(this.window)
 	this.window:move({ this.windowFrame.x, this.screenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h })
 end
-Resize.wider = function ()
+-- 
+Resize.right = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
 	resizeWindow(this.window, "right", resizeStep)
 end
-Resize.thinner = function ()
+Resize.left = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
 	resizeWindow(this.window, "left", resizeStep)
 end
-Resize.shorter = function ()
+Resize.up = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
 	resizeWindow(this.window, "up", resizeStep)
 end
-Resize.taller = function ()
+Resize.down = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
 	resizeWindow(this.window, "down", resizeStep)
 end
---　定义快捷键
-function windowsManagement(hyperkey,keyFuncTable)
+
+--------**--------
+-- 定义快捷键
+--------**--------　
+-- 快捷键绑定函数
+function windowsManagement(hyperkey, keyFuncTable, holding)
 	for key,fn in pairs(keyFuncTable) do
-		hotkey.bind(hyperkey, key, fn)
+		if holding == true then
+			hotkey.bind(hyperkey, key, fn, nil, fn)
+		else
+			hotkey.bind(hyperkey, key, fn)
+		end
 	end
 end
 hotkey.bind(hyper, 'return', Resize.maximize)
 hotkey.bind(Hyper, 'return', Resize.fullscreen)
-windowsManagement(hyper,{
-		left = Resize.halfleft,
-		right = Resize.halfright,
-		up = Resize.halfup,
-		down = Resize.halfdown,
-		c = Resize.center,
-		delete = Resize.reset,
-	})
-windowsManagement(Hyper,{
-		left = Resize.toleft,
-		right = Resize.toright,
-		up = Resize.toup,
-		down = Resize.todown,
-		delete = Resize.reset,
-	})
-	mash = {"control", "shift"}
-	hotkey.bind(mash, "left", Resize.thinner, nil, Resize.thinner)
-	hotkey.bind(mash, "right", Resize.wider, nil, Resize.wider)
-	hotkey.bind(mash, "up", Resize.shorter, nil, Resize.shorter)
-	hotkey.bind(mash, "down", Resize.taller, nil, Resize.taller)
--- 按比例缩放当前窗口
-function pushCurrent(x, y, w, h)
-    local window = hs.window.focusedWindow()
-    pushWindow(window, x, y, w, h)
-end
--- 按比例缩放指定窗口
-function pushWindow(window, x, y, w, h)
-    local frame = window:frame()
-    local screen = window:screen()
-    local max = screen:frame()
-    frame.x = max.x + (max.w * x)
-    frame.y = max.y + (max.h * y)
-    frame.w = max.w * w
-    frame.h = max.h * h
-    window:setFrame(frame)
-end
--- 平滑调节窗口大小
-function resizeWindow(window, dir, step)
-	local frame = window:frame()
-    local screen = window:screen()
-    local max = screen:frame()
-	if dir == "right" then
-		frame.w = frame.w + step
-	elseif dir == "left" then
-		frame.w = frame.w - step
-	elseif dir == "up" then
-		frame.h = frame.h - step
-	elseif dir == "down" then
-		frame.h = frame.h + step
-	end
-    window:setFrame(frame)
-end
--- 撤销最近一次动作
-function Undo()
-	local cwin = hs.window.focusedWindow()
-	local cwinid = cwin:id()
-	for idx,val in ipairs(winhistory) do
-        -- Has this window been stored previously?
-		if val[1] == cwinid then
-			cwin:setFrame(val[2])
+windowsManagement(hyper, {
+	left = Resize.halfleft,
+	right = Resize.halfright,
+	up = Resize.halfup,
+	down = Resize.halfdown,
+	c = Resize.center,
+	delete = Resize.reset,
+}, false)
+windowsManagement({"option", "command"}, {
+	left = Resize.toleft,
+	right = Resize.toright,
+	up = Resize.toup,
+	down = Resize.todown,
+	c = Resize.center,
+	delete = Resize.reset,
+}, false)
+windowsManagement(Hyper, {
+	left = function () 
+		local this = windowMeta.new()
+		if this.windowFrame.x > 0 then
+			if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
+				Resize.toleft()
+			else
+				Resize.left()
+			end
+		else
+			Resize.left()
 		end
-	end
-end
+	end,
+	right = function () 
+		local this = windowMeta.new()
+		if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
+			if this.windowFrame.x > 0 then
+				Resize.toright()
+			else
+				Resize.right()
+			end
+		else
+			Resize.right()
+		end
+	end,
+	up = function () 
+		local this = windowMeta.new()
+		if this.windowFrame.y > 25 then
+			if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
+				Resize.toup()
+			else
+				Resize.up()
+			end
+		else
+			Resize.up()
+		end
+	end,
+	down = function () 
+		local this = windowMeta.new()
+		if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
+			if this.windowFrame.y > 25 then
+				Resize.todown()
+			else
+				Resize.down()
+			end
+		else
+			Resize.down()
+		end
+	end,
+	c = Resize.center,
+	delete = Resize.reset,
+}, true)
+windowsManagement({"option", "command", "shift"}, {
+	left = Resize.left,
+	right = Resize.right,
+	up = Resize.up,
+	down = Resize.down,
+	c = Resize.center,
+	delete = Resize.reset,
+}, true)
 
+--------**--------
+-- App自动窗口布局
+--------**--------　
 -- 自定义App窗口布局
 local layouts = {
 	{
