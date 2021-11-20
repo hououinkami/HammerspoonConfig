@@ -236,7 +236,6 @@ windowsManagement({"option", "command"}, {
 	up = Resize.toup,
 	down = Resize.todown,
 	c = Resize.center,
-	delete = Resize.reset,
 }, false)
 windowsManagement(Hyper, {
 	left = function () 
