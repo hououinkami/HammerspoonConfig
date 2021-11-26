@@ -17,6 +17,7 @@ local module_list = {
 	"module.Spotlightlike",
 	"module.IME",
 	"module.AppKeyMap",	
+	"module.Hotkey",	
 	--"module.DesktopWidget",
 	--"module.test",
 }
