@@ -71,21 +71,38 @@ end
 -- 点击时的行为
 function clickCallback()
     local runningApp = hs.application.runningApplications()
-    local r = false
+    local s = false
+    local c = false
     for i, app in pairs(runningApp) do
-        if string.find(app:name(),"ClashX") then
-            r = true
+        if string.find(app:name(),"Surge") then
+            s = true
+        elseif string.find(app:name(),"ClashX") then
+            c = true
         end
+    end
+    if s == true then
+        hs.osascript.applescript([[
+            tell application "System Events"
+	            tell process "Surge"
+		            tell menu bar item 1 of menu bar 2
+			            perform action "AXShowMenu"
+                        keystroke "d" using command down
+		            end tell
+	            end tell
+            end tell
+        ]])
     end
     if r == true then
         hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
     else
-        hs.osascript.applescript([[
-            tell application "Safari"
-	            activate
-	            tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1/luci-static/openclash/?hostname=192.168.1.1&port=9090&secret=123456#/proxies"})
-            end tell
-        ]])
+        if s == false then
+            hs.osascript.applescript([[
+                tell application "Safari"
+                    activate
+                    tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1/luci-static/openclash/?hostname=192.168.1.1&port=9090&secret=123456#/proxies"})
+                end tell
+            ]])
+        end
     end
 end
 -- 刷新函数
