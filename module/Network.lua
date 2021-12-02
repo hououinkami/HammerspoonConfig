@@ -11,8 +11,8 @@ function toggleclashx()
     end
 end
 -- Wi-Fi触发器
-wifiWatcher = hs.wifi.watcher.new(toggleclashx)
-wifiWatcher:start()
+-- wifiWatcher = hs.wifi.watcher.new(toggleclashx)
+-- wifiWatcher:start()
 
 --
 -- 菜单栏网速监控
