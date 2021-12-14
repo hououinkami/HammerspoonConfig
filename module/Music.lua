@@ -445,7 +445,7 @@ function settitle()
 		}
 		)
 		titlesize = c_menubar:minimumTextSize(1, c_menubar["title"].text)
-		delete(c_menubar)
+		-- delete(c_menubar)
 		c_menubar = nil
 	else
 		titlesize = { w = 400, h = 25 }
@@ -479,7 +479,7 @@ end
 -- 设置悬浮主菜单
 function setmainmenu()
 	barframe = MusicBar:frame()
-	delete(c_mainmenu)
+	-- delete(c_mainmenu)
 	-- 框架尺寸
 	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
 	-- 菜单项目
@@ -567,7 +567,7 @@ function setmainmenu()
 end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
-	delete(c_applemusicmenu)
+	-- delete(c_applemusicmenu)
 	-- 喜爱
 	if Music.loved() == true then
 		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
@@ -618,7 +618,7 @@ function setapplemusicmenu()
 end
 -- 设置本地音乐悬浮菜单项目
 function setlocalmusicmenu()
-	delete(c_localmusicmenu)
+    -- delete(c_localmusicmenu)
 	-- 星级评价悬浮菜单项目
 	if Music.rating() == 5 then
 		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/5star.png"):setSize(imagesize, absolute == true)
@@ -689,7 +689,7 @@ function setlocalmusicmenu()
 end
 -- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
-	delete(c_controlmenu)
+	-- delete(c_controlmenu)
 	-- 随机菜单项目
 	if Music.shuffle() == true then
 		shuffleimage = hs.image.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
@@ -778,7 +778,7 @@ function setcontrolmenu()
 end
 -- 播放列表悬浮菜单
 function setplaylistmenu()
-	delete(c_playlist)
+	-- delete(c_playlist)
 	-- 获取播放列表个数
 	_,playlistcount,_ = as.applescript([[
 		tell application "Music"
@@ -914,7 +914,7 @@ end
 -- 设置进度条悬浮菜单
 function setprogresscanvas()
 	-- 生成悬浮进度条
-	delete(c_progress)
+	-- delete(c_progress)
 	local per = 60 / 100
 	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
 	progressElement = {
