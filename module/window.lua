@@ -81,7 +81,6 @@ function resizeWindow(window, dir, step)
 		end
 	elseif dir == "up" then
 		if frame.y + frame.h  < max.h then
-			print("123123")
 			frame.h = frame.h - step
 		else
 			frame.y = frame.y - step
@@ -89,7 +88,6 @@ function resizeWindow(window, dir, step)
 		end
 	elseif dir == "down" then
 		if frame.y + frame.h  < max.h then
-			print("343434")
 			frame.h = frame.h + step
 		else
 			frame.y = frame.y + step
