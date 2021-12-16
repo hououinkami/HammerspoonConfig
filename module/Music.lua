@@ -445,6 +445,7 @@ function settitle()
 		}
 		)
 		titlesize = c_menubar:minimumTextSize(1, c_menubar["title"].text)
+		destroyCanvasObj(c_menubar, true)
 		-- delete(c_menubar)
 		c_menubar = nil
 	else
@@ -479,6 +480,7 @@ end
 -- 设置悬浮主菜单
 function setmainmenu()
 	barframe = MusicBar:frame()
+	destroyCanvasObj(c_mainmenu, true)
 	-- delete(c_mainmenu)
 	-- 框架尺寸
 	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
@@ -567,6 +569,7 @@ function setmainmenu()
 end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
+	destroyCanvasObj(c_applemusicmenu, true)
 	-- delete(c_applemusicmenu)
 	-- 喜爱
 	if Music.loved() == true then
@@ -618,6 +621,7 @@ function setapplemusicmenu()
 end
 -- 设置本地音乐悬浮菜单项目
 function setlocalmusicmenu()
+	destroyCanvasObj(c_localmusicmenu, true)
     -- delete(c_localmusicmenu)
 	-- 星级评价悬浮菜单项目
 	if Music.rating() == 5 then
@@ -689,6 +693,7 @@ function setlocalmusicmenu()
 end
 -- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
+	destroyCanvasObj(c_controlmenu, true)
 	-- delete(c_controlmenu)
 	-- 随机菜单项目
 	if Music.shuffle() == true then
@@ -778,6 +783,7 @@ function setcontrolmenu()
 end
 -- 播放列表悬浮菜单
 function setplaylistmenu()
+	destroyCanvasObj(c_playlist, true)
 	-- delete(c_playlist)
 	-- 获取播放列表个数
 	_,playlistcount,_ = as.applescript([[
@@ -914,6 +920,7 @@ end
 -- 设置进度条悬浮菜单
 function setprogresscanvas()
 	-- 生成悬浮进度条
+	destroyCanvasObj(c_progress, true)
 	-- delete(c_progress)
 	local per = 60 / 100
 	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
@@ -973,6 +980,25 @@ function show(canvas)
 	end
 end
 -- 删除
+function destroyCanvasObj(cObj,gc)
+	if not cObj then 
+		return 
+	end
+	-- explicit :delete() is deprecated, use gc
+	-- see https://github.com/Hammerspoon/hammerspoon/issues/3021
+	-- cObj:delete(delay or 0)
+	for i=#cObj,1,-1 do
+	  cObj[i] = nil
+	end
+	cObj:clickActivating(false)
+	cObj:mouseCallback(nil)
+	cObj:canvasMouseEvents(nil, nil, nil, nil)
+	cObj = nil
+	if gc and gc == true then 
+		collectgarbage() 
+	end
+end
+-- 删除（已弃用）
 function delete(canvas)
 	if canvas ~= nil and canvas ~= "all" then
 		canvas:delete(fadetime)
