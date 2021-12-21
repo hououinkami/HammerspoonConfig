@@ -1214,10 +1214,12 @@ end
 setmusicbar()
 -- 更新菜单标题
 function MusicBarUpdate()
-	if Music.checkrunning() == true then
+	local isRunning = Music.checkrunning()
+	if isRunning == true then
 		if MusicBar == nil then
 			MusicBar = hs.menubar.new()
 			MusicBar:setTitle('🎵' .. NoPlaying)
+			MusicBar:setClickCallback(togglecanvas)
 		end
 		updatemenubar()
 	else
