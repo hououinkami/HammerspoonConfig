@@ -97,17 +97,17 @@ function moveWindowOneSpace(dir,switch)
             skipSpaces = skipSpaces + 1
         else
             if last and ((dir=="left"  and spc==thisSpace) or (dir=="right" and last==thisSpace)) then
-
                 -- 方案一
                 -- 移动窗口
+                --[[
                 win:spacesMoveTo(dir=="left" and last or spc)
                 if switch then
                     switchSpace(skipSpaces+1,dir)
                     win:focus()
                 end
-                
+                --]]
                 -- 方案二
-                --spaces.moveWindowToSpace(win:id(), dir=="left" and last or spc)
+                spaces.moveWindowToSpace(win:id(), dir=="left" and last or spc)
 
                 -- 获取下一个桌面的ID
                 local spacesIds = getSpacesIdsTable()
