@@ -43,8 +43,28 @@ function flashScreen(screen)
       fillColor = { alpha = 0.25, red = 1 },
       type = "rectangle"})
     flash:show()
-    hs.timer.doAfter(.15,function () flash:delete() end)
+    hs.timer.doAfter(.15,function () destroyCanvasObj(flash,true) end)
  end
+
+ -- 删除闪屏函数
+function destroyCanvasObj(cObj,gc)
+	if not cObj then 
+		return 
+	end
+	-- explicit :delete() is deprecated, use gc
+	-- see https://github.com/Hammerspoon/hammerspoon/issues/3021
+	-- cObj:delete(delay or 0)
+	for i=#cObj,1,-1 do
+	  cObj[i] = nil
+	end
+	cObj:clickActivating(false)
+	cObj:mouseCallback(nil)
+	cObj:canvasMouseEvents(nil, nil, nil, nil)
+	cObj = nil
+	if gc and gc == true then 
+		collectgarbage() 
+	end
+end
 
 -- 在左右桌面间移动窗口
 function moveWindowOneSpace(dir,switch)
@@ -80,16 +100,15 @@ function moveWindowOneSpace(dir,switch)
 
                 -- 方案一
                 -- 移动窗口
-                --[[
                 win:spacesMoveTo(dir=="left" and last or spc)
                 if switch then
                     switchSpace(skipSpaces+1,dir)
                     win:focus()
                 end
-                --]]
-
+                
                 -- 方案二
-                spaces.moveWindowToSpace(win:id(), dir=="left" and last or spc)
+                --spaces.moveWindowToSpace(win:id(), dir=="left" and last or spc)
+
                 -- 获取下一个桌面的ID
                 local spacesIds = getSpacesIdsTable()
                 for i=1,5 do
