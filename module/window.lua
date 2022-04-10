@@ -362,13 +362,13 @@ function applicationWatcher(appName, eventType, appObject)
 	if (eventType == hs.application.watcher.activated) then
 		if (appName == "QQ") then
 			if appObject:focusedWindow() then
-			  appObject:focusedWindow():move({ 0, 140, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
+			  appObject:focusedWindow():move({ 90, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 			end
 		elseif (appName == "WeChat") then
 			if appObject:focusedWindow() then
-				appObject:focusedWindow():move({ 440, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
+				appObject:focusedWindow():move({ 680, 150, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 			end
-		elseif (appName == "ミュージック") then
+		elseif (appName == "") then
 			if appObject:focusedWindow() and appObject:focusedWindow():title() then
 				hs.osascript.applescript([[tell application "Music" to activate]])
 			end
