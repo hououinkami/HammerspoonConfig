@@ -1,19 +1,19 @@
 -- Hammerspoon设置
 hs.preferencesDarkMode = true
 hotkey = require "hs.hotkey"
-hyperkey = {"control", "command", "shift"}
-hyper = {"control", "option"}
-Hyper = {"control", "option", "command"}
-keymap = {"control"}
+hyperkey = {'⌘⌃⇧'}
+hyper = {'⌃⌥'}
+Hyper = {'⌘⌃⌥'}
+keymap = {'⌃'}
 hotkey.bind(hyperkey, "r", hs.reload)
 hotkey.bind(hyperkey, "p", hs.openPreferences)
-hotkey.bind({"option"}, "z", hs.toggleConsole)
+hotkey.bind({'⌥'}, "z", hs.toggleConsole)
 -- 组件加载管理
 local module_list = {
 	"module.Network",
 	"module.Music",
 	"module.Window",
-	--"module.Space",
+	"module.Space",
 	"module.Spotlightlike",
 	"module.IME",
 	"module.AppKeyMap",	
