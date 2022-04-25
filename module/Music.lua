@@ -74,15 +74,18 @@ end
 local Music = {}
 -- 曲目信息
 Music.title = function ()
-	local _,title,_ = as.applescript([[tell application "Music" to get name of current track]])
+	local issucceed,title,_ = as.applescript([[tell application "Music" to get name of current track]])
+	if issucceed == false then title = " " end
 	return title
 end
 Music.artist = function ()
-	local _,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
+	local issucceed,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
+	if issucceed == false then artist = " " end
 	return artist
 end
 Music.album = function ()
-	local _,album,_ = as.applescript([[tell application "Music" to get album of current track]])
+	local issucceed,album,_ = as.applescript([[tell application "Music" to get album of current track]])
+	if issucceed == false then album = " " end
 	return album
 end
 Music.duration = function()
