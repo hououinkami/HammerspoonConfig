@@ -566,7 +566,7 @@ function setmainmenu()
 			Switch:stop()
 			as.applescript([[tell application "Music" to quit]])
 			as.applescript([[tell application "LyricsX" to quit]])
-			Switch:start()
+			delay(3, function() Switch:start() end)
 		end
 	end)
 end
