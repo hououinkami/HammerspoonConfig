@@ -1206,7 +1206,7 @@ function setmusicbar()
 	if Music.checkrunning() == true then
 		-- 若首次播放则新建menubar item
 		if MusicBar == nil then
-			MusicBar = hs.menubar.new()
+			MusicBar = hs.menubar.new(true):autosaveName("Music")
 			MusicBar:setTitle('🎵' .. NoPlaying)
 		end
 	else -- 若Music没有运行
@@ -1220,7 +1220,7 @@ function MusicBarUpdate()
 	local isRunning = Music.checkrunning()
 	if isRunning == true then
 		if MusicBar == nil then
-			MusicBar = hs.menubar.new()
+			MusicBar = hs.menubar.new(true):autosaveName("Music")
 			MusicBar:setTitle('🎵' .. NoPlaying)
 			MusicBar:setClickCallback(togglecanvas)
 		end

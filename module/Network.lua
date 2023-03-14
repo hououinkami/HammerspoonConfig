@@ -166,5 +166,5 @@ function rescan()
     --NetBar:setMenu(menuitems_table)
     NetBar:setClickCallback(clickCallback)
 end
-NetBar = hs.menubar.new()
+NetBar = hs.menubar.new(true):autosaveName("Net")
 rescan()
