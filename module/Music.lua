@@ -562,11 +562,11 @@ function setmainmenu()
 		-- 点击左上角退出
 		if id == "background" and event == "mouseUp" and y < border.y and x < border.x then
 			hide("all")
-			progressTimer:stop()
-			Switch:stop()
+			delay(2, function() progressTimer:stop() end)
+			delay(2, function() Switch:stop() end)
 			as.applescript([[tell application "Music" to quit]])
 			as.applescript([[tell application "LyricsX" to quit]])
-			delay(3, function() Switch:start() end)
+			delay(5, function() Switch:start() end)
 		end
 	end)
 end
@@ -1176,13 +1176,13 @@ function updatemenubar()
 			end
 			-- 音量调整
 			local owner = hs.host.localizedName()
-			if string.find(owner,"カミ") then
+			-- if string.find(owner,"カミ") then
 				if Music.kind() == "localmusic" or Music.kind() == "matched" then
 					Music.volume(highVolume)
 				else
 					Music.volume(lowVolume)
 				end
-			end
+			-- end
 			settitle()
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
