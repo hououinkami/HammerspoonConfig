@@ -4,7 +4,7 @@ c = require("hs.canvas")
 --
 function toggleclashx()
     local ssid = hs.wifi.currentNetwork()
-    if (ssid == nil) or string.find(ssid,"BabyShrimp") then
+    if (ssid == nil) or string.find(ssid,"bySh") then
         hs.osascript.applescript([[tell application "ClashX Pro" to quit]])
     else
         hs.osascript.applescript([[tell application "ClashX Pro" to activate]])
