@@ -4,7 +4,7 @@ c = require("hs.canvas")
 --
 function toggleclashx()
     local ssid = hs.wifi.currentNetwork()
-    if (ssid == nil) or string.find(ssid,"bySh") then
+    if (ssid == nil) or string.find(ssid,"BabyShrimp") then
         hs.osascript.applescript([[tell application "ClashX Pro" to quit]])
     else
         hs.osascript.applescript([[tell application "ClashX Pro" to activate]])
@@ -92,7 +92,7 @@ function clickCallback()
             end tell
         ]])
     end
-    if r == true then
+    if c == true then
         hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
     else
         if s == false then
