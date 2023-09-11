@@ -1176,13 +1176,13 @@ function updatemenubar()
 			end
 			-- 音量调整
 			local owner = hs.host.localizedName()
-			-- if string.find(owner,"カミ") then
-				if Music.kind() == "localmusic" or Music.kind() == "matched" then
-					Music.volume(highVolume)
-				else
-					Music.volume(lowVolume)
-				end
-			-- end
+		--	if string.find(owner,"カミ") then
+		--		if Music.kind() == "localmusic" or Music.kind() == "matched" then
+		--			Music.volume(highVolume)
+		--		else
+		--			Music.volume(lowVolume)
+		--		end
+		--	end
 			settitle()
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
