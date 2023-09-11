@@ -1,5 +1,5 @@
 local owner = hs.host.localizedName()
-if string.find(owner,"カミ") then
+if string.find(owner,"Kami") then
 	copied = "クリップボードにコピーしました"
 	wikiUrl = "https://ja.wikipedia.org/wiki/keyword"
 else

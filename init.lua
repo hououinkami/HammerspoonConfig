@@ -26,6 +26,6 @@ for _, v in ipairs(module_list) do
 end
 -- 自动更新
 local owner = hs.host.localizedName()
-if not string.find(owner,"カミ") then
+if not string.find(owner,"Kami") then
 	require "module.autoupdate"
 end
