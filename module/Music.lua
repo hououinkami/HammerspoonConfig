@@ -48,7 +48,7 @@ AMBlue = {0, 120, 255}
 progressAlpha = 0.6 -- 进度条透明度
 -- 本地化适配
 local owner = hs.host.localizedName()
-if string.find(owner,"カミ") then
+if string.find(owner,"Kami") then
 	NoPlaying = "ミュージック"
 	MusicApp = "ミュージック"
 	MusicLibrary = "ライブラリ"
@@ -715,8 +715,7 @@ function setcontrolmenu()
 	-- 添加进曲库
 	if Music.kind() == "applemusic" then
 		if Music.existinlibrary() == false then
-			addedimage = nil
-			-- addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 		else
 			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
 		end
