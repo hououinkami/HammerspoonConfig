@@ -241,6 +241,8 @@ Music.addtolibrary = function()
 		tell application "Music"
 			try
 				duplicate current track to library playlist "Library"
+			on error
+				duplicate current track to first source
 			end try
 		end tell
 	]]
@@ -758,11 +760,6 @@ function setcontrolmenu()
 		elseif id == "playlist" and event == "mouseUp" then
 			if Music.existinlibrary() == false then
 				Music.addtolibrary()
-				repeat
-					delay(1, function() return false end)
-				until(Music.existinlibrary() == true)
-				setcontrolmenu()
-			else
 				if c_playlist == nil then
 					setplaylistmenu()
 					c_playlist:orderAbove(c_mainmenu)
@@ -908,6 +905,13 @@ function setplaylistmenu()
 				elseif event == "mouseUp" then
 					Music.addtoplaylist(playlistname[i])
 					hide(c_playlist)
+					-- 判断是否添加成功
+					if Music.kind() == "applemusic" then
+						if Music.existinlibrary() == false then
+							hs.alert.show("曲の追加が失敗しているようです")
+						end
+						setcontrolmenu()
+					end
 				end
 			end
 			i = i + 1
@@ -1067,6 +1071,7 @@ function togglecanvas()
 				if c_mainmenu:isShowing() == true then
 					hide("all")
 				else
+					setMenu()
 					show("all")
 					-- 自动隐藏悬浮菜单
 					hs.timer.waitUntil(function()
