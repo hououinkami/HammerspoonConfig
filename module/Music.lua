@@ -48,7 +48,7 @@ AMBlue = {0, 120, 255}
 progressAlpha = 0.6 -- 进度条透明度
 -- 本地化适配
 local owner = hs.host.localizedName()
-if string.find(owner,"Kami") then
+if string.find(owner,"Kami") or string.find(owner,"カミ") then
 	NoPlaying = "ミュージック"
 	MusicApp = "ミュージック"
 	MusicLibrary = "ライブラリ"
@@ -1150,8 +1150,12 @@ function updatemenubar()
 				songrating = Music.rating()
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
-					if Music.currentposition() > 1 then
-						return true
+					if Music.currentposition() ~= nil then
+						if Music.currentposition() > 1 then
+							return true
+						else
+							return false
+						end
 					else
 						return false
 					end
