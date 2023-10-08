@@ -567,7 +567,6 @@ function setmainmenu()
 			delay(2, function() progressTimer:stop() end)
 			delay(2, function() Switch:stop() end)
 			as.applescript([[tell application "Music" to quit]])
-			as.applescript([[tell application "LyricsX" to quit]])
 			delay(5, function() Switch:start() end)
 		end
 	end)
