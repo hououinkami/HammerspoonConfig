@@ -6,6 +6,7 @@ as = require("hs.osascript")
 c = require("hs.canvas")
 -- 系统变量
 screenframe = hs.screen.mainScreen():fullFrame()
+menubarHeight = hs.screen.mainScreen():frame().y
 -- 缓存变量初始化
 local MusicBar = nil
 local songtitle = nil
@@ -439,7 +440,7 @@ end
 function settitle()
 	-- 菜单栏标题长度
 	if Music.state() ~= "stopped" then
-		c_menubar = c.new({x = 0, y = 0, h = 25, w = 100})
+		c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
 		c_menubar:appendElements(
 		{
 			id = "title",
@@ -454,7 +455,7 @@ function settitle()
 		-- delete(c_menubar)
 		c_menubar = nil
 	else
-		titlesize = { w = 400, h = 25 }
+		titlesize = { w = 400, h = menubarHeight }
 	end
 	local maxlen = 400
 	if Music.state() == "playing" then
