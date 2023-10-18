@@ -1,7 +1,8 @@
+win = require("hs.window")
 --------**--------
 -- 变量设置
 --------**--------
-hs.window.animationDuration = 0
+win.animationDuration = 0
 resizeStep = 10
 local winhistory = {}
 local windowMeta = {}
@@ -32,7 +33,7 @@ function windowMeta.new()
 			end,
 		})
 	if self ~= nil then
-		self.window = hs.window.focusedWindow()
+		self.window = win.focusedWindow()
 		self.screen = self.window:screen()
 		self.resolution = self.screen:fullFrame()
 		self.windowFrame = self.window:frame()
@@ -46,7 +47,7 @@ end
 --------**--------
 -- 按比例缩放当前窗口
 function pushCurrent(x, y, w, h)
-    local window = hs.window.focusedWindow()
+    local window = win.focusedWindow()
     pushWindow(window, x, y, w, h)
 end
 -- 按比例缩放指定窗口
@@ -98,7 +99,7 @@ function resizeWindow(window, dir, step)
 end
 -- 撤销最近一次动作
 function Undo()
-	local cwin = hs.window.focusedWindow()
+	local cwin = win.focusedWindow()
 	local cwinid = cwin:id()
 	for idx,val in ipairs(winhistory) do
         -- Has this window been stored previously?
@@ -409,22 +410,22 @@ function applicationWatcher(appName, eventType, appObject)
 end
 -- 查看当前激活窗口的App路径及名称
 hs.hotkey.bind(Hyper, ".", function()
-	hs.pasteboard.setContents(hs.window.focusedWindow():application():path())
+	hs.pasteboard.setContents(win.focusedWindow():application():path())
 	hs.alert.show(
 		"App Path:        "
-		..hs.window.focusedWindow():application():path()
+		..win.focusedWindow():application():path()
 		.."\n"
 		.."App Name:      "
-		..hs.window.focusedWindow():application():name()
+		..win.focusedWindow():application():name()
 		.."\n"
 		.."IME Source ID: "
 		..hs.keycodes.currentSourceID()
 		.."\n"
 		.."Window Title:  "
-		..hs.window.focusedWindow():title()
+		..win.focusedWindow():title()
 		.."\n"
 		.."App Bundle ID: "
-		..hs.window.focusedWindow():application():bundleID()
+		..win.focusedWindow():application():bundleID()
 	)
 end)
 appWatcherForresize = hs.application.watcher.new(applicationWatcher)
