@@ -658,10 +658,12 @@ fullscreenappWatcher = app.watcher.new(
 	function(appName, eventType, appObject)
 		if (eventType == app.watcher.activated) then
 			if appObject then
-				if appObject:focusedWindow():isFullScreen() then
-					showDesktop:stop()
-				else
-					showDesktop:start()
+				if appObject:focusedWindow() then
+					if appObject:focusedWindow():isFullScreen() then
+						showDesktop:stop()
+					else
+						showDesktop:start()
+					end
 				end
 			end
 		end
