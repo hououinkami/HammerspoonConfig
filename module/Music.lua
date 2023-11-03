@@ -1,11 +1,8 @@
 --
 -- 定义变量 --
 --
--- 定义Hammerspoon模块
-as = require("hs.osascript")
-c = require("hs.canvas")
 -- 系统变量
-screenframe = hs.screen.mainScreen():fullFrame()
+screenFrame = hs.screen.mainScreen():fullFrame()
 menubarHeight = hs.screen.mainScreen():frame().y
 -- 缓存变量初始化
 local MusicBar = nil
@@ -72,69 +69,56 @@ end
 --
 -- Music功能函数集 --
 --
+-- 调用AppleScript模块
+function tell(cmd)
+	local _cmd = 'tell application "Music" to ' .. cmd
+	local ok, result = as.applescript(_cmd)
+	if ok then
+	  return result
+	else
+	  return nil
+	end
+end
 local Music = {}
 -- 曲目信息
 Music.title = function ()
-	local issucceed,title,_ = as.applescript([[tell application "Music" to get name of current track]])
-	if issucceed == false then title = " " end
+	local title = tell('name of current track') or " "
 	return title
 end
 Music.artist = function ()
-	local issucceed,artist,_ = as.applescript([[tell application "Music" to get artist of current track]])
-	if issucceed == false then artist = " " end
+	local artist = tell('artist of current track') or " "
 	return artist
 end
 Music.album = function ()
-	local issucceed,album,_ = as.applescript([[tell application "Music" to get album of current track]])
-	if issucceed == false then album = " " end
+	local album = tell('album of current track') or " "
 	return album
 end
 Music.duration = function()
-	local _,duration,_ = as.applescript([[tell application "Music" to get finish of current track]])
-	return duration
+	return tell('finish of current track')
 end
 Music.currentposition = function()
-	local _,currentposition,_ = as.applescript([[tell application "Music" to get player position]])
-	return currentposition
+	return tell('player position')
 end
 Music.loved = function ()
-	local _,loved,_ = as.applescript([[tell application "Music" to get loved of current track]])
-	return loved
+	return tell('loved of current track')
 end
 Music.disliked = function ()
-	local _,disliked,_ = as.applescript([[tell application "Music" to get disliked of current track]])
-	return disliked
+	return tell('disliked of current track')
 end
 Music.rating = function ()
-	local _,rating100,_ = as.applescript([[tell application "Music" to get rating of current track]])
-	if rating100 ~= nil then
-		rating = rating100/20
+	if tell('rating of current track') then
+		return tell('rating of current track')/20
 	end
-	return rating
 end
 Music.loop = function ()
-	local _,loop,_ = as.applescript([[tell application "Music" to get song repeat as string]])
-	return loop
+	return tell('song repeat as string')
 end
 Music.shuffle = function ()
-	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
-	return shuffle
+	return tell('shuffle enabled')
 end
 -- 星级评价
 Music.setrating = function (rating)
-	if rating == 5 then
-		as.applescript([[tell application "Music" to set rating of current track to 100]])
-	elseif rating == 4 then
-		as.applescript([[tell application "Music" to set rating of current track to 80]])
-	elseif rating == 3 then
-		as.applescript([[tell application "Music" to set rating of current track to 60]])
-	elseif rating == 2 then
-		as.applescript([[tell application "Music" to set rating of current track to 40]])
-	elseif rating == 1 then
-		as.applescript([[tell application "Music" to set rating of current track to 20]])
-	elseif rating == 0 then
-		as.applescript([[tell application "Music" to set rating of current track to 0]])
-	end
+	tell('set rating of current track to ' .. rating * 20)
 end
 -- 标记为喜爱
 Music.toggleloved = function ()
@@ -162,9 +146,9 @@ Music.toggledisliked = function ()
 end
 -- 歌曲种类
 Music.kind = function()
-	local _,kind,_ = as.applescript([[tell application "Music" to get kind of current track]])
-	local _,cloudstatus,_ = as.applescript([[tell application "Music" to get cloud status of current track as string]])
-	local _,class,_ = as.applescript([[tell application "Music" to get class of current track as string]])
+	local kind = tell('kind of current track')
+	local cloudstatus = tell('cloud status of current track as string')
+	local class = tell('class of current track as string')
 	if kind ~= nil then
 		--若为本地曲目
 		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then
@@ -184,13 +168,11 @@ Music.kind = function()
 end
 -- 音量调整
 Music.volume = function (volumeValue)
-	local volumeScript = [[tell application "Music" to set sound volume to Value]]
-	as.applescript(volumeScript:gsub("Value", volumeValue))
+	tell('set sound volume to ' .. volumeValue)
 end
 -- 检测播放状态
 Music.state = function ()
-	local _,state,_ = as.applescript([[tell application "Music" to get player state as string]])
-	return state
+	return tell('player state as string')
 end
 -- 检测Music是否在运行
 Music.checkrunning = function()
@@ -209,19 +191,19 @@ end
 -- 切换随机模式
 Music.toggleshuffle = function ()
 	if Music.shuffle() == false then
-		as.applescript([[tell application "Music" to set shuffle enabled to true]])
+		tell("set shuffle enabled to true")
 	else
-		as.applescript([[tell application "Music" to set shuffle enabled to false]])
+		tell("set shuffle enabled to false")
 	end
 end
 -- 切换重复模式
 Music.toggleloop = function ()
 	if Music.loop() == "all" then
-		as.applescript([[tell application "Music" to set song repeat to one]])
+		tell('set song repeat to one')
 	elseif Music.loop() == "one" then
-		as.applescript([[tell application "Music" to set song repeat to off]])
+		tell('set song repeat to off')
 	elseif Music.loop() == "off" then
-		as.applescript([[tell application "Music" to set song repeat to all]])
+		tell('set song repeat to all')
 	end
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
@@ -260,8 +242,7 @@ Music.existinplaylist = function (playlistname)
 			exists (some track of (first user playlist whose smart is false and name is "pname") whose name is trackName and artist is artistName)
 		end tell
 	]]
-	local existinplaylistscript = existinscript:gsub("pname", playlistname)
-	local _,existinplaylist,_ = as.applescript(existinplaylistscript)
+	local _,existinplaylist,_ = as.applescript(existinscript:gsub("pname", playlistname))
 	return existinplaylist
 end
 -- 将当前曲目添加到指定播放列表
@@ -286,12 +267,10 @@ end
 -- 随机播放指定播放列表中曲目
 Music.shuffleplay = function (playlist)
 	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
-	if shuffle == false then
-		as.applescript([[tell application "Music" to set shuffle enabled to true]])
+	if tell('shuffle enabled') == false then
+		tell('set shuffle enabled to true')
 	end
-	local playscript = [[tell application "Music" to play playlist named pname]]
-	local playlistscript = playscript:gsub("pname", playlist)
-	as.applescript(playlistscript)
+	tell('play playlist named ' .. playlist)
 end
 -- 保存专辑封面
 Music.saveartwork = function ()
@@ -368,7 +347,7 @@ Music.saveartworkbyapi = function (set_artwork_object)
 							if songdata.results[i].artistName == Music.artist() then
 								artworkurl100 = songdata.results[i].artworkUrl100
 								artworkurl = artworkurl100:gsub("100x100", "1000x1000")
-								artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+								artworkfile = img.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
 								artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
 								condition = true
 							end
@@ -378,16 +357,16 @@ Music.saveartworkbyapi = function (set_artwork_object)
 						if artworkurl == nil then
 							artworkurl100 = songdata.results[1].artworkUrl100
 							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
-							artworkfile = hs.image.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
+							artworkfile = img.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
 							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
 						end
 						--]]
 					end
 				end
 				if artworkurl ~= nil then
-					artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork.jpg")
+					artwork = img.imageFromPath(hs.configdir .. "/currentartwork.jpg")
 				else
-					artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
+					artwork = img.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 				end
 				set_artwork_object(artwork)
 			end)
@@ -398,20 +377,20 @@ end
 Music.getartworkpath = function()
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
-		local _,format,_ = as.applescript([[tell application "Music" to get format of artwork 1 of current track as string]])
+		local format = tell('format of artwork 1 of current track as string')
 		if format == nil then
-			artwork = hs.image.imageFromPath(hs.configdir .. "/image/NoArtwork.png")
+			artwork = img.imageFromPath(hs.configdir .. "/image/NoArtwork.png")
 		else
 			if string.find(format, "PNG") then
 				ext = "png"
 			else
 				ext = "jpg"
 			end
-			artwork = hs.image.imageFromPath(hs.configdir .. "/currentartwork." .. ext):setSize({h = 300, w = 300}, absolute == true)
+			artwork = img.imageFromPath(hs.configdir .. "/currentartwork." .. ext):setSize({h = 300, w = 300}, absolute == true)
 		end
 	-- 若连接中
 	elseif Music.kind() == "connecting"	then
-		artwork = hs.image.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
+		artwork = img.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 	end
 	return artwork
 end
@@ -523,12 +502,12 @@ function setmainmenu()
 	local defaultsize = infosize.w + artworksize.w + border.x * 2 + gap.x
 	if defaultsize < smallsize then
 		menuframe = {x = barframe.x, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = smallsize}
-	elseif defaultsize < screenframe.w - barframe.x - 5 then
+	elseif defaultsize < screenFrame.w - barframe.x - 5 then
 		menuframe = {x = barframe.x, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = defaultsize}
-	elseif defaultsize > screenframe.w - barframe.x - 5 and defaultsize < screenframe.w -10 then
-		menuframe = {x = screenframe.w - 5 - defaultsize, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = defaultsize}
-	elseif defaultsize > screenframe.w - 10 then
-		menuframe = {x = screenframe.x + 5, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = screenframe.w - 10}
+	elseif defaultsize > screenFrame.w - barframe.x - 5 and defaultsize < screenFrame.w -10 then
+		menuframe = {x = screenFrame.w - 5 - defaultsize, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = defaultsize}
+	elseif defaultsize > screenFrame.w - 10 then
+		menuframe = {x = screenFrame.x + 5, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = screenFrame.w - 10}
 	end
 	c_mainmenu:frame(menuframe)
 	if infosize.w < 100 then
@@ -558,8 +537,7 @@ function setmainmenu()
     			local mousepoint = hs.mouse.absolutePosition()
     			local currentposition = (mousepoint.x - menuframe.x - border.x) / c_progress:frame().w * Music.duration()
     			c_progress:replaceElements(progressElement):show()
-    			local setposition = [[tell application "Music" to set player position to "targetposition"]]
-    			as.applescript(setposition:gsub("targetposition", currentposition))
+				tell('set player position to "' .. currentposition .. '"')
     		end
 		end
 		-- 点击左上角退出
@@ -567,7 +545,7 @@ function setmainmenu()
 			hide("all")
 			delay(2, function() progressTimer:stop() end)
 			delay(2, function() Switch:stop() end)
-			as.applescript([[tell application "Music" to quit]])
+			delay(2, function() tell('quit') end)
 			delay(5, function() Switch:start() end)
 		end
 	end)
@@ -578,9 +556,9 @@ function setapplemusicmenu()
 	-- delete(c_applemusicmenu)
 	-- 喜爱
 	if Music.loved() == true then
-		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
+		lovedimage = img.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
 	else
-		lovedimage = hs.image.imageFromPath(hs.configdir .. "/image/notLoved.png"):setSize(imagesize, absolute == true)
+		lovedimage = img.imageFromPath(hs.configdir .. "/image/notLoved.png"):setSize(imagesize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "applemusic" then
@@ -630,17 +608,17 @@ function setlocalmusicmenu()
     -- delete(c_localmusicmenu)
 	-- 星级评价悬浮菜单项目
 	if Music.rating() == 5 then
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/5star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/5star.png"):setSize(imagesize, absolute == true)
 	elseif Music.rating() == 4 then
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/4star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/4star.png"):setSize(imagesize, absolute == true)
 	elseif Music.rating() == 3 then
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/3star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/3star.png"):setSize(imagesize, absolute == true)
 	elseif Music.rating() == 2 then
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/2star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/2star.png"):setSize(imagesize, absolute == true)
 	elseif Music.rating() == 1 then
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/1star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/1star.png"):setSize(imagesize, absolute == true)
 	else
-		rateimage = hs.image.imageFromPath(hs.configdir .. "/image/0star.png"):setSize(imagesize, absolute == true)
+		rateimage = img.imageFromPath(hs.configdir .. "/image/0star.png"):setSize(imagesize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "localmusic" then
@@ -702,27 +680,27 @@ function setcontrolmenu()
 	-- delete(c_controlmenu)
 	-- 随机菜单项目
 	if Music.shuffle() == true then
-		shuffleimage = hs.image.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
+		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
 	else
-		shuffleimage = hs.image.imageFromPath(hs.configdir .. "/image/shuffle_off.png"):setSize(imagesize, absolute == true)
+		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_off.png"):setSize(imagesize, absolute == true)
 	end
 	-- 循环菜单项目
 	if Music.loop() == "all" then
-		loopimage = hs.image.imageFromPath(hs.configdir .. "/image/loop_all.png"):setSize(imagesize, absolute == true)
+		loopimage = img.imageFromPath(hs.configdir .. "/image/loop_all.png"):setSize(imagesize, absolute == true)
 	elseif Music.loop() == "one" then
-		loopimage = hs.image.imageFromPath(hs.configdir .. "/image/loop_one.png"):setSize(imagesize, absolute == true)
+		loopimage = img.imageFromPath(hs.configdir .. "/image/loop_one.png"):setSize(imagesize, absolute == true)
 	elseif Music.loop() == "off" then
-		loopimage = hs.image.imageFromPath(hs.configdir .. "/image/loop_off.png"):setSize(imagesize, absolute == true)
+		loopimage = img.imageFromPath(hs.configdir .. "/image/loop_off.png"):setSize(imagesize, absolute == true)
 	end
 	-- 添加进曲库
 	if Music.kind() == "applemusic" then
 		if Music.existinlibrary() == false then
-			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+			addedimage = img.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 		else
-			addedimage = hs.image.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
+			addedimage = img.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
 		end
 	elseif Music.kind() == "localmusic" or Music.kind() == "matched" then
-		addedimage = hs.image.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
+		addedimage = img.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
 	c_controlmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * (1 + 1.5 * 2)}):level(c_mainmenu:level() + 1)
@@ -785,18 +763,9 @@ function setplaylistmenu()
 	destroyCanvasObj(c_playlist, true)
 	-- delete(c_playlist)
 	-- 获取播放列表个数
-	_,playlistcount,_ = as.applescript([[
-		tell application "Music"
-			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
-			get count of allplaylist
-		end tell
-	]])
+	local playlistcount = tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
-	_,playlistname,_ = as.applescript([[
-		tell application "Music"
-			get name of every user playlist whose smart is false and special kind is none
-		end tell
-	]])
+	local playlistname = tell('name of every user playlist whose smart is false and special kind is none')
 	-- 框架尺寸
 	controlmenuframe = c_controlmenu:frame()
 	playlistframe = {x = controlmenuframe.x + c_controlmenu["playlist"].frame.x + c_controlmenu["playlist"].frame.w / 2, y = controlmenuframe.y + c_controlmenu["playlist"].frame.y + c_controlmenu["playlist"].frame.h / 2, h = textsize * playlistcount, w = smallsize}
@@ -1244,9 +1213,7 @@ if MusicBar ~= nil then
 	if Music.state() ~= "stopped" then
 		MusicBar:setClickCallback(togglecanvas)
 	else
-		MusicBar:setClickCallback(function ()
-			as.applescript([[tell application "Music" to activate]])
-		end)
+		MusicBar:setClickCallback(function () tell('activate') end)
 	end
 end
 -- hs.timer.doWhile(function()

@@ -1,13 +1,12 @@
-c = require("hs.canvas")
 --
 -- 自动触发ClashX Pro
 --
 function toggleclashx()
     local ssid = hs.wifi.currentNetwork()
     if (ssid == nil) or string.find(ssid,"bySh") then
-        hs.osascript.applescript([[tell application "ClashX Pro" to quit]])
+        as.applescript([[tell application "ClashX Pro" to quit]])
     else
-        hs.osascript.applescript([[tell application "ClashX Pro" to activate]])
+        as.applescript([[tell application "ClashX Pro" to activate]])
     end
 end
 -- Wi-Fi触发器
@@ -70,7 +69,7 @@ function addNo(var)
 end
 -- 点击时的行为
 function clickCallback()
-    local runningApp = hs.application.runningApplications()
+    local runningApp = app.runningApplications()
     local s = false
     local c = false
     for i, app in pairs(runningApp) do
@@ -81,7 +80,7 @@ function clickCallback()
         end
     end
     if s == true then
-        hs.osascript.applescript([[
+        as.applescript([[
             tell application "System Events"
 	            tell process "Surge"
 		            tell menu bar item 1 of menu bar 2
@@ -93,10 +92,10 @@ function clickCallback()
         ]])
     end
     if c == true then
-        hs.osascript.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
+        as.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
     else
         if s == false then
-            hs.osascript.applescript([[
+            as.applescript([[
                 tell application "Safari"
                     activate
                     tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1/luci-static/openclash/?hostname=192.168.1.1&port=9090&secret=123456#/proxies"})
@@ -108,7 +107,7 @@ end
 -- 刷新函数
 function rescan()
     interface = hs.network.primaryInterfaces()
-    darkmode = hs.osascript.applescript('tell application "System Events"\nreturn dark mode of appearance preferences\nend tell')
+    darkmode = as.applescript('tell application "System Events"\nreturn dark mode of appearance preferences\nend tell')
     local menuitems_table = {}
     if interface then
         -- 检查激活的网络接口并创建菜单项目

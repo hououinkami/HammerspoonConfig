@@ -33,9 +33,9 @@ local function English()
 	k.setMethod("Romaji")
 end
 -- 切换输入法快捷键
-hs.hotkey.bind(hyper, '/', Chinese)
-hs.hotkey.bind(hyper, ',', English)
-hs.hotkey.bind(hyper, '.', Japanese)
+hs.hotkey.bind(hyper_oc, '/', Chinese)
+hs.hotkey.bind(hyper_oc, ',', English)
+hs.hotkey.bind(hyper_oc, '.', Japanese)
 -- 设置App对应的输入法
 local App2Ime = {
 	{'/System/Library/CoreServices/Finder.app', 'Chinese'},

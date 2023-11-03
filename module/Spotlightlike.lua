@@ -71,7 +71,7 @@ function searchBox()
 	function updateChooser()
 		if tab == nil then
 			-- 利用Tab键键入高亮候选项（默认为第一项）
-			tab = hs.hotkey.bind('', 'tab', function()
+			tab = hotkey.bind('', 'tab', function()
 				local id = chooser:selectedRow()
 				local item = choices[id]
 				-- 如果无高亮选项
@@ -85,7 +85,7 @@ function searchBox()
 		end
 		if copy == nil then
 			-- 复制高亮候选项
-			copy = hs.hotkey.bind('cmd', 'c', function()
+			copy = hotkey.bind(hyper_cmd, 'c', function()
 				local id = chooser:selectedRow()
 				local item = choices[id]
 				if item then
@@ -195,11 +195,11 @@ function searchcompletionCallback(rowInfo)
 		end
 		urlscript = script:gsub("searchurl", searchUrl)
     end
-	hs.osascript.applescript(urlscript)
+	as.applescript(urlscript)
 end
 searchBox()
 -- 触发快捷键
-hs.hotkey.bind({"option"}, 'space', function()
+hotkey.bind(hyper_opt, 'space', function()
 	if chooser:isVisible() then
 		chooser:hide()
 	else

@@ -1,31 +1,27 @@
-local spaces = require "hs.spaces"
-local hotkey = require "hs.hotkey"
-local window = require "hs.window"
-
 -- 判断是否为全屏窗口
 function getGoodFocusedWindow(nofull)
-    local win = window.focusedWindow()
-    if not win or not win:isStandard() then return end
-    if nofull and win:isFullScreen() then return end
-    return win
+    local currentWin = win.focusedWindow()
+    if not currentWin or not currentWin:isStandard() then return end
+    if nofull and currentWin:isFullScreen() then return end
+    return currentWin
 end
 
 function getValidFocusedWindow()
-    local win = window.focusedWindow()
-    if not win or not win:isStandard() then 
+    local currentWin = win.focusedWindow()
+    if not currentWin or not currentWin:isStandard() then 
         return 
     end
-    if win:isFullScreen() then 
+    if currentWin:isFullScreen() then 
         return 
     end
-    return win
+    return currentWin
  end 
 
 -- 将窗口直接移动至指定ID桌面
-local throwToSpace = function(win, spaceIdx)
+local throwToSpace = function(currentWin, spaceIdx)
     local spacesIds = getSpacesIdsTable()
     local spaceId = spacesIds[spaceIdx]
-    spaces.moveWindowToSpace(win:id(), spaceId)
+    spaces.moveWindowToSpace(currentWin:id(), spaceId)
 end
 -- 跳转至指定桌面（配合上一函数使用）
 function switchSpace(skip,dir)
@@ -35,7 +31,7 @@ function switchSpace(skip,dir)
 end
 -- 闪屏函数
 function flashScreen(screen)
-    local flash=hs.canvas.new(screen:fullFrame()):appendElements({
+    local flash=c.new(screen:fullFrame()):appendElements({
       action = "fill",
       fillColor = { alpha = 0.25, blue=1},
       type = "rectangle"
@@ -49,11 +45,11 @@ end
 
 -- 在左右桌面间移动窗口
 function moveWindowOneSpace(dir,switch)
-    local win = getGoodFocusedWindow(true)
-    if not win then 
+    local currentWin = getGoodFocusedWindow(true)
+    if not currentWin then 
         return 
     end
-    local screen=win:screen()
+    local screen=currentWin:screen()
     local uuid=screen:getUUID()
     local userSpaces=nil
     for k,v in pairs(spaces.allSpaces()) do
@@ -65,7 +61,7 @@ function moveWindowOneSpace(dir,switch)
     if not userSpaces then 
         return 
     end
-    local thisSpace=spaces.windowSpaces(win)
+    local thisSpace=spaces.windowSpaces(currentWin)
     if not thisSpace then 
         return 
     else 
@@ -83,7 +79,7 @@ function moveWindowOneSpace(dir,switch)
                     -- spaces.gotoSpace(newSpace)  -- also possible, invokes MC
                     switchSpace(skipSpaces+1,dir)
                 end
-                spaces.moveWindowToSpace(win,newSpace)
+                spaces.moveWindowToSpace(currentWin,newSpace)
                 return
             end
             last=spc
@@ -109,11 +105,11 @@ local getSpacesIdsTable = function()
 end
 -- 在左右桌面间移动窗口
 function moveWindowOneSpace2(dir,switch)
-    local win = getGoodFocusedWindow(true)
-    if not win then 
+    local currentWin = getGoodFocusedWindow(true)
+    if not currentWin then 
         return 
     end
-    local screen=win:screen()
+    local screen=currentWin:screen()
     local uuid=screen:getUUID()
     local userSpaces=nil
     for k,v in pairs(spaces.allSpaces()) do
@@ -125,7 +121,7 @@ function moveWindowOneSpace2(dir,switch)
     if not userSpaces then 
         return 
     end
-    local thisSpace=spaces.windowSpaces(win)
+    local thisSpace=spaces.windowSpaces(currentWin)
     if not thisSpace then 
         return 
     else 
@@ -138,7 +134,7 @@ function moveWindowOneSpace2(dir,switch)
             skipSpaces = skipSpaces + 1
         else
             if last and ((dir=="left"  and spc==thisSpace) or (dir=="right" and last==thisSpace)) then
-                spaces.moveWindowToSpace(win:id(), dir=="left" and last or spc)
+                spaces.moveWindowToSpace(currentWin:id(), dir=="left" and last or spc)
                 -- 获取下一个桌面的ID
                 local spacesIds = getSpacesIdsTable()
                 for i=1,5 do
@@ -164,7 +160,7 @@ function moveWindowOneSpace2(dir,switch)
                 elseif spaceID == 6 then
                     hs.eventtap.keyStroke({"ctrl"},"6")
                 end
-                win:focus()
+                currentWin:focus()
                 return
             end
             last=spc
@@ -174,6 +170,5 @@ function moveWindowOneSpace2(dir,switch)
     flashScreen(screen)
 end
 
-mash = {"command", "control"}
-hotkey.bind(mash, "right", nil, function() moveWindowOneSpace("right",true) end)
-hotkey.bind(mash, "left", nil, function() moveWindowOneSpace("left",true) end)
+hotkey.bind(hyper_cc, "right", nil, function() moveWindowOneSpace("right",true) end)
+hotkey.bind(hyper_cc, "left", nil, function() moveWindowOneSpace("left",true) end)
