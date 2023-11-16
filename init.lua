@@ -45,8 +45,3 @@ end
 if not string.find(owner,"Kami") then
 	require ('module.autoupdate')
 end
-if string.find(owner,"Mini") then
-	for _, v in ipairs({"Window","Space","Spotlightlike","IME","AppKeyMap",	"Hotkey"}) do
-		rrequire ('module.' .. v)
-	end
-end
