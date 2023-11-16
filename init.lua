@@ -24,23 +24,29 @@ hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
 hotkey.bind(hyper_ccs, "p", hs.openPreferences)
 hotkey.bind(hyper_opt, "z", hs.toggleConsole)
 -- 组件加载管理
-local module_list = {
-	"module.Network",
-	"module.Music",
-	"module.Window",
-	"module.Space",
-	"module.Spotlightlike",
-	"module.IME",
-	"module.AppKeyMap",	
-	"module.Hotkey",	
-	--"module.DesktopWidget",
-	--"module.test",
-}
-for _, v in ipairs(module_list) do
-	require (v)
-end
--- 自动更新
 local owner = hs.host.localizedName()
+local module_list = {
+	"Network",
+	"Music",
+	"Window",
+	"Space",
+	"Spotlightlike",
+	"IME",
+	"AppKeyMap",	
+	"Hotkey",	
+	--"DesktopWidget",
+	--"test",
+}
+if not string.find(owner,"Mini") then
+	for _, v in ipairs(module_list) do
+		require ('module.' .. v)
+	end
+end
 if not string.find(owner,"Kami") then
-	require "module.autoupdate"
+	require ('module.autoupdate')
+end
+if string.find(owner,"Mini") then
+	for _, v in ipairs({"Window","Space","Spotlightlike","IME","AppKeyMap",	"Hotkey"}) do
+		rrequire ('module.' .. v)
+	end
 end
