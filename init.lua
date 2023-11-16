@@ -37,7 +37,7 @@ local module_list = {
 	--"DesktopWidget",
 	--"test",
 }
-if not string.find(owner,"Mini") then
+if not string.find(owner,"mini") then
 	for _, v in ipairs(module_list) do
 		require ('module.' .. v)
 	end
