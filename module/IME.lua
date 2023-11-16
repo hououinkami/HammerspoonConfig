@@ -23,14 +23,17 @@ end
 -- 切换为日文
 local function Japanese()
 	--hs.osascript.applescript(script:gsub("tomethod",inputs[3]))
-	--k.currentSourceID("com.apple.inputmethod.Kotoeri.Japanese")
+	--k.currentSourceID("com.apple.inputmethod.Kotoeri.RomajiTyping.Japanese")
 	k.setMethod("Hiragana")
 end
 -- 切换为英文
 local function English()
 	--hs.osascript.applescript(script:gsub("tomethod",inputs[2]))
-	--k.currentSourceID(eng)
-	k.setMethod("Romaji")
+	if roma == true then
+		k.setMethod("Romaji")
+	else
+		k.currentSourceID(eng)
+	end
 end
 -- 切换输入法快捷键
 hs.hotkey.bind(hyper_oc, '/', Chinese)
