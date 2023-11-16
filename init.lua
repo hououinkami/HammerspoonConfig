@@ -38,7 +38,13 @@ local module_list = {
 	--"test",
 }
 for _, v in ipairs(module_list) do
-	require ('module.' .. v)
+	if v == 'Network' or v == 'Music' then
+		if not string.find(owner,"mini")) then
+			require ('module.' .. v)
+		end
+	else
+		require ('module.' .. v)
+	end
 end
 if not string.find(owner,"Kami") then
 	require ('module.autoupdate')
