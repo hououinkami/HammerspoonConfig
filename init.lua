@@ -37,10 +37,8 @@ local module_list = {
 	--"DesktopWidget",
 	--"test",
 }
-if not string.find(owner,"mini") then
-	for _, v in ipairs(module_list) do
-		require ('module.' .. v)
-	end
+for _, v in ipairs(module_list) do
+	require ('module.' .. v)
 end
 if not string.find(owner,"Kami") then
 	require ('module.autoupdate')
