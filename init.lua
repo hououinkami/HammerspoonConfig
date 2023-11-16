@@ -39,7 +39,7 @@ local module_list = {
 }
 for _, v in ipairs(module_list) do
 	if v == 'Network' or v == 'Music' then
-		if not string.find(owner,"mini")) then
+		if not string.find(owner,"mini") then
 			require ('module.' .. v)
 		end
 	else
