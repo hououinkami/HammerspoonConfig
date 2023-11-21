@@ -16,6 +16,7 @@ local songalbum = nil
 local songkind = nil
 local songexistinlibrary = nil
 local musicstate = nil
+local maxlen = 0
 -- 可更改的自定义变量
 highVolume = 80
 lowVolume = highVolume - 40
@@ -110,7 +111,7 @@ Music.disliked = function ()
 end
 Music.rating = function ()
 	if tell('rating of current track') then
-		return tell('rating of current track')/20
+		return tell('rating of current track')//20
 	end
 end
 Music.loop = function ()
@@ -422,82 +423,82 @@ function stringSplit(s, p)
     string.gsub(s, '[^'..p..']+', function(w) table.insert(rt, w) end)
     return rt
 end
+-- 获取App菜单栏文字项目
+function getmenubarItemLeft(app)
+	local appElement = ax.applicationElement(app)
+	local MenuElements = {}
+	if appElement then
+		for i = #appElement, 1, -1 do
+			local entity = appElement[i]
+			if entity.AXRole == "AXMenuBar" then
+				for j = 1, #entity, 1 do
+					local menuBarEntity = entity[j]
+					if menuBarEntity then
+						if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
+							table.insert(MenuElements, menuBarEntity)
+						end
+					end
+				end
+				return MenuElements
+			end
+		end
+	end
+end
+-- 获取App菜单栏图标
+function getmenubarItemRight(app)
+	local appElement = ax.applicationElement(app)
+	local extraMenuElements = {}
+	if appElement then
+		for i = #appElement, 1, -1 do
+			local entity = appElement[i]
+			if entity.AXRole == "AXMenuBar" then
+				for j = 1, #entity, 1 do
+					local menuBarEntity = entity[j]
+					if menuBarEntity then
+						if menuBarEntity.AXSubrole == "AXMenuExtra" then
+							table.insert(extraMenuElements, menuBarEntity)
+						end
+					end
+				end
+				return extraMenuElements
+			end
+		end
+	end
+end
+-- 获取菜单栏文字菜单最右端位置
+function getMenu()
+	local Menu = getmenubarItemLeft(app.frontmostApplication())
+	local lastMenu = 0
+	if Menu then
+		if #Menu > 0 then
+			for _,m in ipairs (Menu) do
+				if m.AXFrame and m.AXFrame.x and m.AXFrame.w then
+					if m.AXFrame.x + m.AXFrame.w > lastMenu then
+						lastMenu = m.AXFrame.x + m.AXFrame.w
+					end
+				end
+			end
+		end
+	end
+	return lastMenu
+end
+-- 获取菜单栏图标最左端位置
+function getmenuIcon()
+	local MenuIcon = getmenubarItemRight(app.find("企业微信"))
+	local firstIcon = screenFrame.w
+	if MenuIcon then
+		if #MenuIcon > 0 then
+			for _,i in ipairs (MenuIcon) do
+				if i.AXFrame.x < firstIcon then
+					firstIcon = i.AXFrame.x
+				end
+			end
+		end
+	end
+	return firstIcon
+end
 -- 创建菜单栏标题
 function settitle()
-	-- 获取App菜单栏文字项目
-	local getmenubarItemLeft = function(app)
-		local appElement = ax.applicationElement(app)
-		local MenuElements = {}
-		if appElement then
-			for i = #appElement, 1, -1 do
-				local entity = appElement[i]
-				if entity.AXRole == "AXMenuBar" then
-					for j = 1, #entity, 1 do
-						local menuBarEntity = entity[j]
-						if menuBarEntity then
-							if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
-								table.insert(MenuElements, menuBarEntity)
-							end
-						end
-					end
-					return MenuElements
-				end
-			end
-		end
-	end
-	-- 获取App菜单栏图标
-	local getmenubarItemRight = function(app)
-		local appElement = ax.applicationElement(app)
-		local extraMenuElements = {}
-		if appElement then
-			for i = #appElement, 1, -1 do
-				local entity = appElement[i]
-				if entity.AXRole == "AXMenuBar" then
-					for j = 1, #entity, 1 do
-						local menuBarEntity = entity[j]
-						if menuBarEntity then
-							if menuBarEntity.AXSubrole == "AXMenuExtra" then
-								table.insert(extraMenuElements, menuBarEntity)
-							end
-						end
-					end
-					return extraMenuElements
-				end
-			end
-		end
-	end
-	-- 获取菜单栏文字菜单最右端位置
-	local getMenu = function()
-		local Menu = getmenubarItemLeft(app.frontmostApplication())
-		local lastMenu = 0
-		if Menu then
-			if #Menu > 0 then
-				for _,m in ipairs (Menu) do
-					if m.AXFrame then
-						if m.AXFrame.x + m.AXFrame.w > lastMenu then
-							lastMenu = m.AXFrame.x + m.AXFrame.w
-						end
-					end
-				end
-			end
-		end
-		return lastMenu
-	end
-	-- 获取菜单栏图标最左端位置
-	local getmenuIcon = function()
-		local MenuIcon = getmenubarItemRight(app.find("企业微信"))
-		local firstIcon = screenFrame.w
-		if MenuIcon then
-			if #MenuIcon > 0 then
-				for _,i in ipairs (MenuIcon) do
-					if i.AXFrame.x < firstIcon then
-						firstIcon = i.AXFrame.x
-					end
-				end
-			end
-		end
-		return firstIcon
-	end
 	-- 菜单栏标题长度
 	c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
 	if Music.state() == "playing" or Music.state() == "paused" then
@@ -543,9 +544,8 @@ function settitle()
 		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
 	end
 	destroyCanvasObj(c_menubar, true)
-	-- delete(c_menubar)
 	c_menubar = nil
-	local maxlen = getmenuIcon() - getMenu()
+	maxlen = getmenuIcon() - getMenu()
 	if Music.state() == "playing" then
 		if Music.title() == connectingFile then
 			MusicBar:setTitle('♫ ' .. connectingFile)
@@ -580,6 +580,7 @@ function settitle()
 		end
 	end
 end
+
 --
 -- 悬浮菜单函数集
 --
@@ -587,7 +588,6 @@ end
 function setmainmenu()
 	barframe = MusicBar:frame()
 	destroyCanvasObj(c_mainmenu, true)
-	-- delete(c_mainmenu)
 	-- 框架尺寸
 	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
 	-- 菜单项目
@@ -618,7 +618,7 @@ function setmainmenu()
 			trackMouseUp = true
 		}
 	)
-	-- 设置悬浮菜单宽度(自适应)
+	-- 设置悬浮菜单自适应宽度
 	infosize = c_mainmenu:minimumTextSize(3, c_mainmenu["info"].text)
 	local defaultsize = infosize.w + artworksize.w + border.x * 2 + gap.x
 	if defaultsize < smallsize then
@@ -674,7 +674,6 @@ end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
 	destroyCanvasObj(c_applemusicmenu, true)
-	-- delete(c_applemusicmenu)
 	-- 喜爱
 	if Music.loved() == true then
 		lovedimage = img.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
@@ -726,21 +725,6 @@ end
 -- 设置本地音乐悬浮菜单项目
 function setlocalmusicmenu()
 	destroyCanvasObj(c_localmusicmenu, true)
-    -- delete(c_localmusicmenu)
-	-- 星级评价悬浮菜单项目
-	if Music.rating() == 5 then
-		rateimage = img.imageFromPath(hs.configdir .. "/image/5star.png"):setSize(imagesize, absolute == true)
-	elseif Music.rating() == 4 then
-		rateimage = img.imageFromPath(hs.configdir .. "/image/4star.png"):setSize(imagesize, absolute == true)
-	elseif Music.rating() == 3 then
-		rateimage = img.imageFromPath(hs.configdir .. "/image/3star.png"):setSize(imagesize, absolute == true)
-	elseif Music.rating() == 2 then
-		rateimage = img.imageFromPath(hs.configdir .. "/image/2star.png"):setSize(imagesize, absolute == true)
-	elseif Music.rating() == 1 then
-		rateimage = img.imageFromPath(hs.configdir .. "/image/1star.png"):setSize(imagesize, absolute == true)
-	else
-		rateimage = img.imageFromPath(hs.configdir .. "/image/0star.png"):setSize(imagesize, absolute == true)
-	end
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "localmusic" then
 		localmusicmenuframe = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 5.7}
@@ -761,7 +745,7 @@ function setlocalmusicmenu()
 				id = "rate",
 				frame = rateframe,
 				type = "image",
-				image = rateimage,
+				image = img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imagesize, absolute == true),
 				imageAlignment = "left",
 				trackMouseUp = true
 			}
@@ -798,7 +782,6 @@ end
 -- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
 	destroyCanvasObj(c_controlmenu, true)
-	-- delete(c_controlmenu)
 	-- 随机菜单项目
 	if Music.shuffle() == true then
 		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
@@ -882,7 +865,6 @@ end
 -- 播放列表悬浮菜单
 function setplaylistmenu()
 	destroyCanvasObj(c_playlist, true)
-	-- delete(c_playlist)
 	-- 获取播放列表个数
 	local playlistcount = tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
@@ -1017,7 +999,6 @@ end
 function setprogresscanvas()
 	-- 生成悬浮进度条
 	destroyCanvasObj(c_progress, true)
-	-- delete(c_progress)
 	local per = 60 / 100
 	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
 	progressElement = {
@@ -1075,7 +1056,7 @@ function show(canvas)
 		show(c_progress)
 	end
 end
--- 删除
+-- 删除图层
 function destroyCanvasObj(cObj,gc)
 	if not cObj then 
 		return 
@@ -1094,7 +1075,7 @@ function destroyCanvasObj(cObj,gc)
 		collectgarbage() 
 	end
 end
--- 删除（已弃用）
+-- 删除图层（已弃用）
 function delete(canvas)
 	if canvas ~= nil and canvas ~= "all" then
 		canvas:delete(fadetime)
@@ -1155,8 +1136,9 @@ end
 -- 鼠标点击时的行为
 local isFading = false
 function togglecanvas()
+	local spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	local toggleFunction = function ()
-		if Music.state() ~= "stopped" then
+		if Music.state() == "playing" or Music.state() == "paused" then
 			if c_mainmenu ~= nil then
 				if c_mainmenu:isShowing() == true then
 					hide("all")
@@ -1184,6 +1166,8 @@ function togglecanvas()
 					)
 				end
 			end
+		else
+			tell('activate')
 		end
 	end
 	-- 判断渐入渐出是否已经完成
@@ -1205,9 +1189,25 @@ function togglecanvas()
 	toggleFunction()
 	hs.timer.doAfter(fadetime, function() isFading = false end)
 end
--- 更新Menubar
-function updatemenubar()
-	if Music.state() ~= "stopped" then
+-- 实时更新函数
+function MusicBarUpdate()
+	-- 若更换了播放状态则触发更新
+	if Music.state() ~= musicstate then
+		musicstate = Music.state()
+		settitle()
+	end
+	-- 若菜单栏空白宽度有变更则触发更新
+	if getmenuIcon() - getMenu() ~= maxlen then
+		maxlen = getmenuIcon() - getMenu()
+		settitle()
+	end
+	-- 若切换Space则隐藏
+	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
+		spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+		hide("all")
+	end
+	-- 正常情况下的更新
+	if Music.state() == "playing" or Music.state() == "paused" then
 		--若更换了曲目
 		---连接中
 		if Music.kind() == "connecting" then
@@ -1290,31 +1290,15 @@ function updatemenubar()
 				delay(0.6, togglecanvas)
 			end
 		end
-	end
-	-- 若更换了播放状态
-	if Music.state() ~= musicstate then
-		musicstate = Music.state()
-		settitle()
-	end
-end
--- 实时更新函数
-function MusicBarUpdate()
-	if MusicBar == nil then
-		MusicBar = hs.menubar.new(true):autosaveName("Music")
-	end
-	if Music.checkrunning() == true then
-		if Music.state() ~= "stopped" then
-			MusicBar:setClickCallback(togglecanvas)
-		else
-			MusicBar:setClickCallback(function () tell('activate') end)
-		end
-		updatemenubar()
 	else
 		progressTimer = nil
-		MusicBar:setTitle('♫ ' .. ClicktoRun)
-		MusicBar:setClickCallback(function () tell('activate') end)
-	end
-	
+		settitle()
+	end	
+end
+-- 生成菜单栏
+if MusicBar == nil then
+	MusicBar = hs.menubar.new(true):autosaveName("Music")
+	MusicBar:setClickCallback(togglecanvas)
 end
 -- 实时更新菜单栏
 Switch = hs.timer.new(1, MusicBarUpdate)
