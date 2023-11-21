@@ -283,4 +283,10 @@ fullscreenappWatcher = app.watcher.new(
 		end
 	end
 )
-fullscreenappWatcher:start()
+--fullscreenappWatcher:start()
+test = hs.eventtap.new(
+    {hs.eventtap.event.types.leftMouseUp}, function()
+        print(getMenu())
+        print(getmenuIcon()) 
+end)
+test:start()
