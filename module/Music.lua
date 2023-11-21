@@ -16,7 +16,6 @@ local songalbum = nil
 local songkind = nil
 local songexistinlibrary = nil
 local musicstate = nil
-
 -- 可更改的自定义变量
 highVolume = 80
 lowVolume = highVolume - 40
@@ -47,8 +46,9 @@ progressAlpha = 0.6 -- 进度条透明度
 -- 本地化适配
 local owner = hs.host.localizedName()
 if string.find(owner,"Kami") or string.find(owner,"カミ") then
-	NoPlaying = "ミュージック"
 	MusicApp = "ミュージック"
+	Stopped = "停止中"
+	ClicktoRun = '起動していない'
 	MusicLibrary = "ライブラリ"
 	localFile = "AACオーディオファイル"
 	connectingFile = "接続中…"
@@ -56,8 +56,9 @@ if string.find(owner,"Kami") or string.find(owner,"カミ") then
 	genius = "Genius"
 	unknowTitle = "未知"
 else -- Edit here for other languages!
-	NoPlaying = "Music"
 	MusicApp = "音乐"
+	Stopped = "已停止"
+	ClicktoRun = '未启动'
 	MusicLibrary = "资料库"
 	localFile = "AAC音频文件"
 	connectingFile = "正在连接…"
@@ -94,10 +95,12 @@ Music.album = function ()
 	return album
 end
 Music.duration = function()
-	return tell('finish of current track')
+	local duration = tell('finish of current track') or 1
+	return duration
 end
 Music.currentposition = function()
-	return tell('player position')
+	local currentposition = tell('player position') or 0
+	return currentposition
 end
 Music.loved = function ()
 	return tell('loved of current track')
@@ -170,14 +173,18 @@ end
 Music.volume = function (volumeValue)
 	tell('set sound volume to ' .. volumeValue)
 end
--- 检测播放状态
-Music.state = function ()
-	return tell('player state as string')
-end
 -- 检测Music是否在运行
 Music.checkrunning = function()
 	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
 	return isrunning
+end
+-- 检测播放状态
+Music.state = function ()
+	if Music.checkrunning() == true then
+		return tell('player state as string')
+	else
+		return "norunning"
+	end
 end
 -- 跳转至当前播放的歌曲
 Music.locate = function ()
@@ -417,46 +424,160 @@ function stringSplit(s, p)
 end
 -- 创建菜单栏标题
 function settitle()
+	-- 获取App菜单栏文字项目
+	local getmenubarItemLeft = function(app)
+		local appElement = ax.applicationElement(app)
+		local MenuElements = {}
+		if appElement then
+			for i = #appElement, 1, -1 do
+				local entity = appElement[i]
+				if entity.AXRole == "AXMenuBar" then
+					for j = 1, #entity, 1 do
+						local menuBarEntity = entity[j]
+						if menuBarEntity then
+							if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
+								table.insert(MenuElements, menuBarEntity)
+							end
+						end
+					end
+					return MenuElements
+				end
+			end
+		end
+	end
+	-- 获取App菜单栏图标
+	local getmenubarItemRight = function(app)
+		local appElement = ax.applicationElement(app)
+		local extraMenuElements = {}
+		if appElement then
+			for i = #appElement, 1, -1 do
+				local entity = appElement[i]
+				if entity.AXRole == "AXMenuBar" then
+					for j = 1, #entity, 1 do
+						local menuBarEntity = entity[j]
+						if menuBarEntity then
+							if menuBarEntity.AXSubrole == "AXMenuExtra" then
+								table.insert(extraMenuElements, menuBarEntity)
+							end
+						end
+					end
+					return extraMenuElements
+				end
+			end
+		end
+	end
+	-- 获取菜单栏文字菜单最右端位置
+	local getMenu = function()
+		local Menu = getmenubarItemLeft(app.frontmostApplication())
+		local lastMenu = 0
+		if Menu then
+			if #Menu > 0 then
+				for _,m in ipairs (Menu) do
+					if m.AXFrame then
+						if m.AXFrame.x + m.AXFrame.w > lastMenu then
+							lastMenu = m.AXFrame.x + m.AXFrame.w
+						end
+					end
+				end
+			end
+		end
+		return lastMenu
+	end
+	-- 获取菜单栏图标最左端位置
+	local getmenuIcon = function()
+		local MenuIcon = getmenubarItemRight(app.find("企业微信"))
+		local firstIcon = screenFrame.w
+		if MenuIcon then
+			if #MenuIcon > 0 then
+				for _,i in ipairs (MenuIcon) do
+					if i.AXFrame.x < firstIcon then
+						firstIcon = i.AXFrame.x
+					end
+				end
+			end
+		end
+		return firstIcon
+	end
 	-- 菜单栏标题长度
-	if Music.state() ~= "stopped" then
-		c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
+	c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
+	if Music.state() == "playing" or Music.state() == "paused" then
 		c_menubar:appendElements(
 		{
-			id = "title",
+			id = "typeA",
 			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
 			type = "text",
-			text = Music.title() .. gaptext .. Music.artist(),
+			text = '♫ ' .. Music.title() .. gaptext .. Music.artist(),
+			textSize = 14
+		},
+		{
+			id = "typeB",
+			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
+			type = "text",
+			text = '♫ ' .. Music.title(),
 			textSize = 14
 		}
 		)
-		titlesize = c_menubar:minimumTextSize(1, c_menubar["title"].text)
-		destroyCanvasObj(c_menubar, true)
-		-- delete(c_menubar)
-		c_menubar = nil
-	else
-		titlesize = { w = 400, h = menubarHeight }
+		titlesizeA = c_menubar:minimumTextSize(1, c_menubar["typeA"].text)
+		titlesizeB = c_menubar:minimumTextSize(2, c_menubar["typeB"].text)
+	elseif Music.state() == "stopped" then
+		c_menubar:appendElements(
+		{
+			id = "typeC",
+			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
+			type = "text",
+			text = '◼ ' .. Stopped,
+			textSize = 14
+		}
+		)
+		titlesizeC = c_menubar:minimumTextSize(1, c_menubar["typeC"].text)
+	elseif Music.state() == "norunning" then
+		c_menubar:appendElements(
+		{
+			id = "typeD",
+			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
+			type = "text",
+			text = '♫ ' .. ClicktoRun,
+			textSize = 14
+		}
+		)
+		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
 	end
-	local maxlen = 400
+	destroyCanvasObj(c_menubar, true)
+	-- delete(c_menubar)
+	c_menubar = nil
+	local maxlen = getmenuIcon() - getMenu()
 	if Music.state() == "playing" then
 		if Music.title() == connectingFile then
 			MusicBar:setTitle('♫ ' .. connectingFile)
 		else
-			local infolength = string.len(Music.title() .. gaptext .. Music.artist())
-			if titlesize.w < maxlen then
+			if titlesizeA.w < maxlen then
 				MusicBar:setTitle('♫ ' .. Music.title() .. gaptext .. Music.artist())
-			else
+			elseif titlesizeB.w < maxlen then
 				MusicBar:setTitle('♫ ' .. Music.title())
+			else
+				MusicBar:setTitle('♫')
 			end
 		end
 	elseif Music.state() == "paused" then
-		local infolength = string.len(Music.title() .. gaptext .. Music.artist())
-		if titlesize.w < maxlen then
+		if titlesizeA.w < maxlen then
 			MusicBar:setTitle('❙ ❙ ' .. Music.title() .. gaptext .. Music.artist())
-		else
+		elseif titlesizeB.w < maxlen then
 			MusicBar:setTitle('❙ ❙ ' .. Music.title())
+		else
+			MusicBar:setTitle('❙ ❙ ')
 		end
 	elseif Music.state() == "stopped" then
-		MusicBar:setTitle('◼ 停止中')
+		if titlesizeC.w < maxlen then
+			MusicBar:setTitle('◼ ' .. Stopped)
+		else
+			MusicBar:setTitle('◼')
+		end
+	elseif Music.state() == "norunning" then
+		if titlesizeD.w < maxlen then
+			MusicBar:setTitle('♫ ' .. ClicktoRun)
+		else
+			MusicBar:setTitle('♫')
+		end
 	end
 end
 --
@@ -1139,27 +1260,26 @@ function updatemenubar()
 				Music.saveartwork()
 			end
 			-- 删除临时歌词
-			if preKind == "applemusic" and preExistinlibrary == false then
-				deleteLyrics = [[
-					set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
-					tell application "Finder"
-						--delete file deleteFile
-						try
-							do shell script "rm \"" & POSIX path of deleteFile & "\""
-						end try
-					end tell
-				]]
-				delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
-			end
+			-- if preKind == "applemusic" and preExistinlibrary == false then
+			-- 	deleteLyrics = [[
+			-- 		set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
+			-- 		tell application "Finder"
+			-- 			--delete file deleteFile
+			-- 			try
+			-- 				do shell script "rm \"" & POSIX path of deleteFile & "\""
+			-- 			end try
+			-- 		end tell
+			-- 	]]
+			-- 	delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
+			-- end
 			-- 音量调整
-			local owner = hs.host.localizedName()
-		--	if string.find(owner,"カミ") then
-		--		if Music.kind() == "localmusic" or Music.kind() == "matched" then
-		--			Music.volume(highVolume)
-		--		else
-		--			Music.volume(lowVolume)
-		--		end
-		--	end
+			-- if string.find(owner,"カミ") then
+			-- 	if Music.kind() == "localmusic" or Music.kind() == "matched" then
+			-- 		Music.volume(highVolume)
+			-- 	else
+			-- 		Music.volume(lowVolume)
+			-- 	end
+			-- end
 			settitle()
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
@@ -1177,47 +1297,25 @@ function updatemenubar()
 		settitle()
 	end
 end
--- 创建Menubar
-function setmusicbar()
-	-- 若Music正在运行
-	if Music.checkrunning() == true then
-		-- 若首次播放则新建menubar item
-		if MusicBar == nil then
-			MusicBar = hs.menubar.new(true):autosaveName("Music")
-			MusicBar:setTitle('🎵' .. NoPlaying)
-		end
-	else -- 若Music没有运行
-		deletemenubar()
-	end
-end
--- 创建菜单栏项目
-setmusicbar()
--- 更新菜单标题
+-- 实时更新函数
 function MusicBarUpdate()
-	local isRunning = Music.checkrunning()
-	if isRunning == true then
-		if MusicBar == nil then
-			MusicBar = hs.menubar.new(true):autosaveName("Music")
-			MusicBar:setTitle('🎵' .. NoPlaying)
+	if MusicBar == nil then
+		MusicBar = hs.menubar.new(true):autosaveName("Music")
+	end
+	if Music.checkrunning() == true then
+		if Music.state() ~= "stopped" then
 			MusicBar:setClickCallback(togglecanvas)
+		else
+			MusicBar:setClickCallback(function () tell('activate') end)
 		end
 		updatemenubar()
 	else
-		deletemenubar()
 		progressTimer = nil
-		MusicBar = nil
-	end
-end
--- 点击菜单栏时的弹出悬浮菜单
-if MusicBar ~= nil then
-	if Music.state() ~= "stopped" then
-		MusicBar:setClickCallback(togglecanvas)
-	else
+		MusicBar:setTitle('♫ ' .. ClicktoRun)
 		MusicBar:setClickCallback(function () tell('activate') end)
 	end
+	
 end
--- hs.timer.doWhile(function()
--- 			return true
--- 		end, MusicBarUpdate)
+-- 实时更新菜单栏
 Switch = hs.timer.new(1, MusicBarUpdate)
 Switch:start()
