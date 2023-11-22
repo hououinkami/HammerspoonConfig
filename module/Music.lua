@@ -45,6 +45,13 @@ progressColor = {185, 185, 185} -- 进度条颜色
 AMRed = {232, 68, 79} -- Apple Music红
 AMBlue = {0, 120, 255}
 progressAlpha = 0.6 -- 进度条透明度
+if darkMode == false then
+	bgColor = {255, 255, 255} -- 背景颜色（RGB）
+	menubgColor = {255, 255, 255} -- 菜单背景默认颜色（RGB）
+	menuTextColor = {0, 0, 0} -- 菜单字体默认颜色（RGB）
+	menuStrokeColor = {0, 0, 0} -- 菜单边框颜色（RGB）
+	progressColor = {35, 37, 34} -- 进度条颜色
+end
 -- 本地化适配
 local owner = hs.host.localizedName()
 if string.find(owner,"Kami") or string.find(owner,"カミ") then
@@ -446,16 +453,18 @@ function getmenubarItemLeft(app)
 	if appElement then
 		for i = #appElement, 1, -1 do
 			local entity = appElement[i]
-			if entity.AXRole == "AXMenuBar" then
-				for j = 1, #entity, 1 do
-					local menuBarEntity = entity[j]
-					if menuBarEntity then
-						if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
-							table.insert(MenuElements, menuBarEntity)
+			if entity then
+				if entity.AXRole == "AXMenuBar" then
+					for j = 1, #entity, 1 do
+						local menuBarEntity = entity[j]
+						if menuBarEntity then
+							if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
+								table.insert(MenuElements, menuBarEntity)
+							end
 						end
 					end
+					return MenuElements
 				end
-				return MenuElements
 			end
 		end
 	end
