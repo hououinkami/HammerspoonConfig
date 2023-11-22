@@ -403,7 +403,7 @@ Music.getartworkpath = function()
 	return artwork
 end
 -- 删除临时歌词
-Music.deleteLyric = fucntion()
+Music.deleteLyric = function()
 	if preKind == "applemusic" and preExistinlibrary == false then
 		deleteLyrics = [[
 			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
