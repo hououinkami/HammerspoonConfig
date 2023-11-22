@@ -17,6 +17,7 @@ local songkind = nil
 local songexistinlibrary = nil
 local musicstate = nil
 local maxlen = 0
+local initialx = 0
 -- 可更改的自定义变量
 highVolume = 80
 lowVolume = highVolume - 40
@@ -466,7 +467,7 @@ function getmenubarItemRight(app)
 	if appElement then
 		for i = #appElement, 1, -1 do
 			local entity = appElement[i]
-			if entity.AXRole == "AXMenuBar" then
+			if entity and entity.AXRole == "AXMenuBar" then
 				for j = 1, #entity, 1 do
 					local menuBarEntity = entity[j]
 					if menuBarEntity then
@@ -487,11 +488,10 @@ function getMenu()
 	if Menu then
 		if #Menu > 0 then
 			for _,m in ipairs (Menu) do
-				if m.AXFrame ~= nil then
-					local menuX = m.AXFrame.x
-					local menuW = m.AXFrame.w
-					if menuX + menuW > lastMenu then
-						lastMenu = menuX + menuW
+				local mf = m.AXFrame
+				if mf then
+					if mf.x + mf.w > lastMenu then
+						lastMenu = mf.x + mf.w
 					end
 				end
 			end
@@ -516,6 +516,10 @@ function getmenuIcon()
 end
 -- 创建菜单栏标题
 function settitle()
+	if initialx == 0 then
+		initialx = MusicBar:frame().x
+		firstIcon = initialx - 36
+	end
 	-- 菜单栏标题长度
 	c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
 	if Music.state() == "playing" or Music.state() == "paused" then
@@ -562,7 +566,7 @@ function settitle()
 	end
 	destroyCanvasObj(c_menubar, true)
 	c_menubar = nil
-	maxlen = getmenuIcon() - getMenu()
+	maxlen = firstIcon - getMenu()
 	if Music.state() == "playing" then
 		if Music.title() == connectingFile then
 			MusicBar:setTitle('♫ ' .. connectingFile)
@@ -604,6 +608,7 @@ end
 -- 设置悬浮主菜单
 function setmainmenu()
 	barframe = MusicBar:frame()
+	barframe.x = initialx - 36 - barframe.w
 	destroyCanvasObj(c_mainmenu, true)
 	-- 框架尺寸
 	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
@@ -1160,7 +1165,6 @@ function togglecanvas()
 				if c_mainmenu:isShowing() == true then
 					hide("all")
 				else
-					setMenu()
 					show("all")
 					-- 自动隐藏悬浮菜单
 					hs.timer.waitUntil(function()
@@ -1212,10 +1216,13 @@ function MusicBarUpdate()
 	if Music.state() ~= musicstate then
 		musicstate = Music.state()
 		settitle()
+		if Music.state() == "playing" then
+			setMenu()
+		end
 	end
 	-- 若菜单栏空白宽度有变更则触发更新
-	if getmenuIcon() - getMenu() ~= maxlen then
-		maxlen = getmenuIcon() - getMenu()
+	if firstIcon - getMenu() ~= maxlen then
+		maxlen = firstIcon - getMenu()
 		settitle()
 	end
 	-- 若切换Space则隐藏
@@ -1277,7 +1284,7 @@ function MusicBarUpdate()
 				Music.saveartwork()
 			end
 			-- Music.deleteLyric()
-			settitle()
+			settitle()	
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
@@ -1289,8 +1296,7 @@ function MusicBarUpdate()
 		end
 	else
 		progressTimer = nil
-		settitle()
-	end	
+	end
 end
 -- 生成菜单栏
 if MusicBar == nil then
