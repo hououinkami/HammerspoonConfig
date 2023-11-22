@@ -23,6 +23,16 @@ hotkey.bind(hyper_ccs, "r", hs.reload)
 hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
 hotkey.bind(hyper_ccs, "p", hs.openPreferences)
 hotkey.bind(hyper_opt, "z", hs.toggleConsole)
+-- 判断系统显示模式
+function appearanceIsDark()
+	asSuccess, asObj, asDesc = hs.osascript.applescript("tell application \"System Events\" to tell appearance preferences to return dark mode")
+	return asObj
+end
+if appearanceIsDark() then
+	darkMode = true
+else
+	darkMode = false
+end
 -- 组件加载管理
 local owner = hs.host.localizedName()
 local module_list = {
