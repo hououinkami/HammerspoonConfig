@@ -402,6 +402,21 @@ Music.getartworkpath = function()
 	end
 	return artwork
 end
+-- 删除临时歌词
+Music.deleteLyric = fucntion()
+	if preKind == "applemusic" and preExistinlibrary == false then
+		deleteLyrics = [[
+			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
+			tell application "Finder"
+				--delete file deleteFile
+				try
+					do shell script "rm \"" & POSIX path of deleteFile & "\""
+				end try
+			end tell
+		]]
+		delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
+	end
+end
 
 --
 -- MenuBar函数集 --
@@ -472,9 +487,11 @@ function getMenu()
 	if Menu then
 		if #Menu > 0 then
 			for _,m in ipairs (Menu) do
-				if m.AXFrame and m.AXFrame.x and m.AXFrame.w then
-					if m.AXFrame.x + m.AXFrame.w > lastMenu then
-						lastMenu = m.AXFrame.x + m.AXFrame.w
+				if m.AXFrame ~= nil then
+					local menuX = m.AXFrame.x
+					local menuW = m.AXFrame.w
+					if menuX + menuW > lastMenu then
+						lastMenu = menuX + menuW
 					end
 				end
 			end
@@ -1259,27 +1276,7 @@ function MusicBarUpdate()
 				songrating = Music.rating()
 				Music.saveartwork()
 			end
-			-- 删除临时歌词
-			-- if preKind == "applemusic" and preExistinlibrary == false then
-			-- 	deleteLyrics = [[
-			-- 		set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
-			-- 		tell application "Finder"
-			-- 			--delete file deleteFile
-			-- 			try
-			-- 				do shell script "rm \"" & POSIX path of deleteFile & "\""
-			-- 			end try
-			-- 		end tell
-			-- 	]]
-			-- 	delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
-			-- end
-			-- 音量调整
-			-- if string.find(owner,"カミ") then
-			-- 	if Music.kind() == "localmusic" or Music.kind() == "matched" then
-			-- 		Music.volume(highVolume)
-			-- 	else
-			-- 		Music.volume(lowVolume)
-			-- 	end
-			-- end
+			-- Music.deleteLyric()
 			settitle()
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
