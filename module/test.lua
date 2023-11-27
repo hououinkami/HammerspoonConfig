@@ -289,4 +289,4 @@ test = hs.eventtap.new(
         print(getMenu())
         print(getmenuIcon()) 
 end)
-test:start()
+--test:start()
