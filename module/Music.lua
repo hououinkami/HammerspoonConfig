@@ -1,9 +1,9 @@
+require ('module.base') 
+require ('module.apple-music') 
+require ('module.lyric') 
 --
 -- 定义变量 --
 --
--- 系统变量
-screenFrame = hs.screen.mainScreen():fullFrame()
-menubarHeight = hs.screen.mainScreen():frame().y
 -- 缓存变量初始化
 local MusicBar = nil
 local songtitle = nil
@@ -19,8 +19,6 @@ local musicstate = nil
 local maxlen = 0
 local initialx = 0
 -- 可更改的自定义变量
-highVolume = 80
-lowVolume = highVolume - 40
 gaptext = "｜" -- 菜单栏标题的间隔字符
 fadetime = 0.6 -- 淡入淡出时间
 staytime = 2 -- 显示时间
@@ -53,7 +51,6 @@ if darkMode == false then
 	progressColor = {35, 37, 34} -- 进度条颜色
 end
 -- 本地化适配
-local owner = hs.host.localizedName()
 if string.find(owner,"Kami") or string.find(owner,"カミ") then
 	MusicApp = "ミュージック"
 	Stopped = "停止中"
@@ -77,452 +74,8 @@ else -- Edit here for other languages!
 end
 
 --
--- Music功能函数集 --
---
--- 调用AppleScript模块
-function tell(cmd)
-	local _cmd = 'tell application "Music" to ' .. cmd
-	local ok, result = as.applescript(_cmd)
-	if ok then
-	  return result
-	else
-	  return nil
-	end
-end
-local Music = {}
--- 曲目信息
-Music.title = function ()
-	local title = tell('name of current track') or " "
-	return title
-end
-Music.artist = function ()
-	local artist = tell('artist of current track') or " "
-	return artist
-end
-Music.album = function ()
-	local album = tell('album of current track') or " "
-	return album
-end
-Music.duration = function()
-	local duration = tell('finish of current track') or 1
-	return duration
-end
-Music.currentposition = function()
-	local currentposition = tell('player position') or 0
-	return currentposition
-end
-Music.loved = function ()
-	return tell('loved of current track')
-end
-Music.disliked = function ()
-	return tell('disliked of current track')
-end
-Music.rating = function ()
-	if tell('rating of current track') then
-		return tell('rating of current track')//20
-	end
-end
-Music.loop = function ()
-	return tell('song repeat as string')
-end
-Music.shuffle = function ()
-	return tell('shuffle enabled')
-end
--- 星级评价
-Music.setrating = function (rating)
-	tell('set rating of current track to ' .. rating * 20)
-end
--- 标记为喜爱
-Music.toggleloved = function ()
-	as.applescript([[
-		tell application "Music"
-			if loved of current track is false then
-				set loved of current track to true
-			else
-				set loved of current track to false
-			end if
-		end tell
-	]])
-end
--- 标记为不喜欢
-Music.toggledisliked = function ()
-	as.applescript([[
-		tell application "Music"
-			if disliked of current track is false then
-				set disliked of current track to true
-			else
-				set disliked of current track to false
-			end if
-		end tell
-	]])
-end
--- 歌曲种类
-Music.kind = function()
-	local kind = tell('kind of current track')
-	local cloudstatus = tell('cloud status of current track as string')
-	local class = tell('class of current track as string')
-	if kind ~= nil then
-		--若为本地曲目
-		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then
-			musictype = "localmusic"
-		-- 若Apple Μsic连接中
-		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),unknowTitle) or string.find(Music.artist(),genius) or string.find(kind, streamingFile) then
-			musictype = "connecting"
-		-- 若为Apple Music
-		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then
-			musictype = "applemusic"
-		-- 若为匹配Apple Music的本地歌曲
-		elseif cloudstatus == "matched" then
-			musictype = "matched"
-		end
-	end
-	return musictype
-end
--- 音量调整
-Music.volume = function (volumeValue)
-	tell('set sound volume to ' .. volumeValue)
-end
--- 检测Music是否在运行
-Music.checkrunning = function()
-	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
-	return isrunning
-end
--- 检测播放状态
-Music.state = function ()
-	if Music.checkrunning() == true then
-		return tell('player state as string')
-	else
-		return "norunning"
-	end
-end
--- 跳转至当前播放的歌曲
-Music.locate = function ()
-	as.applescript([[
-		tell application "Music"
-			activate
-			tell application "System Events" to keystroke "l" using command down
-		end tell
-	]])
-end
--- 切换随机模式
-Music.toggleshuffle = function ()
-	if Music.shuffle() == false then
-		tell("set shuffle enabled to true")
-	else
-		tell("set shuffle enabled to false")
-	end
-end
--- 切换重复模式
-Music.toggleloop = function ()
-	if Music.loop() == "all" then
-		tell('set song repeat to one')
-	elseif Music.loop() == "one" then
-		tell('set song repeat to off')
-	elseif Music.loop() == "off" then
-		tell('set song repeat to all')
-	end
-end
--- 判断Apple Music曲目是否存在于本地曲库中
-Music.existinlibrary = function ()
-	local existinlibraryScript = [[
-		tell application "Music"
-			set a to current track's name
-			set b to current track's artist
-			exists (some track of playlist "MusicList" whose name is a and artist is b)
-		end tell
-	]]
-	local _,existinlibrary,_ = as.applescript(existinlibraryScript:gsub("MusicList",MusicApp))
-	return existinlibrary
-end
--- 将Apple Music曲目添加到本地曲库
-Music.addtolibrary = function()
-	local addtolibraryScript = [[
-		tell application "Music"
-			try
-				duplicate current track to library playlist "Library"
-			on error
-				duplicate current track to first source
-			end try
-		end tell
-	]]
-	if Music.kind() == "applemusic" then
-		as.applescript(addtolibraryScript:gsub("Library",MusicLibrary))
-	end
-end
--- 判断Apple Music曲目是否存在于播放列表中
-Music.existinplaylist = function (playlistname)
-	local existinscript = [[
-		tell application "Music"
-			set trackName to current track's name
-			set artistName to current track's artist
-			exists (some track of (first user playlist whose smart is false and name is "pname") whose name is trackName and artist is artistName)
-		end tell
-	]]
-	local _,existinplaylist,_ = as.applescript(existinscript:gsub("pname", playlistname))
-	return existinplaylist
-end
--- 将当前曲目添加到指定播放列表
-Music.addtoplaylist = function(playlistname)
-	if Music.existinplaylist(playlistname) == false then
-		local addscript = [[
-			tell application "Music"
-				set thePlaylist to first user playlist whose smart is false and name is "pname"
-				set trackName to name of current track
-				set artistName to artist of current track
-				set albumName to album of current track
-				set foundTracks to (every track of library playlist 1 whose artist is artistName and name is trackName and album is albumName)
-				repeat with theTrack in foundTracks
-					duplicate theTrack to thePlaylist
-				end repeat
-			end tell
-		]]
-		local addtoplaylistscript = addscript:gsub("pname", playlistname)
-		as.applescript(addtoplaylistscript)
-	end
-end
--- 随机播放指定播放列表中曲目
-Music.shuffleplay = function (playlist)
-	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
-	if tell('shuffle enabled') == false then
-		tell('set shuffle enabled to true')
-	end
-	tell('play playlist named ' .. playlist)
-end
--- 保存专辑封面
-Music.saveartwork = function ()
-	if Music.album() ~= songalbum or Music.album() == "" then
-		songalbum = Music.album()
-		as.applescript([[
-			tell application "Music"
-				set theartwork to raw data of current track's artwork 1
-				set theformat to format of current track's artwork 1
-				if theformat is «class PNG » then
-					set ext to ".png"
-				else
-					set ext to ".jpg"
-				end if
-			end tell
-			set homefolder to  path to home folder as string
-			set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
-			set outFile to open for access file fileName with write permission
-			set eof outFile to 0
-			write theartwork to outFile
-			close access outFile
-		]])
-	end
-end
--- 保存专辑封面（利用iTunes的API）
-Music.saveartworkbyapi = function (set_artwork_object)
-	-- 判断是否为Apple Music
-	if Music.kind() ~= "connecting" then --若为本地曲目
-		if Music.album() ~= songalbum then
-			songalbum = Music.album()
-			as.applescript([[
-				tell application "Music"
-					set theartwork to raw data of current track's artwork 1
-					set theformat to format of current track's artwork 1
-					if theformat is «class PNG » then
-						set ext to ".png"
-					else
-						set ext to ".jpg"
-					end if
-				end tell
-				set homefolder to  path to home folder as string
-				set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
-				set outFile to open for access file fileName with write permission
-				set eof outFile to 0
-				write theartwork to outFile
-				close access outFile
-			]])
-		end
-	elseif Music.kind() == "applemusic"	then -- 若为Apple Music
-		if Music.album() ~= " " then
-			if Music.album() ~= songalbum then
-				songalbum = Music.album()
-				keyWord = Music.album()
-				needGet = true
-			end
-		else
-			if Music.title() ~= songtitle then
-				songtitle = Music.title()
-				keyWord = Music.title()
-				needGet = true
-			end
-		end
-		if needGet == true then
-			artworkurl = nil
-			local amurl = "https://itunes.apple.com/search?term=" .. hs.http.encodeForQuery(Music.album()) .. "&country=jp&entity=album&limit=10&output=json"
-			--local status,body,headers = hs.http.get(amurl, nil)
-			hs.http.asyncGet(amurl, nil, function(status,body,headers)
-				if status == 200 then
-					local songdata = hs.json.decode(body)
-					if songdata.resultCount ~= 0 then
-						i = 1
-						condition = false
-						repeat
-							if songdata.results[i].artistName == Music.artist() then
-								artworkurl100 = songdata.results[i].artworkUrl100
-								artworkurl = artworkurl100:gsub("100x100", "1000x1000")
-								artworkfile = img.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
-								artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
-								condition = true
-							end
-							i = i + 1
-						until(i > songdata.resultCount or condition == true)
-						--[[没有精确匹配结果时强行调用第一个结果
-						if artworkurl == nil then
-							artworkurl100 = songdata.results[1].artworkUrl100
-							artworkurl = artworkurl100:gsub("100x100", "1000x1000")
-							artworkfile = img.imageFromURL(artworkurl):setSize({h = 300, w = 300}, absolute == true)
-							artworkfile:saveToFile(hs.configdir .. "/currentartwork.jpg")
-						end
-						--]]
-					end
-				end
-				if artworkurl ~= nil then
-					artwork = img.imageFromPath(hs.configdir .. "/currentartwork.jpg")
-				else
-					artwork = img.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
-				end
-				set_artwork_object(artwork)
-			end)
-		end
-	end
-end
--- 获取专辑封面路径
-Music.getartworkpath = function()
-	if Music.kind() ~= "connecting" then
-		-- 获取图片后缀名
-		local format = tell('format of artwork 1 of current track as string')
-		if format == nil then
-			artwork = img.imageFromPath(hs.configdir .. "/image/NoArtwork.png")
-		else
-			if string.find(format, "PNG") then
-				ext = "png"
-			else
-				ext = "jpg"
-			end
-			artwork = img.imageFromPath(hs.configdir .. "/currentartwork." .. ext):setSize({h = 300, w = 300}, absolute == true)
-		end
-	-- 若连接中
-	elseif Music.kind() == "connecting"	then
-		artwork = img.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
-	end
-	return artwork
-end
--- 删除临时歌词
-Music.deleteLyric = function()
-	if preKind == "applemusic" and preExistinlibrary == false then
-		deleteLyrics = [[
-			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
-			tell application "Finder"
-				--delete file deleteFile
-				try
-					do shell script "rm \"" & POSIX path of deleteFile & "\""
-				end try
-			end tell
-		]]
-		delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
-	end
-end
-
---
 -- MenuBar函数集 --
 --
--- 延迟函数
-function delay(gap, func)
-	local delaytimer = hs.timer.delayed.new(gap, func)
-	delaytimer:start()
-end
--- 删除Menubar
-function deletemenubar()
-	if MusicBar ~= nil then
-		MusicBar:delete()
-	end
-end
--- 文本分割函数
-function stringSplit(s, p)
-    local rt= {}
-    string.gsub(s, '[^'..p..']+', function(w) table.insert(rt, w) end)
-    return rt
-end
--- 获取App菜单栏文字项目
-function getmenubarItemLeft(app)
-	local appElement = ax.applicationElement(app)
-	local MenuElements = {}
-	if appElement then
-		for i = #appElement, 1, -1 do
-			local entity = appElement[i]
-			if entity then
-				if entity.AXRole == "AXMenuBar" then
-					for j = 1, #entity, 1 do
-						local menuBarEntity = entity[j]
-						if menuBarEntity then
-							if menuBarEntity.AXSubrole ~= "AXMenuExtra" then
-								table.insert(MenuElements, menuBarEntity)
-							end
-						end
-					end
-					return MenuElements
-				end
-			end
-		end
-	end
-end
--- 获取App菜单栏图标
-function getmenubarItemRight(app)
-	local appElement = ax.applicationElement(app)
-	local extraMenuElements = {}
-	if appElement then
-		for i = #appElement, 1, -1 do
-			local entity = appElement[i]
-			if entity and entity.AXRole == "AXMenuBar" then
-				for j = 1, #entity, 1 do
-					local menuBarEntity = entity[j]
-					if menuBarEntity then
-						if menuBarEntity.AXSubrole == "AXMenuExtra" then
-							table.insert(extraMenuElements, menuBarEntity)
-						end
-					end
-				end
-				return extraMenuElements
-			end
-		end
-	end
-end
--- 获取菜单栏文字菜单最右端位置
-function getMenu()
-	local Menu = getmenubarItemLeft(app.frontmostApplication())
-	local lastMenu = 0
-	if Menu then
-		if #Menu > 0 then
-			for _,m in ipairs (Menu) do
-				local mf = m.AXFrame
-				if mf then
-					if mf.x + mf.w > lastMenu then
-						lastMenu = mf.x + mf.w
-					end
-				end
-			end
-		end
-	end
-	return lastMenu
-end
--- 获取菜单栏图标最左端位置
-function getmenuIcon()
-	local MenuIcon = getmenubarItemRight(app.find("企业微信"))
-	local firstIcon = screenFrame.w
-	if MenuIcon then
-		if #MenuIcon > 0 then
-			for _,i in ipairs (MenuIcon) do
-				if i.AXFrame.x < firstIcon then
-					firstIcon = i.AXFrame.x
-				end
-			end
-		end
-	end
-	return firstIcon
-end
 -- 创建菜单栏标题
 function settitle()
 	if initialx == 0 then
@@ -689,15 +242,15 @@ function setmainmenu()
     			local mousepoint = hs.mouse.absolutePosition()
     			local currentposition = (mousepoint.x - menuframe.x - border.x) / c_progress:frame().w * Music.duration()
     			c_progress:replaceElements(progressElement):show()
-				tell('set player position to "' .. currentposition .. '"')
+				Music.tell('set player position to "' .. currentposition .. '"')
     		end
 		end
 		-- 点击左上角退出
 		if id == "background" and event == "mouseUp" and y < border.y and x < border.x then
-			hide("all")
+			hideall()
 			delay(2, function() progressTimer:stop() end)
 			delay(2, function() Switch:stop() end)
-			delay(2, function() tell('quit') end)
+			delay(2, function() Music.tell('quit') end)
 			delay(5, function() Switch:start() end)
 		end
 	end)
@@ -897,9 +450,9 @@ end
 function setplaylistmenu()
 	destroyCanvasObj(c_playlist, true)
 	-- 获取播放列表个数
-	local playlistcount = tell('count of (name of every user playlist whose smart is false and special kind is none)')
+	local playlistcount = Music.tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
-	local playlistname = tell('name of every user playlist whose smart is false and special kind is none')
+	local playlistname = Music.tell('name of every user playlist whose smart is false and special kind is none')
 	-- 框架尺寸
 	controlmenuframe = c_controlmenu:frame()
 	playlistframe = {x = controlmenuframe.x + c_controlmenu["playlist"].frame.x + c_controlmenu["playlist"].frame.w / 2, y = controlmenuframe.y + c_controlmenu["playlist"].frame.y + c_controlmenu["playlist"].frame.h / 2, h = textsize * playlistcount, w = smallsize}
@@ -1057,67 +610,27 @@ end
 -- 悬浮菜单功能函数集
 --
 -- 隐藏
-function hide(canvas)
-	if canvas ~= nil and canvas ~= "all" then
-		canvas:hide(fadetime)
-	elseif canvas == "all" then
-		hide(c_applemusicmenu)
-		hide(c_localmusicmenu)
-		hide(c_controlmenu)
-		if progressTimer then
-			progressTimer:stop()
-		end
-		hide(c_progress)
-		hide(c_playlist)
-		hide(c_mainmenu)
+function hideall()
+	hide(c_applemusicmenu,fadetime)
+	hide(c_localmusicmenu,fadetime)
+	hide(c_controlmenu,fadetime)
+	if progressTimer then
+		progressTimer:stop()
 	end
+	hide(c_progress,fadetime)
+	hide(c_playlist,fadetime)
+	hide(c_mainmenu,fadetime)
 end
 -- 显示
-function show(canvas)
-	if canvas ~= nil and canvas ~= "all" then
-		canvas:show(fadetime)
-	elseif canvas == "all" then
-		if progressTimer then
-			progressTimer:start()
-		end
-		show(c_mainmenu)
-		show(c_applemusicmenu)
-		show(c_localmusicmenu)
-		show(c_controlmenu)
-		show(c_progress)
+function showall()
+	if progressTimer then
+		progressTimer:start()
 	end
-end
--- 删除图层
-function destroyCanvasObj(cObj,gc)
-	if not cObj then 
-		return 
-	end
-	-- explicit :delete() is deprecated, use gc
-	-- see https://github.com/Hammerspoon/hammerspoon/issues/3021
-	-- cObj:delete(delay or 0)
-	for i=#cObj,1,-1 do
-	  cObj[i] = nil
-	end
-	cObj:clickActivating(false)
-	cObj:mouseCallback(nil)
-	cObj:canvasMouseEvents(nil, nil, nil, nil)
-	cObj = nil
-	if gc and gc == true then 
-		collectgarbage() 
-	end
-end
--- 删除图层（已弃用）
-function delete(canvas)
-	if canvas ~= nil and canvas ~= "all" then
-		canvas:delete(fadetime)
-	elseif canvas == "all" then
-		delete(c_applemusicmenu)
-		delete(c_localmusicmenu)
-		delete(c_controlmenu)
-		delete(c_progress)
-		delete(c_playlist)
-		delete(c_mainmenu)
-	end
+	show(c_mainmenu,fadetime)
+	show(c_applemusicmenu,fadetime)
+	show(c_localmusicmenu,fadetime)
+	show(c_controlmenu,fadetime)
+	show(c_progress,fadetime)
 end
 -- 判断鼠标指针是否处于悬浮菜单内
 function mousePosition()
@@ -1140,7 +653,7 @@ function setMenu()
 	end
 	if c_mainmenu ~= nil then
 		if c_mainmenu:isShowing() == true then
-			hide("all")
+			hideall()
 			if progressTimer then
 				progressTimer:stop()
 			end
@@ -1172,9 +685,9 @@ function togglecanvas()
 		if Music.state() == "playing" or Music.state() == "paused" then
 			if c_mainmenu ~= nil then
 				if c_mainmenu:isShowing() == true then
-					hide("all")
+					hideall()
 				else
-					show("all")
+					showall()
 					-- 自动隐藏悬浮菜单
 					hs.timer.waitUntil(function()
 							if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
@@ -1189,7 +702,7 @@ function togglecanvas()
 						end,function()
 							delay(staytime, function() 
 								isFading = true
-								hide("all")
+								hideall()
 								hs.timer.doAfter(fadetime, function() isFading = false end)
 							end)
 						end
@@ -1197,7 +710,7 @@ function togglecanvas()
 				end
 			end
 		else
-			tell('activate')
+			Music.tell('activate')
 		end
 	end
 	-- 判断渐入渐出是否已经完成
@@ -1237,7 +750,7 @@ function MusicBarUpdate()
 	-- 若切换Space则隐藏
 	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
 		spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-		hide("all")
+		hideall()
 	end
 	-- 正常情况下的更新
 	if Music.state() == "playing" or Music.state() == "paused" then
@@ -1295,9 +808,10 @@ function MusicBarUpdate()
 			-- Music.deleteLyric()
 			settitle()	
 			setMenu()
+			Lyric.get()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
-				hide("all")
+				hideall()
 				setmainmenu()
 				setMenu()
 				delay(0.6, togglecanvas)
@@ -1305,6 +819,7 @@ function MusicBarUpdate()
 		end
 	else
 		progressTimer = nil
+		lyricTimer = nil
 	end
 end
 -- 生成菜单栏
