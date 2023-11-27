@@ -1,19 +1,4 @@
 --
--- 自动触发ClashX Pro
---
-function toggleclashx()
-    local ssid = hs.wifi.currentNetwork()
-    if (ssid == nil) or string.find(ssid,"bySh") then
-        as.applescript([[tell application "ClashX Pro" to quit]])
-    else
-        as.applescript([[tell application "ClashX Pro" to activate]])
-    end
-end
--- Wi-Fi触发器
--- wifiWatcher = hs.wifi.watcher.new(toggleclashx)
--- wifiWatcher:start()
-
---
 -- 菜单栏网速监控
 --
 function data_diff()

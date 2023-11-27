@@ -10,9 +10,7 @@ function runAutoScripts()
     end
     hs.reload()
 end
--- 定时触发自动更新
-hs.timer.doWhile(function()
-			return true
-        end, runAutoScripts, 86400)
+-- 每天 12 点检查一遍更新
+hs.timer.doAt('12:00', hs.timer.days(1), runAutoScripts):start()
 -- 手动触发快捷键
 hotkey.bind(hyper_coc, 'u', runAutoScripts)

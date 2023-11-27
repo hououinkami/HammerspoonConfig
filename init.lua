@@ -8,8 +8,14 @@ app = require "hs.application"
 as = require "hs.osascript"
 c = require "hs.canvas"
 img = require "hs.image"
+-- 常用变量
+screenFrame = hs.screen.mainScreen():fullFrame()
+desktopFrame = hs.screen.mainScreen():frame()
+menubarHeight = desktopFrame.y
+owner = hs.host.localizedName()
 -- 定义快捷键修饰键
 hyper_ccs = {'⌘⌃⇧'}
+hyper_cs = {'⌘⇧'}
 hyper_co = {'⌘⌥'}
 hyper_oc = {'⌥⌃'}
 hyper_coc = {'⌘⌥⌃'}
