@@ -4,6 +4,7 @@
 /*.plist
 /*.json
 /module/Achieve
+/module/secret.lua
 /module/DesktopWidget.lua
 /image/Widget
 /image/Loved（OldStyle）
