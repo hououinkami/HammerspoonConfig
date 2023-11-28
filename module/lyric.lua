@@ -52,7 +52,6 @@ Lyric.get = function()
 	end
 	if sub then
 		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","")
-		print(keyword)
 	else
 		keyword = Music.title()
 	end
@@ -61,7 +60,7 @@ Lyric.get = function()
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
             local musicinfo = hs.json.decode(musicBody)
-			if musicinfo.result.songCount == 0 then
+			if musicinfo.result.songCount == 0 and not sub then
 				sub = true
 				Lyric.get()
 			else
@@ -88,7 +87,7 @@ Lyric.get = function()
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
 				if status == 200 then
 					local lyricRaw = hs.json.decode(body)
-					if lyricRaw.lrc ~= nil then
+					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
 						lyricTable = Lyric.edit(lyric)
 					end
@@ -117,10 +116,15 @@ Lyric.edit = function(lyric)
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				time = stringSplit(line, "`")[1]:gsub("%.",":")
 				info = stringSplit(line, "`")[2] or ""
-				min = stringSplit(time, ":")[1]
+				hour = 0
+				min = tonumber(stringSplit(time, ":")[1])
+				if min > 59 then
+					hour = min // 60
+					min = min - 60 * hour
+				end
 				sec = stringSplit(time, ":")[2]
 				minisec = stringSplit(time, ":")[3] or 0
-				time = hs.timer.seconds("00:" .. min .. ":" .. sec) + minisec / 1000
+				time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
 				lyricLine["index"] = l
 				lyricLine["time"] = time
 				lyricLine["lyric"] = info
@@ -165,7 +169,7 @@ Lyric.show = function(startline,lyric)
 		end
 	end
 	-- 显示
-	if c_lyric == nil then
+	if not c_lyric then
 		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
 		c_lyric:appendElements(
 			{
@@ -195,7 +199,7 @@ Lyric.show = function(startline,lyric)
 		c_lyric["lyric"].frame.h = lyricSize.h
     end
 	if Music.state() == "playing" then
-		if c_lyric:isShowing() == false then
+		if not c_lyric:isShowing() then
 			show(c_lyric)
 		end
 	else
@@ -210,7 +214,7 @@ end
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
     if c_lyric then
-        if c_lyric:isShowing() == false then
+        if not c_lyric:isShowing() then
             lyricTimer:start()
         else
             hide(c_lyric)

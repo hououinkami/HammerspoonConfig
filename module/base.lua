@@ -135,7 +135,7 @@ end
 
 -- 隐藏图层
 function hide(canvas,fadetime)
-    if fadetime == nil then
+    if not fadetime then
         fadetime = 1
     end
     if canvas then
@@ -145,7 +145,7 @@ end
 
 -- 显示图层
 function show(canvas,fadetime)
-    if fadetime == nil then
+    if not fadetime then
         fadetime = 1
     end
 	if canvas then
@@ -154,35 +154,12 @@ function show(canvas,fadetime)
 end
 
 -- 删除图层
-function destroyCanvasObj(cObj,gc)
-	if not cObj then 
-		return 
-	end
-	-- explicit :delete() is deprecated, use gc
-	-- see https://github.com/Hammerspoon/hammerspoon/issues/3021
-	-- cObj:delete(delay or 0)
-	for i=#cObj,1,-1 do
-	  cObj[i] = nil
-	end
-	cObj:clickActivating(false)
-	cObj:mouseCallback(nil)
-	cObj:canvasMouseEvents(nil, nil, nil, nil)
-	cObj = nil
-	if gc and gc == true then 
-		collectgarbage() 
-	end
-end
-
--- 删除图层（已弃用）
 function delete(canvas)
-	if canvas ~= nil and canvas ~= "all" then
-		canvas:delete(fadetime)
-	elseif canvas == "all" then
-		delete(c_applemusicmenu)
-		delete(c_localmusicmenu)
-		delete(c_controlmenu)
-		delete(c_progress)
-		delete(c_playlist)
-		delete(c_mainmenu)
+	if canvas then
+		canvas:clickActivating(false)
+		canvas:mouseCallback(nil)
+		canvas:canvasMouseEvents(nil, nil, nil, nil)
+		canvas = nil
+		collectgarbage()
 	end
 end

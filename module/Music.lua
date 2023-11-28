@@ -17,7 +17,7 @@ local songkind = nil
 local songexistinlibrary = nil
 local musicstate = nil
 local maxlen = 0
-local initialx = 0
+
 -- 可更改的自定义变量
 gaptext = "｜" -- 菜单栏标题的间隔字符
 fadetime = 0.6 -- 淡入淡出时间
@@ -43,7 +43,7 @@ progressColor = {185, 185, 185} -- 进度条颜色
 AMRed = {232, 68, 79} -- Apple Music红
 AMBlue = {0, 120, 255}
 progressAlpha = 0.6 -- 进度条透明度
-if darkMode == false then
+if not darkMode then
 	bgColor = {255, 255, 255} -- 背景颜色（RGB）
 	menubgColor = {255, 255, 255} -- 菜单背景默认颜色（RGB）
 	menuTextColor = {0, 0, 0} -- 菜单字体默认颜色（RGB）
@@ -77,6 +77,7 @@ end
 -- MenuBar函数集 --
 --
 -- 创建菜单栏标题
+local initialx = 0
 function settitle()
 	if initialx == 0 then
 		initialx = MusicBar:frame().x
@@ -126,8 +127,7 @@ function settitle()
 		)
 		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
 	end
-	destroyCanvasObj(c_menubar, true)
-	c_menubar = nil
+	delete(c_menubar)
 	maxlen = firstIcon - getMenu()
 	if Music.state() == "playing" then
 		if Music.title() == connectingFile then
@@ -171,7 +171,7 @@ end
 function setmainmenu()
 	barframe = MusicBar:frame()
 	barframe.x = initialx - 36 - barframe.w
-	destroyCanvasObj(c_mainmenu, true)
+	delete(c_mainmenu)
 	-- 框架尺寸
 	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
 	-- 菜单项目
@@ -257,9 +257,9 @@ function setmainmenu()
 end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
-	destroyCanvasObj(c_applemusicmenu, true)
+	delete(c_applemusicmenu)
 	-- 喜爱
-	if Music.loved() == true then
+	if Music.loved() then
 		lovedimage = img.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
 	else
 		lovedimage = img.imageFromPath(hs.configdir .. "/image/notLoved.png"):setSize(imagesize, absolute == true)
@@ -308,7 +308,7 @@ function setapplemusicmenu()
 end
 -- 设置本地音乐悬浮菜单项目
 function setlocalmusicmenu()
-	destroyCanvasObj(c_localmusicmenu, true)
+	delete(c_localmusicmenu)
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "localmusic" then
 		localmusicmenuframe = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 5.7}
@@ -365,9 +365,9 @@ function setlocalmusicmenu()
 end
 -- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
-	destroyCanvasObj(c_controlmenu, true)
+	delete(c_controlmenu)
 	-- 随机菜单项目
-	if Music.shuffle() == true then
+	if Music.shuffle() then
 		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
 	else
 		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_off.png"):setSize(imagesize, absolute == true)
@@ -382,7 +382,7 @@ function setcontrolmenu()
 	end
 	-- 添加进曲库
 	if Music.kind() == "applemusic" then
-		if Music.existinlibrary() == false then
+		if not Music.existinlibrary() then
 			addedimage = img.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 		else
 			addedimage = img.imageFromPath(hs.configdir .. "/image/added.png"):setSize(imagesize, absolute == true)
@@ -424,15 +424,15 @@ function setcontrolmenu()
    		elseif id == "loop" and event == "mouseUp" then
 			Music.toggleloop()
 		elseif id == "playlist" and event == "mouseUp" then
-			if Music.existinlibrary() == false then
+			if not Music.existinlibrary() then
 				Music.addtolibrary()
 			end
-			if c_playlist == nil then
+			if not c_playlist then
 				setplaylistmenu()
 				c_playlist:orderAbove(c_mainmenu)
 				show(c_playlist)
-			elseif c_playlist ~= nil then
-				if c_playlist:isShowing() == false then
+			elseif c_playlist then
+				if not c_playlist:isShowing() then
 					setplaylistmenu()
 					c_playlist:orderAbove(c_mainmenu)
 					show(c_playlist)
@@ -448,7 +448,7 @@ function setcontrolmenu()
 end
 -- 播放列表悬浮菜单
 function setplaylistmenu()
-	destroyCanvasObj(c_playlist, true)
+	delete(c_playlist)
 	-- 获取播放列表个数
 	local playlistcount = Music.tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
@@ -500,7 +500,7 @@ function setplaylistmenu()
 	-- 菜单项目
 	count = 1
 	repeat
-		if Music.existinplaylist(playlistname[count]) == false then
+		if not Music.existinplaylist(playlistname[count]) then
 			textcolor = {red = menuTextColor[1] / 255, green = menuTextColor[2] / 255, blue = menuTextColor[3] / 255}
 		else
 			textcolor = {red = menuTextColorS[1] / 255, green = menuTextColorS[2] / 255, blue = menuTextColorS[3] / 255}
@@ -563,7 +563,7 @@ function setplaylistmenu()
 					hide(c_playlist)
 					-- 判断是否添加成功
 					if Music.kind() == "applemusic" then
-						if Music.existinlibrary() == false then
+						if not Music.existinlibrary() then
 							hs.alert.show("曲の追加が失敗しているようです")
 						end
 						setcontrolmenu()
@@ -582,7 +582,7 @@ end
 -- 设置进度条悬浮菜单
 function setprogresscanvas()
 	-- 生成悬浮进度条
-	destroyCanvasObj(c_progress, true)
+	delete(c_progress)
 	local per = 60 / 100
 	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
 	progressElement = {
@@ -606,6 +606,7 @@ function setprogresscanvas()
 		updatetime)
 	progressTimer:stop()
 end
+
 --
 -- 悬浮菜单功能函数集
 --
@@ -648,11 +649,11 @@ function mousePosition()
 end
 -- 建立悬浮菜单元素
 function setMenu()
-	if c_mainmenu == nil then
+	if not c_mainmenu then
 		c_mainmenu = c.new({x = 1, y = 1, h = 1, w = 1})
 	end
-	if c_mainmenu ~= nil then
-		if c_mainmenu:isShowing() == true then
+	if c_mainmenu then
+		if c_mainmenu:isShowing() then
 			hideall()
 			if progressTimer then
 				progressTimer:stop()
@@ -683,20 +684,20 @@ function togglecanvas()
 	local spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	local toggleFunction = function ()
 		if Music.state() == "playing" or Music.state() == "paused" then
-			if c_mainmenu ~= nil then
-				if c_mainmenu:isShowing() == true then
+			if c_mainmenu then
+				if c_mainmenu:isShowing() then
 					hideall()
 				else
 					showall()
 					-- 自动隐藏悬浮菜单
 					hs.timer.waitUntil(function()
-							if c_playlist == nil or (c_playlist ~= nil and c_playlist:isShowing() == false) then
-								if c_mainmenu:isShowing() == true and mousePosition() == false then
+							if not not c_playlist or (c_playlist and not c_playlist:isShowing()) then
+								if c_mainmenu:isShowing() and not mousePosition() then
 									return true
 								else
 									return false
 								end
-							elseif c_playlist ~= nil and c_playlist:isShowing() == true then
+							elseif c_playlist and c_playlist:isShowing() then
 								return false
 							end
 						end,function()
@@ -716,7 +717,7 @@ function togglecanvas()
 	-- 判断渐入渐出是否已经完成
 	--[[
 	-- 延迟触发
-	if isFading == true then
+	if isFading then
 		hs.timer.doAfter(fadetime, toggleFunction)
 	else
 		isFading = true
@@ -725,7 +726,7 @@ function togglecanvas()
 	hs.timer.doAfter(fadetime, function() isFading = false end)
 	]]
 	-- 忽略点击
-	if isFading == true then
+	if isFading then
 		return
 	end
 	isFading = true
@@ -766,7 +767,7 @@ function MusicBarUpdate()
 			c_progress = nil
 		---连接完成
 		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
-			if songkind == nil then
+			if not songkind then
 				preKind = Music.kind()
 				preTitle = Music.title()
 				preArtist = Music.artist()
@@ -786,7 +787,7 @@ function MusicBarUpdate()
 				songrating = Music.rating()
 				-- delay(5, function() Music.saveartwork() end)
 				hs.timer.waitUntil(function()
-					if Music.currentposition() ~= nil then
+					if Music.currentposition() then
 						if Music.currentposition() > 1 then
 							return true
 						else
@@ -810,7 +811,7 @@ function MusicBarUpdate()
 			setMenu()
 			Lyric.get()
 			--若切换歌曲时悬浮菜单正在显示则刷新
-			if c_mainmenu ~= nil and c_mainmenu:isShowing() == true then
+			if c_mainmenu and c_mainmenu:isShowing() then
 				hideall()
 				setmainmenu()
 				setMenu()
@@ -823,7 +824,7 @@ function MusicBarUpdate()
 	end
 end
 -- 生成菜单栏
-if MusicBar == nil then
+if not MusicBar then
 	MusicBar = hs.menubar.new(true):autosaveName("Music")
 	MusicBar:setClickCallback(togglecanvas)
 end
