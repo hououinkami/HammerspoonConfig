@@ -146,7 +146,7 @@ end
 -- 显示图层
 function show(canvas,fadetime)
     if not fadetime then
-        fadetime = 1
+        fadetime = 0.5
     end
 	if canvas then
 		canvas:show(fadetime)
@@ -156,6 +156,7 @@ end
 -- 删除图层
 function delete(canvas)
 	if canvas then
+		hide(canvas)
 		canvas:clickActivating(false)
 		canvas:mouseCallback(nil)
 		canvas:canvasMouseEvents(nil, nil, nil, nil)

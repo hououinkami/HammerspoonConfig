@@ -20,6 +20,7 @@ if string.find(owner,"Kami") then
     lyricShadowAlpha = 1/3 -- 阴影透明度
     lyricShadowBlur = 3.0 -- 阴影模糊度
     lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
+	lyricTimeOffset = -0.5 -- 歌词刷新时间偏移量
 else
     lyricbgColor = {35, 37, 34} -- 背景颜色（RGB）
     lyricbgAlpha = 0 -- 背景透明度
@@ -31,41 +32,32 @@ else
     lyricShadowAlpha = 1/3 -- 阴影透明度
     lyricShadowBlur = 3.0 -- 阴影模糊度
     lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
+	lyricTimeOffset = -0.5 -- 歌词刷新时间偏移量
 end
-
--- 变量初始化
-local lyrictext = nil
-local sub = false
 
 Lyric = {}
 -- 获取并显示歌词
-Lyric.get = function()
+Lyric.main = function()
 	-- 初始化
     lyricurl = nil
 	lyricTable = nil
 	lineNO = 1
+	hide(c_lyric)
 	if c_lyric then
 		c_lyric["lyric"].text = ""
 	end
 	if lyricTimer then
 		lyricTimer:stop()
 	end
-	if sub then
+	keyword = Music.title()
+	if Music.title():find("feat%.") or Music.title():find("%(")  or Music.title():find("（") then
 		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","")
-	else
-		keyword = Music.title()
 	end
 	-- 获取歌曲ID
 	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
             local musicinfo = hs.json.decode(musicBody)
-			if musicinfo.result.songCount == 0 and not sub then
-				sub = true
-				Lyric.get()
-			else
-				sub = false
-			end
             local similarity = 0
             if musicinfo.result.songCount > 0 then
                 for i = 1, #musicinfo.result.songs, 1 do
@@ -93,13 +85,12 @@ Lyric.get = function()
 					end
 				end
 				if lyricTable then
-					local a = 1
-					lyricTimer = hs.timer.new(a, function() 
-						a = lineNO or 1
+					lyricTimer = hs.timer.new(1, function() 
+						a = lineNO
 						Lyric.show(a,lyricTable)
 						b = stayTime
-					end)
-					lyricTimer:start()
+						lyricTimer:setNextTrigger(b + lyricTimeOffset)
+					end):start()
 				end
 			end)
 		end
@@ -131,13 +122,14 @@ Lyric.edit = function(lyric)
 				table.insert(lyricTable, lyricLine)
 			end
 		end
-	else
-		lyricTable = nil
 	end
 	return lyricTable
 end
 -- 显示歌词
 Lyric.show = function(startline,lyric)
+	if not lyric then
+		return
+	end
 	-- 定位
 	for l = startline, #lyric, 1 do
 		if l < #lyric then
@@ -164,11 +156,43 @@ Lyric.show = function(startline,lyric)
 		else
 			if Music.currentposition() >= lyric[l].time then
 				currentLyric = lyric[#lyric].lyric
+				stayTime = 1
 				lineNO = l
 			end
 		end
 	end
-	-- 显示
+	-- 仅播放状态下显示
+	if Music.state() == "playing" then
+		Lyric.setcanvas()
+		if not lyricTimer then
+			Lyric.main()
+		end
+		if not c_lyric:isShowing() then
+			show(c_lyric)
+		end
+		lyricTimer:start()
+	elseif Music.state() == "paused" then
+		hide(c_lyric)
+		lyricTimer:stop()
+	else
+		delete(c_lyric)
+		lyricTimer:stop()
+		lyricTimer = nil
+	end
+	-- 歌词刷新
+	if currentLyric ~= lyrictext then
+		c_lyric["lyric"].text = currentLyric
+		lyrictext = currentLyric
+		-- 设置歌词图层自适应宽度
+		lyricSize = c_lyric:minimumTextSize(2, c_lyric["lyric"].text)
+		c_lyric["background"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
+		c_lyric["background"].frame.h = lyricSize.h
+		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
+		c_lyric["lyric"].frame.h = lyricSize.h
+	end
+end
+-- 建立歌词图层
+Lyric.setcanvas = function() 
 	if not c_lyric then
 		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
 		c_lyric:appendElements(
@@ -187,30 +211,15 @@ Lyric.show = function(startline,lyric)
 				textColor = {red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
 				textFont = lyricTextFont,
 				textAlignment = "center",
-                withShadow = lyricShadow,
-                shadow = { blurRadius = lyricShadowBlur, color = {alpha = lyricShadowAlpha, red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255}, offset = lyricShadowOffset },
+				withShadow = lyricShadow,
+				shadow = { blurRadius = lyricShadowBlur, color = {alpha = lyricShadowAlpha, red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255}, offset = lyricShadowOffset },
 			}
 		):behavior(c.windowBehaviors[1])
-        -- 设置歌词图层自适应宽度
-        lyricSize = c_lyric:minimumTextSize(2, c_lyric["lyric"].text)
-		c_lyric["background"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
-		c_lyric["background"].frame.h = lyricSize.h
-		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
-		c_lyric["lyric"].frame.h = lyricSize.h
-    end
-	if Music.state() == "playing" then
-		if not c_lyric:isShowing() then
-			show(c_lyric)
-		end
-	else
-		hide(c_lyric)
-	end
-	-- 歌词刷新
-	if currentLyric ~= lyrictext then
-		c_lyric["lyric"].text = currentLyric
-		lyrictext = currentLyric
 	end
 end
+
+-- 歌词图层初始化
+Lyric.setcanvas()
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
     if c_lyric then
@@ -225,10 +234,10 @@ end)
 -- 歌词模块停用与启用快捷键
 hotkey.bind(hyper_cos, "l", function()
     if lyricTimer and lyricTimer:running() then
+        delete(c_lyric)
 		lyricTimer:stop()
-        destroyCanvasObj(c_lyric,true)
-        c_lyric = nil
     else
-        Lyric.get()
+		Lyric.setcanvas()
+        Lyric.main()
 	end
 end)

@@ -4,20 +4,6 @@ require ('module.lyric')
 --
 -- 定义变量 --
 --
--- 缓存变量初始化
-local MusicBar = nil
-local songtitle = nil
-local songartist = nil
-local songalbum = nil
-local songloved = nil
-local songdisliked = nil
-local songrating = nil
-local songalbum = nil
-local songkind = nil
-local songexistinlibrary = nil
-local musicstate = nil
-local maxlen = 0
-
 -- 可更改的自定义变量
 gaptext = "｜" -- 菜单栏标题的间隔字符
 fadetime = 0.6 -- 淡入淡出时间
@@ -77,9 +63,8 @@ end
 -- MenuBar函数集 --
 --
 -- 创建菜单栏标题
-local initialx = 0
 function settitle()
-	if initialx == 0 then
+	if not initialx then
 		initialx = MusicBar:frame().x
 		firstIcon = initialx - 36
 	end
@@ -806,10 +791,9 @@ function MusicBarUpdate()
 				songrating = Music.rating()
 				Music.saveartwork()
 			end
-			-- Music.deleteLyric()
 			settitle()	
 			setMenu()
-			Lyric.get()
+			Lyric.main()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu and c_mainmenu:isShowing() then
 				hideall()
@@ -820,7 +804,6 @@ function MusicBarUpdate()
 		end
 	else
 		progressTimer = nil
-		lyricTimer = nil
 	end
 end
 -- 生成菜单栏
