@@ -88,7 +88,7 @@ Lyric.main = function()
 					lyricTimer = hs.timer.new(1, function() 
 						a = lineNO
 						Lyric.show(a,lyricTable)
-						b = stayTime
+						b = stayTime or 1
 						lyricTimer:setNextTrigger(b + lyricTimeOffset)
 					end):start()
 				end
