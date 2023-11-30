@@ -21,7 +21,7 @@ function data_diff()
     local disp_str = '⥄' .. kbout .. '\n⥂' .. kbin
     local disp_str_no = kbout .. '\n' .. kbin
     -- 适配黑暗模式选择
-    if darkmode then
+    if darkMode then
         disp_str = hs.styledtext.new(disp_str_no, {font={size=9.0, color={hex="#FFFFFF"}}})
     else
         disp_str = hs.styledtext.new(disp_str, {font={size=9.0, color={hex="#000000"}}})
@@ -36,6 +36,7 @@ function data_diff()
     }
     local menuIcon = barIcon:imageFromCanvas()
     NetBar:setIcon(menuIcon)
+    delete(barIcon)
     inseq = in_seq
     outseq = out_seq
 end
@@ -55,44 +56,25 @@ end
 -- 点击时的行为
 function clickCallback()
     local runningApp = app.runningApplications()
-    local s = false
-    local c = false
     for i, app in pairs(runningApp) do
         if string.find(app:name(),"Surge") then
-            s = true
-        elseif string.find(app:name(),"ClashX") then
-            c = true
-        end
-    end
-    if s == true then
-        as.applescript([[
-            tell application "System Events"
-	            tell process "Surge"
-		            tell menu bar item 1 of menu bar 2
-			            perform action "AXShowMenu"
-                        keystroke "d" using command down
-		            end tell
-	            end tell
-            end tell
-        ]])
-    end
-    if c == true then
-        as.applescript('tell application "System Events" to tell process "ClashX Pro" to tell menu bar 2 to click (menu bar item 1)')
-    else
-        if s == false then
             as.applescript([[
-                tell application "Safari"
-                    activate
-                    tell window 1 to set current tab to (make new tab with properties {URL:"http://192.168.1.1/luci-static/openclash/?hostname=192.168.1.1&port=9090&secret=123456#/proxies"})
+                tell application "System Events"
+                    tell process "Surge"
+                        tell menu bar item 1 of menu bar 2
+                            perform action "AXShowMenu"
+                            keystroke "d" using command down
+                        end tell
+                    end tell
                 end tell
             ]])
+            break
         end
     end
 end
 -- 刷新函数
 function rescan()
     interface = hs.network.primaryInterfaces()
-    darkmode = as.applescript('tell application "System Events"\nreturn dark mode of appearance preferences\nend tell')
     local menuitems_table = {}
     if interface then
         -- 检查激活的网络接口并创建菜单项目
@@ -110,17 +92,17 @@ function rescan()
         if interface_detail.IPv4 then
             local ipv4 = interface_detail.IPv4.Addresses[1]
             table.insert(menuitems_table, {
-                title = "IPアドレス: " .. ipv4,
+                title = "IPv4アドレス: " .. ipv4,
                 tooltip = "IPv4アドレスをクリップボードにコピー",
                 fn = function() hs.pasteboard.setContents(ipv4) end
             })
         end
         -- 当前IPv6地址
-        --[[if interface_detail.IPv6 then
+        if interface_detail.IPv6 then
             local ipv6 = interface_detail.IPv6.Addresses[1]
             table.insert(menuitems_table, {
-                title = "IPv6: " .. ipv6,
-                tooltip = "Copy IPv6 to clipboard",
+                title = "IPv6アドレス: " .. ipv6,
+                tooltip = "IPv6アドレスをクリップボードにコピー",
                 fn = function() hs.pasteboard.setContents(ipv6) end
             })
         end
@@ -130,7 +112,7 @@ function rescan()
             title = "MACアドレス: " .. macaddr,
             tooltip = "MACアドレスをクリップボードにコピー",
             fn = function() hs.pasteboard.setContents(macaddr) end
-        })--]]
+        })
         -- 监视网速Start watching the netspeed delta
         instr = 'netstat -ibn | grep -e ' .. interface .. ' -m 1 | awk \'{print $7}\''
         outstr = 'netstat -ibn | grep -e ' .. interface .. ' -m 1 | awk \'{print $10}\''
@@ -140,7 +122,7 @@ function rescan()
             timer:stop()
             timer = nil
         end
-        timer = hs.timer.doEvery(1, data_diff)
+        timer = hs.timer.doEvery(1, data_diff, true)
     end
     table.insert(menuitems_table, {
         title = "インターフェイスをスキャン",
