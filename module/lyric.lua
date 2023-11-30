@@ -14,7 +14,7 @@ if string.find(owner,"Kami") then
     lyricbgAlpha = 0 -- 背景透明度
     lyricTextColor = {0, 120, 255} -- 歌词颜色（RGB）
     lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "HiraMaruProN-W4" -- 歌词字体
+    lyricTextFont = "WeibeiSC-Bold" -- 歌词字体
     lyricShadow = true -- 是否显示阴影效果
     lyricShadowColor = {255, 255, 255} -- 阴影颜色（RGB）
     lyricShadowAlpha = 1/3 -- 阴影透明度
@@ -26,7 +26,7 @@ else
     lyricbgAlpha = 0 -- 背景透明度
     lyricTextColor = {189, 138, 189} -- 歌词颜色（RGB）
     lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "HiraMaruProN-W4" -- 歌词字体
+    lyricTextFont = "WeibeiSC-Bold" -- 歌词字体
     lyricShadow = true -- 是否显示阴影效果
     lyricShadowColor = {255, 255, 255} -- 阴影颜色（RGB）
     lyricShadowAlpha = 1/3 -- 阴影透明度
@@ -38,6 +38,11 @@ end
 Lyric = {}
 -- 获取并显示歌词
 Lyric.main = function()
+	-- 若没有联网则不搜寻歌词
+	local v4,v6 = hs.network.primaryInterfaces()
+	if v4 == false and v6 == false then
+		return
+	end
 	-- 初始化
     lyricurl = nil
 	lyricTable = nil
@@ -49,32 +54,57 @@ Lyric.main = function()
 	if lyricTimer then
 		lyricTimer:stop()
 	end
-	keyword = Music.title()
-	if Music.title():find("feat%.") or Music.title():find("%(")  or Music.title():find("（") then
+	-- 搜索的关键词
+	if searchType == nil or searchType == "A" then
+		keyword = Music.title() .. " " .. Music.artist()
+	elseif searchType == "B" then
+		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","") .. " " .. Music.artist()
+	elseif searchType == "C" then
 		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","")
 	end
 	-- 获取歌曲ID
 	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
+	-- 监控是否陷入死循环
+	print("正在搜寻 " .. keyword .. " 的歌词...")
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
             local musicinfo = hs.json.decode(musicBody)
             local similarity = 0
+			if not musicinfo.result then
+				return
+			end
             if musicinfo.result.songCount > 0 then
+				-- 判断是否需要重新搜索
+				if compareString(musicinfo.result.songs[1].name, Music.title()) < 75 then
+					if searchType == nil or searchType == "A" then
+						searchType = "B"
+					elseif searchType == "B" then
+						searchType = "C"
+					elseif searchType == "C" or searchType == nil then
+						searchType = nil
+						return
+					end
+					Lyric.main()
+					return
+				end
                 for i = 1, #musicinfo.result.songs, 1 do
-                    if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
-                        song = i
-                        break
-                    end
-                    if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) > similarity then
-                        similarity = compareString(musicinfo.result.songs[i].artists[1].name, Music.artist())
-                        song = i
-                    end
+					if compareString(musicinfo.result.songs[i].name, Music.title()) > 90 then
+						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
+							song = i
+							break
+						end
+						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) > similarity then
+							similarity = compareString(musicinfo.result.songs[i].artists[1].name, Music.artist())
+							song = i
+						end
+					end
                 end
 				if song then
                 	lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
 				end
             end
         end
+		searchType = nil
 		if lyricurl then
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
 				if status == 200 then
@@ -89,7 +119,9 @@ Lyric.main = function()
 						a = lineNO
 						Lyric.show(a,lyricTable)
 						b = stayTime or 1
-						lyricTimer:setNextTrigger(b + lyricTimeOffset)
+						if lyricTimer then
+							lyricTimer:setNextTrigger(b + lyricTimeOffset)
+						end
 					end):start()
 				end
 			end)
@@ -102,7 +134,11 @@ Lyric.edit = function(lyric)
 	local lyricTable = {}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
-			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') and not string.find(lyricData[l],'-1%]') then
+			if string.find(lyricData[l],'-1%]') then
+				print("搜寻不到匹配的歌词")
+				break
+			end
+			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]')then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				time = stringSplit(line, "`")[1]:gsub("%.",":")
@@ -110,6 +146,9 @@ Lyric.edit = function(lyric)
 				hour = 0
 				min = tonumber(stringSplit(time, ":")[1])
 				if min > 59 then
+					if min == 99 then
+						print("搜寻不到匹配的歌词")
+					end
 					hour = min // 60
 					min = min - 60 * hour
 				end
@@ -122,6 +161,10 @@ Lyric.edit = function(lyric)
 				table.insert(lyricTable, lyricLine)
 			end
 		end
+	end
+	if #lyricTable == 0 then
+		lyricTable = nil
+		print("搜寻不到匹配的歌词")
 	end
 	return lyricTable
 end
