@@ -569,12 +569,17 @@ function setprogresscanvas()
 	-- 生成悬浮进度条
 	delete(c_progress)
 	local per = 60 / 100
+	if Music.duration() > 0 then
+		musicDuration = Music.duration()
+	else
+		musicDuration = 300
+	end
 	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
 	progressElement = {
 		id = "progress",
     	type = "rectangle",
     	roundedRectRadii = {xRadius = 2, yRadius = 2},
-    	frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / Music.duration()},
+    	frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / musicDuration},
 		fillColor = {alpha = progressAlpha, red = progressColor[1] / 255, green = progressColor[2] / 255, blue = progressColor[3] / 255},
     	trackMouseUp = true
 	}
@@ -584,7 +589,7 @@ function setprogresscanvas()
 		end, 
 		function()
 			if c_progress:frame().w and Music.currentposition() and Music.duration() then
-				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / Music.duration()
+				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / musicDuration
 				c_progress:replaceElements(progressElement):show()
 			end
 		end,
@@ -699,18 +704,7 @@ function togglecanvas()
 			Music.tell('activate')
 		end
 	end
-	-- 判断渐入渐出是否已经完成
-	--[[
-	-- 延迟触发
-	if isFading then
-		hs.timer.doAfter(fadetime, toggleFunction)
-	else
-		isFading = true
-		toggleFunction()
-	end
-	hs.timer.doAfter(fadetime, function() isFading = false end)
-	]]
-	-- 忽略点击
+	-- 判断渐入渐出是否已经完成，未完成则忽略点击
 	if isFading then
 		return
 	end
@@ -720,6 +714,10 @@ function togglecanvas()
 end
 -- 实时更新函数
 function MusicBarUpdate()
+	-- 若退出App则不执行任何动作
+	if not Music.checkrunning() then
+		return
+	end
 	-- 若更换了播放状态则触发更新
 	if Music.state() ~= musicstate then
 		musicstate = Music.state()
@@ -751,46 +749,20 @@ function MusicBarUpdate()
 			c_controlmenu = nil
 			c_progress = nil
 		---连接完成
-		elseif Music.kind() ~= "connecting" and Music.title() ~= songtitle then
-			if not songkind then
-				preKind = Music.kind()
-				preTitle = Music.title()
-				preArtist = Music.artist()
-				preExistinlibrary = Music.existinlibrary()
-			else
-				preKind = songkind
-				preTitle = songtitle
-				preArtist = songartist
-				preExistinlibrary = songexistinlibrary
-			end
-			--获取新歌曲信息
+		elseif Music.title() ~= songtitle then
 			if songkind == "connecting" then
-				songkind = Music.kind()
-				songtitle = Music.title()
-				songartist = Music.artist()
-				songloved = Music.loved()
-				songrating = Music.rating()
-				-- delay(5, function() Music.saveartwork() end)
+				songkind = nil
 				hs.timer.waitUntil(function()
-					if Music.currentposition() then
-						if Music.currentposition() > 1 then
-							return true
-						else
-							return false
-						end
+					if Music.kind() and Music.kind() ~= "connecting" then
+						return true
 					else
 						return false
 					end
-				end, function() Music.saveartwork() end)	
+				end, Music.saveartwork)	
 			else
-				songkind = Music.kind()
-				songexistinlibrary = Music.existinlibrary()
-				songtitle = Music.title()
-				songartist = Music.artist()
-				songloved = Music.loved()
-				songrating = Music.rating()
 				Music.saveartwork()
 			end
+			songtitle = Music.title()
 			settitle()	
 			setMenu()
 			Lyric.main()
@@ -801,6 +773,13 @@ function MusicBarUpdate()
 				setMenu()
 				delay(0.6, togglecanvas)
 			end
+		end
+		timeleft = Music.duration() - Music.currentposition()
+		if Switch:nextTrigger() < 1 then
+			Switch:setNextTrigger(1)
+		end
+		if timeleft < 1 then
+			Switch:setNextTrigger(timeleft)
 		end
 	else
 		progressTimer = nil
