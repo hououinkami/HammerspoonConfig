@@ -2,9 +2,7 @@
 -- 变量设置
 --------**--------
 win.animationDuration = 0
-resizeStep = 10
-screenFrame = hs.screen.mainScreen():fullFrame()
-desktopFrame = hs.screen.mainScreen():frame()
+resizeStep = 20
 local winhistory = {}
 local windowMeta = {}
 -- 记录窗口初始位置
@@ -96,6 +94,18 @@ function resizeWindow(window, dir, step)
 			frame.h = frame.h - step
 		end
 	end
+	if frame.x < max.x then
+        frame.x = max.x
+    end
+    if frame.y < max.y then
+        frame.y = max.y
+    end
+    if frame.w > max.w then
+        frame.w = max.w
+    end
+    if frame.h > max.h then
+        frame.h = max.h
+    end
     window:setFrame(frame)
 end
 -- 撤销最近一次动作
