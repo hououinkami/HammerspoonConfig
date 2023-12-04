@@ -14,9 +14,12 @@ if string.find(owner,"Kami") then
     lyricbgAlpha = 0 -- 背景透明度
     lyricTextColor = {0, 120, 255} -- 歌词颜色（RGB）
     lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "WeibeiSC-Bold" -- 歌词字体
-    lyricShadow = true -- 是否显示阴影效果
-    lyricShadowColor = {255, 255, 255} -- 阴影颜色（RGB）
+    lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
+	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
+	lyricStrokeWidth = -0.6 -- 0为关闭描边, 正数为用字体颜色描边空心
+	lyricStrokeColor = {1, 1, 1} -- 描边颜色
+	lyricStrokeAlpha = 1 -- 描边透明度
+    lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
     lyricShadowAlpha = 1/3 -- 阴影透明度
     lyricShadowBlur = 3.0 -- 阴影模糊度
     lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
@@ -26,9 +29,12 @@ else
     lyricbgAlpha = 0 -- 背景透明度
     lyricTextColor = {189, 138, 189} -- 歌词颜色（RGB）
     lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "WeibeiSC-Bold" -- 歌词字体
-    lyricShadow = true -- 是否显示阴影效果
-    lyricShadowColor = {255, 255, 255} -- 阴影颜色（RGB）
+    lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
+	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
+	lyricStrokeWidth = -0.6 -- 0为关闭描边, 正数为用字体颜色描边空心
+	lyricStrokeColor = {1, 1, 1} -- 描边颜色
+	lyricStrokeAlpha = 1 -- 描边透明度
+    lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
     lyricShadowAlpha = 1/3 -- 阴影透明度
     lyricShadowBlur = 3.0 -- 阴影模糊度
     lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
@@ -36,6 +42,7 @@ else
 end
 
 Lyric = {}
+
 -- 获取并显示歌词
 Lyric.main = function()
 	-- 若没有联网则不搜寻歌词
@@ -128,6 +135,7 @@ Lyric.main = function()
 		end
     end)
 end
+
 -- 将歌词从json转变成table
 Lyric.edit = function(lyric)
 	local lyricData = stringSplit(lyric,"\n")
@@ -168,6 +176,7 @@ Lyric.edit = function(lyric)
 	end
 	return lyricTable
 end
+
 -- 显示歌词
 Lyric.show = function(startline,lyric)
 	if not lyric then
@@ -224,16 +233,54 @@ Lyric.show = function(startline,lyric)
 	end
 	-- 歌词刷新
 	if currentLyric ~= lyrictext then
-		c_lyric["lyric"].text = currentLyric
+		c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
 		lyrictext = currentLyric
 		-- 设置歌词图层自适应宽度
 		lyricSize = c_lyric:minimumTextSize(2, c_lyric["lyric"].text)
 		c_lyric["background"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
 		c_lyric["background"].frame.h = lyricSize.h
+		c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
 		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
 		c_lyric["lyric"].frame.h = lyricSize.h
 	end
 end
+
+-- 将歌词按照中英数分割方便设置不同字体
+Lyric.handleLyric = function(lyric)
+	local lyricObjTable = {}
+	if #lyric > 0 then
+		local s_list = stringSplit2(lyric)
+		for i,v in ipairs(s_list) do
+			if not v:find("%w") then
+				table.insert(lyricObjTable, hs.styledtext.new(v, {
+					font = { name = lyricTextFont, size = lyricTextSize},
+					color = { red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
+					strokeColor = { red = lyricStrokeColor[1] / 255, green = lyricStrokeColor[2] / 255, blue = lyricStrokeColor[3] / 255, alpha = lyricStrokeAlpha },
+					strokeWidth = lyricStrokeWidth,
+					shadow = { color = { red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255, alpha = lyricShadowAlpha }, blurRadius = lyricShadowBlur, offset = lyricShadowOffset },
+				}))
+			else
+				table.insert(lyricObjTable, hs.styledtext.new(v, {
+					font = { name = lyricTextFont2, size = lyricTextSize},
+					color = { red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
+					strokeColor = { red = 1, green = 1, blue = 1, alpha = 0.6 },
+					strokeWidth = -0.6,
+					shadow = { color = {alpha = lyricShadowAlpha, red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255}, blurRadius = lyricShadowBlur, offset = lyricShadowOffset },
+				}))
+			end
+		end
+		lyricObj = nil
+		for i,v in ipairs(lyricObjTable) do
+			if not lyricObj then
+				lyricObj = v
+			else
+				lyricObj = lyricObj .. v
+			end
+		end
+		return lyricObj
+	end
+end
+
 -- 建立歌词图层
 Lyric.setcanvas = function() 
 	if not c_lyric then
@@ -250,12 +297,6 @@ Lyric.setcanvas = function()
 				frame = {x = 0, y = 0, h = c_lyric:frame().h, w = c_lyric:frame().w},
 				type = "text",
 				text = "",
-				textSize = lyricTextSize,
-				textColor = {red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
-				textFont = lyricTextFont,
-				textAlignment = "center",
-				withShadow = lyricShadow,
-				shadow = { blurRadius = lyricShadowBlur, color = {alpha = lyricShadowAlpha, red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255}, offset = lyricShadowOffset },
 			}
 		):behavior(c.windowBehaviors[1])
 	end
@@ -263,6 +304,7 @@ end
 
 -- 歌词图层初始化
 Lyric.setcanvas()
+
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
     if c_lyric then
@@ -274,6 +316,7 @@ hotkey.bind(hyper_cs, "l", function()
         end
 	end
 end)
+
 -- 歌词模块停用与启用快捷键
 hotkey.bind(hyper_cos, "l", function()
     if lyricTimer and lyricTimer:running() then
