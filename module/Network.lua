@@ -22,16 +22,16 @@ function data_diff()
     local disp_str_no = kbout .. '\n' .. kbin
     -- 适配黑暗模式选择
     if darkMode then
-        disp_str = hs.styledtext.new(disp_str_no, {font={size=9.0, color={hex="#FFFFFF"}}})
+        disp_str = hs.styledtext.new(disp_str_no, {font = {size=9.0}, color = {hex="#FFFFFF"}})
     else
-        disp_str = hs.styledtext.new(disp_str, {font={size=9.0, color={hex="#000000"}}})
+        disp_str = hs.styledtext.new(disp_str, {font = {size=9.0}, color = {hex="#000000"}})
     end
     -- NetBar:setTitle(disp_str)
     -- NetBar:delete(barIcon)
     barIcon = c.new({x = 10, y = 10, h = 24, w = 57})
     barIcon[1] = {
         frame = {x = 0, y = -0.3, h = 24, w = 57},
-        text = hs.styledtext.new(kbout .. '\n' .. kbin, {font={size=9.0, color={hex="#FFFFFF"}}, paragraphStyle = {alignment = "right"}}),
+        text = hs.styledtext.new(kbout .. '\n' .. kbin, {font = {size=9.0}, color = {hex="#FFFFFF"}, paragraphStyle = {alignment = "right"}}),
         type = "text",
     }
     local menuIcon = barIcon:imageFromCanvas()
