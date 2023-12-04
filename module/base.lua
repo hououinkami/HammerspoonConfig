@@ -24,6 +24,35 @@ function stringSplit(s, p)
     return rt
 end
 
+-- 文本按中英数分割数组
+function stringSplit2(s)
+    local s_list= {}
+	local s_ = ""
+	local _s = ""
+	for i in string.gmatch(s, "[%z\1-\127\194-\244][\128-\191]*") do
+		if i:find("%w") then
+			if #_s >= 1 then
+				table.insert(s_list, _s)
+			end
+			_s = ""
+			s_ = s_ .. i
+		else
+			if #s_ >= 1 then
+				table.insert(s_list, s_)
+			end
+			s_ = ""
+			_s = _s .. i
+		end
+	end
+	if #_s > 0 then
+		table.insert(s_list, _s)
+	end
+	if #s_ > 0 then
+		table.insert(s_list, s_)
+	end
+    return s_list
+end
+
 -- 比较字符串相似度
 function compareString(strA, strB)
 	strA = stringSplit(strA)
