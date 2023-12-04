@@ -16,7 +16,7 @@ if string.find(owner,"Kami") then
     lyricTextSize = 28 -- 歌词字体大小
     lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
 	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
-	lyricStrokeWidth = -0.6 -- 0为关闭描边, 正数为用字体颜色描边空心
+	lyricStrokeWidth = 0 -- 0为关闭描边, 负数为描边, 正数为用字体颜色描边空心
 	lyricStrokeColor = {1, 1, 1} -- 描边颜色
 	lyricStrokeAlpha = 1 -- 描边透明度
     lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
@@ -31,7 +31,7 @@ else
     lyricTextSize = 28 -- 歌词字体大小
     lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
 	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
-	lyricStrokeWidth = -0.6 -- 0为关闭描边, 正数为用字体颜色描边空心
+	lyricStrokeWidth = 0 -- 0为关闭描边, 负数为描边, 正数为用字体颜色描边空心
 	lyricStrokeColor = {1, 1, 1} -- 描边颜色
 	lyricStrokeAlpha = 1 -- 描边透明度
     lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
