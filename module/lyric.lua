@@ -122,12 +122,17 @@ Lyric.main = function()
 					end
 				end
 				if lyricTable then
-					lyricTimer = hs.timer.new(1, function() 
+					-- 歌词图层初始化
+					Lyric.setcanvas()
+					lyricTimer = hs.timer.new(1, function()
 						a = lineNO
 						Lyric.show(a,lyricTable)
-						b = stayTime or 1
-						if lyricTimer then
-							lyricTimer:setNextTrigger(b + lyricTimeOffset)
+						b = stayTime + lyricTimeOffset or 1 + lyricTimeOffset
+						if lastLine == true then
+							b = Music.duration() - Music.currentposition()
+						end
+						if lyricTimer and b > 0 then
+							lyricTimer:setNextTrigger(b)
 						end
 					end):start()
 				end
@@ -183,12 +188,13 @@ Lyric.show = function(startline,lyric)
 		return
 	end
 	-- 定位
+	local currentPosition = Music.currentposition() - lyricTimeOffset
 	for l = startline, #lyric, 1 do
 		if l < #lyric then
-			if Music.currentposition() < lyric[l].time or Music.currentposition() > lyric[l+1].time then
+			if currentPosition < lyric[l].time or currentPosition > lyric[l+1].time then
 				for j = 1, #lyric, 1 do
 					if j < #lyric then
-						if Music.currentposition() > lyric[j].time and Music.currentposition() < lyric[j+1].time then
+						if currentPosition > lyric[j].time and currentPosition < lyric[j+1].time then
 							l = j
 							break
 						end
@@ -199,23 +205,24 @@ Lyric.show = function(startline,lyric)
 			end
 		end
 		if l < #lyric then
-			if Music.currentposition() > lyric[l].time and Music.currentposition() < lyric[l+1].time then
+			if currentPosition > lyric[l].time and currentPosition < lyric[l+1].time then
 				currentLyric = lyric[l].lyric
-				stayTime = lyric[l+1].time - Music.currentposition()
+				stayTime = lyric[l+1].time - currentPosition
 				lineNO = l
+				lastLine = false
 				break
 			end
 		else
-			if Music.currentposition() >= lyric[l].time then
+			if currentPosition >= lyric[l].time then
 				currentLyric = lyric[#lyric].lyric
 				stayTime = 1
 				lineNO = l
+				lastLine = true
 			end
 		end
 	end
 	-- 仅播放状态下显示
 	if Music.state() == "playing" then
-		Lyric.setcanvas()
 		if not lyricTimer then
 			Lyric.main()
 		end
@@ -301,9 +308,6 @@ Lyric.setcanvas = function()
 		):behavior(c.windowBehaviors[1])
 	end
 end
-
--- 歌词图层初始化
-Lyric.setcanvas()
 
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
