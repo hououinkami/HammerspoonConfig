@@ -784,6 +784,10 @@ function MusicBarUpdate()
 	else
 		progressTimer = nil
 	end
+	-- 非播放状态立即隐藏歌词
+	if Music.state() ~= "playing" then
+		hide(c_lyric)
+	end
 end
 -- 生成菜单栏
 if not MusicBar then
