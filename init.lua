@@ -65,3 +65,25 @@ end
 if not string.find(owner,"Kami") then
 	require ('module.autoupdate')
 end
+
+-- 当Music和歌词的配置文件文件更新时热更新
+function reloadConfig(files)
+    for _,file in pairs(files) do
+		filenameExt = string.match(file, ".+/([^/]*%.%w+)$")
+		local idx = filenameExt:match(".+()%.%w+$")
+		if(idx) then
+			filename = filenameExt:sub(1, idx-1)
+		else
+			filename = filenameExt
+		end
+		hotfix('config.' .. filename)
+		if filename == "lyric" then
+			lyrictext = nil
+			Lyric.show(a,lyricTable)
+		elseif filename == "music" then
+			musicstate = nil
+			MusicBarUpdate()
+		end
+    end
+end
+ConfigWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/config", reloadConfig):start()
