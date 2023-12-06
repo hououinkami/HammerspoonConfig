@@ -193,3 +193,13 @@ function delete(canvas)
 		collectgarbage()
 	end
 end
+
+-- 热更新
+function hotfix(_mname)
+	print(string.format("开始热更新 %s", _mname))
+	if package.loaded[_mname] then
+		print(string.format("重载模块 %s", _mname))
+	end
+	package.loaded[_mname] = nil
+	require( _mname )
+end
