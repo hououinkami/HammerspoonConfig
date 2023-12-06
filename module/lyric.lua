@@ -1,44 +1,12 @@
 require ('module.base') 
 require ('module.apple-music') 
+require ('config.lyric')
 local secret = io.open(os.getenv("HOME") .. "/.hammerspoon/module/secret.lua", "r")
 if secret then
     require ('module.secret')
     io.close(secret)
 else
     lyricAPI = "https://yourownlyricapi.com/"
-end
-
--- 歌词设置项
-if string.find(owner,"Kami") then
-    lyricbgColor = {35, 37, 34} -- 背景颜色（RGB）
-    lyricbgAlpha = 0 -- 背景透明度
-    lyricTextColor = {0, 120, 255} -- 歌词颜色（RGB）
-    lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
-	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
-	lyricStrokeWidth = 0 -- 0为关闭描边, 负数为描边, 正数为用字体颜色描边空心
-	lyricStrokeColor = {1, 1, 1} -- 描边颜色
-	lyricStrokeAlpha = 1 -- 描边透明度
-    lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
-    lyricShadowAlpha = 1/3 -- 阴影透明度
-    lyricShadowBlur = 3.0 -- 阴影模糊度
-    lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
-	lyricTimeOffset = -0.5 -- 歌词刷新时间偏移量
-else
-    lyricbgColor = {35, 37, 34} -- 背景颜色（RGB）
-    lyricbgAlpha = 0 -- 背景透明度
-    lyricTextColor = {189, 138, 189} -- 歌词颜色（RGB）
-    lyricTextSize = 28 -- 歌词字体大小
-    lyricTextFont = "WeibeiSC-Bold" -- 歌词中文日文字体
-	lyricTextFont2 = "Apple-Chancery" -- 歌词英文数字字体
-	lyricStrokeWidth = 0 -- 0为关闭描边, 负数为描边, 正数为用字体颜色描边空心
-	lyricStrokeColor = {1, 1, 1} -- 描边颜色
-	lyricStrokeAlpha = 1 -- 描边透明度
-    lyricShadowColor = {0, 0, 0} -- 阴影颜色（RGB）
-    lyricShadowAlpha = 1/3 -- 阴影透明度
-    lyricShadowBlur = 3.0 -- 阴影模糊度
-    lyricShadowOffset = {h = -1.0, w = 1.0} -- 阴影偏移量
-	lyricTimeOffset = -0.5 -- 歌词刷新时间偏移量
 end
 
 Lyric = {}
@@ -207,7 +175,7 @@ Lyric.show = function(startline,lyric)
 		if l < #lyric then
 			if currentPosition > lyric[l].time and currentPosition < lyric[l+1].time then
 				currentLyric = lyric[l].lyric
-				stayTime = lyric[l+1].time - currentPosition
+				stayTime = lyric[l+1].time - currentPosition or 0
 				lineNO = l
 				lastLine = false
 				break
@@ -243,11 +211,10 @@ Lyric.show = function(startline,lyric)
 		c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
 		lyrictext = currentLyric
 		-- 设置歌词图层自适应宽度
-		lyricSize = c_lyric:minimumTextSize(2, c_lyric["lyric"].text)
-		c_lyric["background"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
-		c_lyric["background"].frame.h = lyricSize.h
+		lyricSize = c_lyric:minimumTextSize(1, c_lyric["lyric"].text)
+		c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
 		c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
-		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h - gap.y
+		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
 		c_lyric["lyric"].frame.h = lyricSize.h
 	end
 end
@@ -258,21 +225,48 @@ Lyric.handleLyric = function(lyric)
 	if #lyric > 0 then
 		local s_list = stringSplit2(lyric)
 		for i,v in ipairs(s_list) do
+			lyricStyled = hs.styledtext.new(v, {
+				font = { 
+					name = lyricTextFont, 
+					size = lyricTextSize
+				},
+				color = { 
+					red = lyricTextColor[1] / 255, 
+					green = lyricTextColor[2] / 255, 
+					blue = lyricTextColor[3] / 255
+				},
+				backgroundColor = {
+					red = lyricbgColor[1] / 255, 
+					green = lyricbgColor[2] / 255, 
+					blue = lyricbgColor[3] / 255, 
+					alpha = lyricbgAlpha 
+				},
+				strokeColor = { 
+					red = lyricStrokeColor[1] / 255, 
+					green = lyricStrokeColor[2] / 255, 
+					blue = lyricStrokeColor[3] / 255, 
+					alpha = lyricStrokeAlpha 
+				},
+				strokeWidth = lyricStrokeWidth,
+				shadow = { 
+					color = { 
+						red = lyricShadowColor[1] / 255, 
+						green = lyricShadowColor[2] / 255, 
+						blue = lyricShadowColor[3] / 255, 
+						alpha = lyricShadowAlpha 
+					}, 
+					blurRadius = lyricShadowBlur, 
+					offset = lyricShadowOffset 
+				},
+			})
 			if not v:find("%w") then
-				table.insert(lyricObjTable, hs.styledtext.new(v, {
-					font = { name = lyricTextFont, size = lyricTextSize},
-					color = { red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
-					strokeColor = { red = lyricStrokeColor[1] / 255, green = lyricStrokeColor[2] / 255, blue = lyricStrokeColor[3] / 255, alpha = lyricStrokeAlpha },
-					strokeWidth = lyricStrokeWidth,
-					shadow = { color = { red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255, alpha = lyricShadowAlpha }, blurRadius = lyricShadowBlur, offset = lyricShadowOffset },
-				}))
+				table.insert(lyricObjTable, lyricStyled)
 			else
-				table.insert(lyricObjTable, hs.styledtext.new(v, {
-					font = { name = lyricTextFont2, size = lyricTextSize},
-					color = { red = lyricTextColor[1] / 255, green = lyricTextColor[2] / 255, blue = lyricTextColor[3] / 255},
-					strokeColor = { red = 1, green = 1, blue = 1, alpha = 0.6 },
-					strokeWidth = -0.6,
-					shadow = { color = {alpha = lyricShadowAlpha, red = lyricShadowColor[1] / 255, green = lyricShadowColor[2] / 255, blue = lyricShadowColor[3] / 255}, blurRadius = lyricShadowBlur, offset = lyricShadowOffset },
+				table.insert(lyricObjTable, lyricStyled:setStyle({
+					font = { 
+						name = lyricTextFont2, 
+						size = lyricTextSize
+					}
 				}))
 			end
 		end
@@ -293,13 +287,7 @@ Lyric.setcanvas = function()
 	if not c_lyric then
 		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
 		c_lyric:appendElements(
-			{
-				id = "background",
-				type = "rectangle",
-				action = "fill",
-				roundedRectRadii = {xRadius = 6, yRadius = 6},
-				fillColor = {alpha = lyricbgAlpha, red = lyricbgColor[1] / 255, green = lyricbgColor[2] / 255, blue = lyricbgColor[3] / 255},
-			},{
+			{ -- 歌词
 				id = "lyric",
 				frame = {x = 0, y = 0, h = c_lyric:frame().h, w = c_lyric:frame().w},
 				type = "text",
