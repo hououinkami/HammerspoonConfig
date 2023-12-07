@@ -10,7 +10,6 @@ else
 end
 
 Lyric = {}
-
 -- 获取并显示歌词
 Lyric.main = function()
 	-- 若没有联网则不搜寻歌词

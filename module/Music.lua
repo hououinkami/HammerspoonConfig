@@ -1,6 +1,6 @@
 require ('module.base') 
 require ('module.apple-music') 
-require ('module.lyric') 
+require ('module.Lyric') 
 require ('config.music')
 --
 -- MenuBar函数集 --
