@@ -36,6 +36,39 @@ Lyric.main = function()
 	elseif searchType == "C" then
 		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","")
 	end
+	-- 搜寻本地歌词文件
+	if searchType == nil or searchType == "A" then
+		local lyricfileName = Music.title() .. " - " .. Music.artist()
+		lyricfileExist, lyricfileContent = Lyric.load(lyricfileName)
+		if lyricfileExist then
+			lyricTable = Lyric.edit(lyricfileContent)
+		else
+			lyricTable = Lyric.search(keyword)
+			return
+		end
+	else
+		lyricTable = Lyric.search(keyword)
+		return
+	end	
+	if lyricTable then
+		-- 歌词图层初始化
+		Lyric.setcanvas()
+		lyricTimer = hs.timer.new(1, function()
+			a = lineNO
+			Lyric.show(a,lyricTable)
+			b = stayTime + lyricTimeOffset or 1 + lyricTimeOffset
+			if lastLine == true then
+				b = Music.duration() - Music.currentposition()
+			end
+			if lyricTimer and b > 0 then
+				lyricTimer:setNextTrigger(b)
+			end
+		end):start()
+	end
+end
+
+-- 搜索歌词并保存
+Lyric.search = function(keyword)
 	-- 获取歌曲ID
 	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
 	-- 监控是否陷入死循环
@@ -47,7 +80,7 @@ Lyric.main = function()
 			if not musicinfo.result then
 				return
 			end
-            if musicinfo.result.songCount > 0 then
+            if #musicinfo.result.songs > 0 then
 				-- 判断是否需要重新搜索
 				if compareString(musicinfo.result.songs[1].name, Music.title()) < 75 then
 					if searchType == nil or searchType == "A" then
@@ -56,6 +89,7 @@ Lyric.main = function()
 						searchType = "C"
 					elseif searchType == "C" or searchType == nil then
 						searchType = nil
+						print("搜寻不到匹配的歌词")
 						return
 					end
 					Lyric.main()
@@ -85,26 +119,15 @@ Lyric.main = function()
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
+						Lyric.save(lyric)
 						lyricTable = Lyric.edit(lyric)
+						lyricDownloaded = true
+						Lyric.main()
 					end
-				end
-				if lyricTable then
-					-- 歌词图层初始化
-					Lyric.setcanvas()
-					lyricTimer = hs.timer.new(1, function()
-						a = lineNO
-						Lyric.show(a,lyricTable)
-						b = stayTime + lyricTimeOffset or 1 + lyricTimeOffset
-						if lastLine == true then
-							b = Music.duration() - Music.currentposition()
-						end
-						if lyricTimer and b > 0 then
-							lyricTimer:setNextTrigger(b)
-						end
-					end):start()
 				end
 			end)
 		end
+		return lyricTable
     end)
 end
 
@@ -112,13 +135,22 @@ end
 Lyric.edit = function(lyric)
 	local lyricData = stringSplit(lyric,"\n")
 	local lyricTable = {}
+	local blackList = {"作曲","作词","编曲","作詞","編曲","曲：","歌："}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
 			if string.find(lyricData[l],'-1%]') then
 				print("搜寻不到匹配的歌词")
 				break
 			end
-			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]')then
+			for i,v in ipairs(blackList) do
+				if string.find(lyricData[l],v) then
+					passLine = true
+					break
+				else
+					passLine = false
+				end
+			end
+			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]') and passLine ~= true then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				time = stringSplit(line, "`")[1]:gsub("%.",":")
@@ -293,6 +325,44 @@ Lyric.setcanvas = function()
 				text = "",
 			}
 		):behavior(c.windowBehaviors[1])
+	end
+end
+
+-- 加载本地歌词文件
+Lyric.load = function(lyricfileName)
+	lyricfileContent = nil
+	lyricfileExist = false
+	alllyricFile = getAllFiles(lyricPath)
+	local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
+	local _filename = lyricfileName
+	for i,v in ipairs(specialString) do
+		_filename = _filename:gsub("%" .. v,"%%" .. v)
+	end
+	for _,file in pairs(alllyricFile) do
+		local lyricFile = lyricPath .. lyricfileName .. ".lrc"
+		if file:find(_filename) then
+			-- 以可读写方式打开文件
+			local _lrcfile = io.open(lyricFile, "r+")
+			-- 读取文件所有内容
+			lyricfileContent = _lrcfile:read("*a")
+			lyricfileExist = true
+			_lrcfile:close()
+			print("加载本地歌词文件")
+			break
+		end
+    end
+	return lyricfileExist,lyricfileContent
+end
+
+-- 保存歌词至本地文件
+Lyric.save = function(lyric)
+	local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	local lyricExt = io.open(lyricFile, "r")
+	if not lyricExt then
+		file = io.open(lyricFile, "w+")
+		file:write(lyric)
+		file:close()
+		print("歌词文件已下载")
 	end
 end
 
