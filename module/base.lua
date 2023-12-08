@@ -1,7 +1,15 @@
 -- 延迟函数
 function delay(gap, func)
 	local delaytimer = hs.timer.delayed.new(gap, func)
-	delaytimer:start()
+	return delaytimer
+end
+
+-- 删除计时器
+function deleteTimer(timer)
+	if timer then
+		timer:stop()
+		timer = nil
+	end
 end
 
 -- 删除Menubar
@@ -55,8 +63,8 @@ end
 
 -- 比较字符串相似度
 function compareString(strA, strB)
-	strA = stringSplit(strA)
-	strB = stringSplit(strB)
+	strA = stringSplit(string.lower(strA))
+	strB = stringSplit(string.lower(strB))
 	local tempTb = {}
 	for m = 1, (#strA + 1), 1 do
 		tempTb[m] = {}
@@ -203,3 +211,14 @@ function hotfix(_mname)
 	package.loaded[_mname] = nil
 	require( _mname )
 end
+
+-- 获取文件列表
+function getAllFiles(dir)
+	local files = {}
+	local p = io.popen('ls -a "'..dir..'"')
+	for file in p:lines() do
+	  table.insert(files, dir..'/'..file)
+	end
+	p:close()
+	return files
+  end
