@@ -80,6 +80,10 @@ Lyric.search = function(keyword)
 			if not musicinfo.result then
 				return
 			end
+			if not musicinfo.result.songs then
+				print("搜寻不到匹配的歌词")
+				return
+			end
             if #musicinfo.result.songs > 0 then
 				-- 判断是否需要重新搜索
 				if compareString(musicinfo.result.songs[1].name, Music.title()) < 75 then
