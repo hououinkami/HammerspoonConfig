@@ -144,13 +144,11 @@ Lyric.edit = function(lyric)
 			end
 			for i,v in ipairs(blackList) do
 				if string.find(lyricData[l],v) then
-					passLine = true
+					lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
 					break
-				else
-					passLine = false
 				end
 			end
-			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]') and passLine ~= true then
+			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]') then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				time = stringSplit(line, "`")[1]:gsub("%.",":")
