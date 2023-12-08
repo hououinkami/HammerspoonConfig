@@ -38,18 +38,24 @@ Lyric.main = function()
 	end
 	-- 搜寻本地歌词文件
 	if searchType == nil or searchType == "A" then
-		local lyricfileName = Music.title() .. " - " .. Music.artist()
-		lyricfileExist, lyricfileContent = Lyric.load(lyricfileName)
-		if lyricfileExist then
-			lyricTable = Lyric.edit(lyricfileContent)
+		if lyricTemp then
+			lyricTable = lyricTemp
+			lyricTemp = nil
+			print("加载在线歌词")
 		else
-			lyricTable = Lyric.search(keyword)
-			return
+			local lyricfileName = Music.title() .. " - " .. Music.artist()
+			lyricfileExist, lyricfileContent = Lyric.load(lyricfileName)
+			if lyricfileExist then
+				lyricTable = Lyric.edit(lyricfileContent)
+			else
+				lyricTable = Lyric.search(keyword)
+				return
+			end
 		end
 	else
 		lyricTable = Lyric.search(keyword)
 		return
-	end	
+	end
 	if lyricTable then
 		-- 歌词图层初始化
 		Lyric.setcanvas()
@@ -100,7 +106,7 @@ Lyric.search = function(keyword)
 					return
 				end
                 for i = 1, #musicinfo.result.songs, 1 do
-					if compareString(musicinfo.result.songs[i].name, Music.title()) > 90 then
+					if compareString(musicinfo.result.songs[i].name, Music.title()) > 80 then
 						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
 							song = i
 							break
@@ -123,13 +129,17 @@ Lyric.search = function(keyword)
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
-						Lyric.save(lyric)
-						lyricTable = Lyric.edit(lyric)
-						lyricDownloaded = true
+						if Music.existinlibrary() or Music.loved() then
+							Lyric.save(lyric)
+						else
+							lyricTemp = Lyric.edit(lyric)
+						end
 						Lyric.main()
 					end
 				end
 			end)
+		else
+			print("搜寻不到匹配的歌词")
 		end
 		return lyricTable
     end)
