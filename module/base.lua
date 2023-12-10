@@ -1,6 +1,6 @@
 -- 延迟函数
 function delay(gap, func)
-	local delaytimer = hs.timer.delayed.new(gap, func)
+	local delaytimer = hs.timer.delayed.new(gap, func):start()
 	return delaytimer
 end
 

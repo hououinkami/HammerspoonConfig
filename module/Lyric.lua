@@ -87,7 +87,7 @@ Lyric.search = function(keyword)
 				return
 			end
 			if not musicinfo.result.songs then
-				print("搜寻不到匹配的歌词")
+				nolyriconline = true
 				return
 			end
             if #musicinfo.result.songs > 0 then
@@ -99,7 +99,7 @@ Lyric.search = function(keyword)
 						searchType = "C"
 					elseif searchType == "C" or searchType == nil then
 						searchType = nil
-						print("搜寻不到匹配的歌词")
+						nolyriconline = true
 						return
 					end
 					Lyric.main()
@@ -129,6 +129,10 @@ Lyric.search = function(keyword)
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
+						if string.find(lyric,'-1%]') then
+							nolyriconline = true
+							return
+						end
 						if Music.existinlibrary() or Music.loved() then
 							Lyric.save(lyric)
 						else
@@ -139,6 +143,9 @@ Lyric.search = function(keyword)
 				end
 			end)
 		else
+			nolyriconline = true
+		end
+		if nolyriconline == true then
 			print("搜寻不到匹配的歌词")
 		end
 		return lyricTable
@@ -152,10 +159,6 @@ Lyric.edit = function(lyric)
 	local blackList = {"作曲","作词","编曲","作詞","編曲","曲：","歌："}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
-			if string.find(lyricData[l],'-1%]') then
-				print("搜寻不到匹配的歌词")
-				break
-			end
 			for i,v in ipairs(blackList) do
 				if string.find(lyricData[l],v) then
 					lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
@@ -171,7 +174,7 @@ Lyric.edit = function(lyric)
 				min = tonumber(stringSplit(time, ":")[1])
 				if min > 59 then
 					if min == 99 then
-						print("搜寻不到匹配的歌词")
+						nolyriconline = true
 					end
 					hour = min // 60
 					min = min - 60 * hour
@@ -188,6 +191,9 @@ Lyric.edit = function(lyric)
 	end
 	if #lyricTable == 0 then
 		lyricTable = nil
+		nolyriconline = true
+	end
+	if nolyriconline == true then
 		print("搜寻不到匹配的歌词")
 	end
 	return lyricTable
