@@ -176,10 +176,15 @@ function setmainmenu()
 		-- 点击左上角退出
 		if id == "background" and event == "mouseUp" and y < border.y and x < border.x then
 			hideall()
-			delay(2, function() progressTimer:stop() end)
-			delay(2, function() Switch:stop() end)
-			delay(2, function() Music.tell('quit') end)
-			delay(5, function() Switch:start() end)
+			progressTimer:stop()
+			Switch:stop()
+			Music.tell('quit')
+			quitTimer = hs.timer.waitWhile(
+				Music.checkrunning,
+				function()
+					Switch:start()
+				end
+			)
 		end
 	end)
 end
@@ -612,7 +617,6 @@ function setMenu()
 	end
 end
 -- 鼠标点击时的行为
-local isFading = false
 function togglecanvas()
 	local spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	local toggleFunction = function ()
@@ -623,8 +627,9 @@ function togglecanvas()
 				else
 					showall()
 					-- 自动隐藏悬浮菜单
-					hs.timer.waitUntil(function()
-							if not not c_playlist or (c_playlist and not c_playlist:isShowing()) then
+					autoTimer = hs.timer.waitUntil(
+						function()
+							if not c_playlist or (c_playlist and not c_playlist:isShowing()) then
 								if c_mainmenu:isShowing() and not mousePosition() then
 									return true
 								else
@@ -633,12 +638,9 @@ function togglecanvas()
 							elseif c_playlist and c_playlist:isShowing() then
 								return false
 							end
-						end,function()
-							delay(staytime, function() 
-								isFading = true
-								hideall()
-								hs.timer.doAfter(fadetime, function() isFading = false end)
-							end)
+						end,
+						function()
+							stayTimer = delay(staytime, function() hideall() end)
 						end
 					)
 				end
@@ -651,9 +653,12 @@ function togglecanvas()
 	if isFading then
 		return
 	end
+	deleteTimer(fadeTimer)
+	deleteTimer(autoTimer)
+	deleteTimer(stayTimer)
 	isFading = true
 	toggleFunction()
-	hs.timer.doAfter(fadetime, function() isFading = false end)
+	fadeTimer = hs.timer.doAfter(fadetime, function() isFading = false end)
 end
 -- 实时更新函数
 function MusicBarUpdate()
@@ -693,18 +698,7 @@ function MusicBarUpdate()
 			c_progress = nil
 		---连接完成
 		elseif Music.title() ~= songtitle then
-			if songkind == "connecting" then
-				songkind = nil
-				hs.timer.waitUntil(function()
-					if Music.kind() and Music.kind() ~= "connecting" then
-						return true
-					else
-						return false
-					end
-				end, Music.saveartwork)	
-			else
-				Music.saveartwork()
-			end
+			Music.saveartwork()
 			songtitle = Music.title()
 			settitle()	
 			setMenu()
@@ -714,7 +708,8 @@ function MusicBarUpdate()
 				hideall()
 				setmainmenu()
 				setMenu()
-				delay(0.6, togglecanvas)
+				deleteTimer(changeTimer)
+				changeTimer = delay(0.6, togglecanvas)
 			end
 		end
 		timeleft = Music.duration() - Music.currentposition()
