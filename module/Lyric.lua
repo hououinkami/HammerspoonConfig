@@ -29,12 +29,20 @@ Lyric.main = function()
 		lyricTimer:stop()
 	end
 	-- 搜索的关键词
+	local formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$"} 
+	local titleFormated = Music.title()
+	for i,v in ipairs(formateString) do
+		titleFormated = titleFormated:gsub(v,"")
+	end
 	if searchType == nil or searchType == "A" then
 		keyword = Music.title() .. " " .. Music.artist()
+		searchtitle = Music.title()
 	elseif searchType == "B" then
-		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","") .. " " .. Music.artist()
+		keyword = titleFormated .. " " .. Music.artist()
+		searchtitle = titleFormated:gsub("(.-)[%s]*$", "%1")
 	elseif searchType == "C" then
-		keyword = Music.title():gsub("%(.*%)",""):gsub("（.*）","")
+		keyword = titleFormated
+		searchtitle = titleFormated:gsub("(.-)[%s]*$", "%1")
 	end
 	-- 搜寻本地歌词文件
 	if searchType == nil or searchType == "A" then
@@ -87,26 +95,12 @@ Lyric.search = function(keyword)
 				return
 			end
 			if not musicinfo.result.songs then
-				nolyriconline = true
+				print("搜寻不到匹配的歌词")
 				return
 			end
             if #musicinfo.result.songs > 0 then
-				-- 判断是否需要重新搜索
-				if compareString(musicinfo.result.songs[1].name, Music.title()) < 75 then
-					if searchType == nil or searchType == "A" then
-						searchType = "B"
-					elseif searchType == "B" then
-						searchType = "C"
-					elseif searchType == "C" or searchType == nil then
-						searchType = nil
-						nolyriconline = true
-						return
-					end
-					Lyric.main()
-					return
-				end
-                for i = 1, #musicinfo.result.songs, 1 do
-					if compareString(musicinfo.result.songs[i].name, Music.title()) > 80 then
+				for i = 1, #musicinfo.result.songs, 1 do
+					if compareString(musicinfo.result.songs[i].name, searchtitle) > 80 then
 						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
 							song = i
 							break
@@ -117,8 +111,22 @@ Lyric.search = function(keyword)
 						end
 					end
                 end
+				-- 判断是否需要重新搜索
 				if song then
-                	lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
+					lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
+					song = nil
+				else
+					if searchType == nil or searchType == "A" then
+						searchType = "B"
+					elseif searchType == "B" then
+						searchType = "C"
+					elseif searchType == "C" then
+						searchType = nil
+						print("搜寻不到匹配的歌词")
+						return
+					end
+					Lyric.main()
+					return
 				end
             end
         end
@@ -130,7 +138,7 @@ Lyric.search = function(keyword)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
 						if string.find(lyric,'-1%]') then
-							nolyriconline = true
+							print("搜寻不到匹配的歌词")
 							return
 						end
 						if Music.existinlibrary() or Music.loved() then
@@ -143,9 +151,6 @@ Lyric.search = function(keyword)
 				end
 			end)
 		else
-			nolyriconline = true
-		end
-		if nolyriconline == true then
 			print("搜寻不到匹配的歌词")
 		end
 		return lyricTable
@@ -156,7 +161,6 @@ end
 Lyric.edit = function(lyric)
 	local lyricData = stringSplit(lyric,"\n")
 	local lyricTable = {}
-	local blackList = {"作曲","作词","编曲","作詞","編曲","曲：","歌："}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
 			for i,v in ipairs(blackList) do
@@ -174,7 +178,7 @@ Lyric.edit = function(lyric)
 				min = tonumber(stringSplit(time, ":")[1])
 				if min > 59 then
 					if min == 99 then
-						nolyriconline = true
+						print("搜寻不到匹配的歌词")
 					end
 					hour = min // 60
 					min = min - 60 * hour
@@ -191,9 +195,6 @@ Lyric.edit = function(lyric)
 	end
 	if #lyricTable == 0 then
 		lyricTable = nil
-		nolyriconline = true
-	end
-	if nolyriconline == true then
 		print("搜寻不到匹配的歌词")
 	end
 	return lyricTable
