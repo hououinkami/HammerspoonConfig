@@ -33,5 +33,15 @@ lyricStrokeAlpha = 1
 if not string.find(owner,"Kami") then
     lyricTextColor = {189, 138, 189}
 end
+-- 歌词黑名单
+blackList = {
+    "作曲",
+    "作词",
+    "编曲",
+    "作詞",
+    "編曲",
+    "曲：",
+    "歌："
+}
 -- 本地歌词文件存储路径
 lyricPath = os.getenv("HOME") .. "/Music/Lyrics/"
