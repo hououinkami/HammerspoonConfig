@@ -6,13 +6,34 @@ require ('config.music')
 -- MenuBar函数集 --
 --
 -- 创建菜单栏标题
-function settitle()
+function settitle(quitMark)
 	if not initialx then
 		initialx = MusicBar:frame().x
 		firstIcon = initialx - 36
 	end
-	-- 菜单栏标题长度
 	c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
+	-- Music退出时避免触发打开
+	if quitMark == "quit" then
+		c_menubar:appendElements(
+		{
+			id = "typeD",
+			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
+			type = "text",
+			text = '♫ ' .. ClicktoRun,
+			textSize = 14
+		}
+		)
+		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
+		delete(c_menubar)
+		maxlen = firstIcon - getMenu()
+		if titlesizeD.w < maxlen then
+			MusicBar:setTitle('♫ ' .. ClicktoRun)
+		else
+			MusicBar:setTitle('♫')
+		end
+		return
+	end
+	-- 菜单栏标题长度
 	if Music.state() == "playing" or Music.state() == "paused" then
 		c_menubar:appendElements(
 		{
@@ -42,18 +63,7 @@ function settitle()
 			textSize = 14
 		}
 		)
-		titlesizeC = c_menubar:minimumTextSize(1, c_menubar["typeC"].text)
-	elseif Music.state() == "norunning" then
-		c_menubar:appendElements(
-		{
-			id = "typeD",
-			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
-			type = "text",
-			text = '♫ ' .. ClicktoRun,
-			textSize = 14
-		}
-		)
-		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
+		titlesizeC = c_menubar:minimumTextSize(1, c_menubar["typeC"].text)		
 	end
 	delete(c_menubar)
 	maxlen = firstIcon - getMenu()
@@ -82,12 +92,6 @@ function settitle()
 			MusicBar:setTitle('◼ ' .. Stopped)
 		else
 			MusicBar:setTitle('◼')
-		end
-	elseif Music.state() == "norunning" then
-		if titlesizeD.w < maxlen then
-			MusicBar:setTitle('♫ ' .. ClicktoRun)
-		else
-			MusicBar:setTitle('♫')
 		end
 	end
 end
@@ -177,12 +181,14 @@ function setmainmenu()
 		if id == "background" and event == "mouseUp" and y < border.y and x < border.x then
 			hideall()
 			progressTimer:stop()
-			Switch:stop()
+			--Switch:stop()
 			Music.tell('quit')
+			quit = true
 			quitTimer = hs.timer.waitWhile(
 				Music.checkrunning,
 				function()
-					Switch:start()
+					quit = false
+					-- Switch:start()
 				end
 			)
 		end
@@ -663,7 +669,8 @@ end
 -- 实时更新函数
 function MusicBarUpdate()
 	-- 若退出App则不执行任何动作
-	if not Music.checkrunning() then
+	if quit or not Music.checkrunning() then
+		settitle("quit")
 		return
 	end
 	-- 若更换了播放状态则触发更新

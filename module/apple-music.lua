@@ -2,6 +2,9 @@ require ('module.base')
 Music = {}
 -- 调用AppleScript模块
 Music.tell = function (cmd)
+	if quit or not Music.checkrunning() then
+		return nil
+	end
 	local _cmd = 'tell application "Music" to ' .. cmd
 	local ok, result = as.applescript(_cmd)
 	if ok then
