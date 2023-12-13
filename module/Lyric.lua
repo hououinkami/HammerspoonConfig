@@ -99,14 +99,22 @@ Lyric.search = function(keyword)
 				return
 			end
             if #musicinfo.result.songs > 0 then
+				-- 歌手名称里有括弧的情况
+				if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") then
+					searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）","")
+					searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）')
+				end
 				for i = 1, #musicinfo.result.songs, 1 do
 					if compareString(musicinfo.result.songs[i].name, searchtitle) > 80 then
 						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
 							song = i
 							break
 						end
-						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) > similarity then
-							similarity = compareString(musicinfo.result.songs[i].artists[1].name, Music.artist())
+						if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") then
+							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
+						end
+						if math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS) > similarity then
+							similarity = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS)
 							song = i
 						end
 					end
