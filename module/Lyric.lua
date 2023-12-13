@@ -281,6 +281,9 @@ Lyric.show = function(startline,lyric)
 	end
 	-- 歌词刷新
 	if currentLyric ~= lyrictext then
+		if not c_lyric:isShowing() then
+			show(c_lyric)
+		end
 		c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
 		lyrictext = currentLyric
 		-- 设置歌词图层自适应宽度
