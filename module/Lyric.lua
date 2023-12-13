@@ -137,7 +137,7 @@ Lyric.search = function(keyword)
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
-						if string.find(lyric,'-1%]') then
+						if string.find(lyric,'-1%]') or lyric == "" then
 							print("搜寻不到匹配的歌词")
 							return
 						end
