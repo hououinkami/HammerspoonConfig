@@ -174,6 +174,9 @@ Lyric.edit = function(lyric)
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				_line = stringSplit(line, "`")
+				if #_line == 1 then
+					table.insert(_line, "")
+				end
 				lyricLine.index = l
 				lyricLine.time = _line[1]:gsub("%.",":")
 				lyricLine.lyric = _line[#_line] or ""
