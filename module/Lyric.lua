@@ -160,6 +160,7 @@ end
 -- 将歌词从json转变成table
 Lyric.edit = function(lyric)
 	local lyricData = stringSplit(lyric,"\n")
+	local allLine = #lyricData
 	local lyricTable = {}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
@@ -169,33 +170,52 @@ Lyric.edit = function(lyric)
 					break
 				end
 			end
-			if string.find(lyricData[l],'%[%d+:%d+%.%d+%]') or string.find(lyricData[l],'%[%d+:%d+%:%d+%]') then
+			if string.find(lyricData[l],'%[%d+:%d+.%d+%]') then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
-				time = stringSplit(line, "`")[1]:gsub("%.",":")
-				info = stringSplit(line, "`")[2] or ""
-				hour = 0
-				min = tonumber(stringSplit(time, ":")[1])
-				if min > 59 then
-					if min == 99 then
-						print("搜寻不到匹配的歌词")
-					end
-					hour = min // 60
-					min = min - 60 * hour
-				end
-				sec = stringSplit(time, ":")[2]
-				minisec = stringSplit(time, ":")[3] or 0
-				time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
-				lyricLine["index"] = l
-				lyricLine["time"] = time
-				lyricLine["lyric"] = info
+				_line = stringSplit(line, "`")
+				lyricLine.index = l
+				lyricLine.time = _line[1]:gsub("%.",":")
+				lyricLine.lyric = _line[#_line] or ""
 				table.insert(lyricTable, lyricLine)
+				-- 多个时间戳时的处理
+				if #_line > 2 then
+					for t = 2, #_line - 1, 1 do
+						local lyricLine = {}
+						allLine = allLine + 1
+						lyricLine.index = allLine
+						lyricLine.time = _line[t]:gsub("%.",":")
+						lyricLine.lyric = _line[#_line] or ""
+						table.insert(lyricTable, lyricLine)
+					end
+				end
 			end
 		end
 	end
 	if #lyricTable == 0 then
 		lyricTable = nil
 		print("搜寻不到匹配的歌词")
+	else
+		for i,v in ipairs(lyricTable) do
+			hour = 0
+			time = v.time
+			min = tonumber(stringSplit(time, ":")[1])
+			if min > 59 then
+				if min == 99 then
+					print("搜寻不到匹配的歌词")
+				end
+				hour = min // 60
+				min = min - 60 * hour
+			end
+			sec = stringSplit(time, ":")[2]
+			minisec = stringSplit(time, ":")[3] or 0
+			v.time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
+		end
+		-- 按时间排序
+		table.sort(lyricTable,function(a,b) return a.time < b.time end)
+		for i = 1, #lyricTable, 1 do
+			lyricTable[i].index = i
+		end
 	end
 	return lyricTable
 end
