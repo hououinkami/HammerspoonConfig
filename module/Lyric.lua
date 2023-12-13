@@ -86,7 +86,7 @@ Lyric.search = function(keyword)
 	-- 获取歌曲ID
 	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
 	-- 监控是否陷入死循环
-	print("正在搜寻 " .. keyword .. " 的歌词...")
+	print("正在搜寻 " .. keyword .. " 的歌词...\n" .. musicurl)
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
             local musicinfo = hs.json.decode(musicBody)
@@ -112,6 +112,8 @@ Lyric.search = function(keyword)
 						end
 						if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") then
 							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
+						else
+							tempS = 0
 						end
 						if math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS) > similarity then
 							similarity = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS)
@@ -139,6 +141,7 @@ Lyric.search = function(keyword)
             end
         end
 		searchType = nil
+		print("正在下载歌词" .. lyricurl)
 		if lyricurl then
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
 				if status == 200 then
