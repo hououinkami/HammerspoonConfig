@@ -49,7 +49,7 @@ Lyric.main = function()
 		if lyricTemp then
 			lyricTable = lyricTemp
 			lyricTemp = nil
-			print("加载在线歌词")
+			print("オンライン歌詞をロード中")
 		else
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
 			lyricfileExist, lyricfileContent = Lyric.load(lyricfileName)
@@ -84,9 +84,9 @@ end
 -- 搜索歌词并保存
 Lyric.search = function(keyword)
 	-- 获取歌曲ID
-	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
+	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword):gsub("%%26","&") .. "&limit=10"
 	-- 监控是否陷入死循环
-	print("正在搜寻 " .. keyword .. " 的歌词...\n" .. musicurl)
+	print(keyword .. " の歌詞を検索中...")
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
             local musicinfo = hs.json.decode(musicBody)
@@ -95,7 +95,7 @@ Lyric.search = function(keyword)
 				return
 			end
 			if not musicinfo.result.songs then
-				print("搜寻不到匹配的歌词")
+				print("該当する歌詞はません")
 				return
 			end
             if #musicinfo.result.songs > 0 then
@@ -132,7 +132,7 @@ Lyric.search = function(keyword)
 						searchType = "C"
 					elseif searchType == "C" then
 						searchType = nil
-						print("搜寻不到匹配的歌词")
+						print("該当する歌詞はません")
 						return
 					end
 					Lyric.main()
@@ -141,15 +141,15 @@ Lyric.search = function(keyword)
             end
         end
 		searchType = nil
-		print("正在下载歌词" .. lyricurl)
 		if lyricurl then
+			print(lyricurl .. " から歌詞を取得中...")
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
 				if status == 200 then
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
 						if string.find(lyric,'-1%]') or lyric == "" then
-							print("搜寻不到匹配的歌词")
+							print("該当する歌詞はません")
 							return
 						end
 						if Music.existinlibrary() or Music.loved() then
@@ -162,7 +162,7 @@ Lyric.search = function(keyword)
 				end
 			end)
 		else
-			print("搜寻不到匹配的歌词")
+			print("該当する歌詞はません")
 		end
 		return lyricTable
     end)
@@ -208,7 +208,7 @@ Lyric.edit = function(lyric)
 	end
 	if #lyricTable == 0 then
 		lyricTable = nil
-		print("搜寻不到匹配的歌词")
+		print("該当する歌詞はません")
 	else
 		for i,v in ipairs(lyricTable) do
 			hour = 0
@@ -216,7 +216,8 @@ Lyric.edit = function(lyric)
 			min = tonumber(stringSplit(time, ":")[1])
 			if min > 59 then
 				if min == 99 then
-					print("搜寻不到匹配的歌词")
+					print("該当する歌詞はません")
+					Lyric.delete(Music.title() ..  " - " .. Music.artist())
 				end
 				hour = min // 60
 				min = min - 60 * hour
@@ -403,7 +404,7 @@ Lyric.load = function(lyricfileName)
 			lyricfileContent = _lrcfile:read("*a")
 			lyricfileExist = true
 			_lrcfile:close()
-			print("加载本地歌词文件")
+			print("ローカル歌詞をロード中")
 			break
 		end
     end
@@ -418,8 +419,13 @@ Lyric.save = function(lyric)
 		file = io.open(lyricFile, "w+")
 		file:write(lyric)
 		file:close()
-		print("歌词文件已下载")
+		print("歌詞ファイルをダウンロードしました")
 	end
+end
+
+Lyric.delete = function(file)
+	local filepath = lyricPath .. file .. ".lrc"
+	os.remove(filepath)
 end
 
 -- 歌词显示与隐藏快捷键
