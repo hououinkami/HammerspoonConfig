@@ -52,7 +52,10 @@ Lyric.main = function()
 			print("オンライン歌詞をロード中")
 		else
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
-			lyricfileExist, lyricfileContent = Lyric.load(lyricfileName)
+			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
+			if lyricfileError then
+				return
+			end
 			if lyricfileExist then
 				lyricTable = Lyric.edit(lyricfileContent)
 			else
@@ -396,6 +399,13 @@ Lyric.load = function(lyricfileName)
 		_filename = _filename:gsub("%" .. v,"%%" .. v)
 	end
 	for _,file in pairs(alllyricFile) do
+		-- 不加载错误歌词
+		if file:find(_filename .. "_ERROR.lrc") then
+			print("歌詞が間違った")
+			lyricfileError = true
+			break
+		end
+		lyricfileError = false
 		local lyricFile = lyricPath .. lyricfileName .. ".lrc"
 		if file:find(_filename) then
 			-- 以可读写方式打开文件
@@ -408,7 +418,7 @@ Lyric.load = function(lyricfileName)
 			break
 		end
     end
-	return lyricfileExist,lyricfileContent
+	return lyricfileExist,lyricfileContent,lyricfileError
 end
 
 -- 保存歌词至本地文件
@@ -448,5 +458,16 @@ hotkey.bind(hyper_cos, "l", function()
     else
 		Lyric.setcanvas()
         Lyric.main()
+	end
+end)
+
+-- 歌词错误时标记
+hotkey.bind(hyper_coc, "l", function()
+    local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	local lyricExt = io.open(lyricFile, "r")
+	if lyricExt then
+		os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
+		print("歌詞はエラーとしてマーク")
+		Lyric.main()
 	end
 end)
