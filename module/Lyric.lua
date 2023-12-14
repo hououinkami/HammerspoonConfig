@@ -181,7 +181,7 @@ Lyric.edit = function(lyric)
 					break
 				end
 			end
-			if string.find(lyricData[l],'%[%d+:%d+.%d+%]') then
+			if string.find(lyricData[l],'%[%d+:%d+') then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
 				_line = stringSplit(line, "`")
