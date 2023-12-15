@@ -29,7 +29,7 @@ Lyric.main = function()
 		lyricTimer:stop()
 	end
 	-- 搜索的关键词
-	local formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$"} 
+	local formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
 	local titleFormated = Music.title()
 	for i,v in ipairs(formateString) do
 		titleFormated = titleFormated:gsub(v,"")
@@ -103,9 +103,9 @@ Lyric.search = function(keyword)
 			end
             if #musicinfo.result.songs > 0 then
 				-- 歌手名称里有括弧的情况
-				if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") then
-					searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）","")
-					searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）')
+				if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
+					searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
+					searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）') or ""
 				end
 				for i = 1, #musicinfo.result.songs, 1 do
 					if compareString(musicinfo.result.songs[i].name, searchtitle) > 80 then
@@ -113,7 +113,7 @@ Lyric.search = function(keyword)
 							song = i
 							break
 						end
-						if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") then
+						if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
 							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
 						else
 							tempS = 0
