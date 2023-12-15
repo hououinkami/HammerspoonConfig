@@ -216,7 +216,7 @@ Lyric.edit = function(lyric)
 		for i,v in ipairs(lyricTable) do
 			hour = 0
 			time = v.time
-			min = tonumber(stringSplit(time, ":")[1])
+			min = tonumber(stringSplit(time, ":")[1]) or 0
 			if min > 59 then
 				if min == 99 then
 					print("該当する歌詞はません")
