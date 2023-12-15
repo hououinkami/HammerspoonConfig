@@ -299,6 +299,9 @@ Lyric.show = function(startline,lyric)
 		if not c_lyric:isShowing() then
 			show(c_lyric)
 		end
+		if lyricTimer and not lyricTimer:running() then
+			lyricTimer:start()
+		end
 		c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
 		lyrictext = currentLyric
 		-- 设置歌词图层自适应宽度

@@ -652,7 +652,7 @@ function togglecanvas()
 				end
 			end
 		else
-			Music.tell('activate')
+			as.applescript('tell application "Music" to activate')
 		end
 	end
 	-- 判断渐入渐出是否已经完成，未完成则忽略点击
