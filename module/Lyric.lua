@@ -225,7 +225,7 @@ Lyric.edit = function(lyric)
 				hour = min // 60
 				min = min - 60 * hour
 			end
-			sec = stringSplit(time, ":")[2]
+			sec = stringSplit(time, ":")[2] or 0
 			minisec = stringSplit(time, ":")[3] or 0
 			v.time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
 		end
