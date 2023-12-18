@@ -23,7 +23,7 @@ Lyric.main = function()
 	lineNO = 1
 	hide(c_lyric)
 	if c_lyric then
-		c_lyric["lyric"].text = ""
+		c_lyric["lyric"].text = Lyric.handleLyric("")
 	end
 	if lyricTimer then
 		lyricTimer:stop()
@@ -46,10 +46,10 @@ Lyric.main = function()
 	end
 	-- 搜寻本地歌词文件
 	if searchType == nil or searchType == "A" then
-		if lyricTemp then
-			lyricTable = lyricTemp
-			lyricTemp = nil
-			print("オンライン歌詞をロード中")
+		if lyricOnline then
+			lyricTable = lyricOnline
+			lyricOnline = nil
+			print("歌詞をロード中")
 		else
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
 			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
@@ -67,13 +67,16 @@ Lyric.main = function()
 		lyricTable = Lyric.search(keyword)
 		return
 	end
+	-- 显示歌词
 	if lyricTable then
 		-- 歌词图层初始化
 		Lyric.setcanvas()
+		-- 设定计时器
 		lyricTimer = hs.timer.new(1, function()
 			a = lineNO
 			Lyric.show(a,lyricTable)
-			b = stayTime + lyricTimeOffset or 1 + lyricTimeOffset
+			stayTime = stayTime or 1
+			b = stayTime + lyricTimeOffset
 			if lastLine == true then
 				b = Music.duration() - Music.currentposition()
 			end
@@ -97,18 +100,14 @@ Lyric.search = function(keyword)
 			if not musicinfo.result then
 				return
 			end
-			if not musicinfo.result.songs then
-				print("該当する歌詞はません")
-				return
-			end
-            if #musicinfo.result.songs > 0 then
+            if musicinfo.result.songs and #musicinfo.result.songs > 0 then
 				-- 歌手名称里有括弧的情况
 				if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
 					searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
 					searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）') or ""
 				end
 				for i = 1, #musicinfo.result.songs, 1 do
-					if compareString(musicinfo.result.songs[i].name, searchtitle) > 80 then
+					if compareString(musicinfo.result.songs[i].name, searchtitle) > 70 then
 						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
 							song = i
 							break
@@ -124,24 +123,24 @@ Lyric.search = function(keyword)
 						end
 					end
                 end
-				-- 判断是否需要重新搜索
-				if song then
-					lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
-					song = nil
-				else
-					if searchType == nil or searchType == "A" then
-						searchType = "B"
-					elseif searchType == "B" then
-						searchType = "C"
-					elseif searchType == "C" then
-						searchType = nil
-						print("該当する歌詞はません")
-						return
-					end
-					Lyric.main()
+            end
+			-- 判断是否需要重新搜索
+			if song then
+				lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
+				song = nil
+			else
+				if searchType == nil or searchType == "A" then
+					searchType = "B"
+				elseif searchType == "B" then
+					searchType = "C"
+				elseif searchType == "C" then
+					searchType = nil
+					print("該当する歌詞はません")
 					return
 				end
-            end
+				Lyric.main()
+				return
+			end
         end
 		searchType = nil
 		if lyricurl then
@@ -155,10 +154,9 @@ Lyric.search = function(keyword)
 							print("該当する歌詞はません")
 							return
 						end
+						lyricOnline = Lyric.edit(lyric)
 						if Music.existinlibrary() or Music.loved() then
 							Lyric.save(lyric)
-						else
-							lyricTemp = Lyric.edit(lyric)
 						end
 						Lyric.main()
 					end
@@ -393,14 +391,19 @@ end
 
 -- 加载本地歌词文件
 Lyric.load = function(lyricfileName)
+	-- 文件名有'/'时替换成":"
+	lyricfileName = lyricfileName:gsub("/",":")
 	lyricfileContent = nil
 	lyricfileExist = false
 	alllyricFile = getAllFiles(lyricPath)
+	-- 格式化正则检索词
 	local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
 	local _filename = lyricfileName
 	for i,v in ipairs(specialString) do
 		_filename = _filename:gsub("%" .. v,"%%" .. v)
 	end
+	_filename = _filename:gsub("/",":")
+	-- 搜寻本地歌词文件夹
 	for _,file in pairs(alllyricFile) do
 		-- 不加载错误歌词
 		if file:find(_filename .. "_ERROR.lrc") then
@@ -409,6 +412,7 @@ Lyric.load = function(lyricfileName)
 			break
 		end
 		lyricfileError = false
+		-- 加载本地歌词文件
 		local lyricFile = lyricPath .. lyricfileName .. ".lrc"
 		if file:find(_filename) then
 			-- 以可读写方式打开文件
@@ -426,7 +430,8 @@ end
 
 -- 保存歌词至本地文件
 Lyric.save = function(lyric)
-	local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	artistFormated = Music.artist():gsub("/",":")
+	local lyricFile = lyricPath .. Music.title() ..  " - " .. artistFormated .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
 	if not lyricExt then
 		file = io.open(lyricFile, "w+")
