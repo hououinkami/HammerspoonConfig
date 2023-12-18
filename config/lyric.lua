@@ -41,7 +41,8 @@ blackList = {
     "作詞",
     "編曲",
     "曲：",
-    "歌："
+    "歌：",
+    "歌手："
 }
 -- 本地歌词文件存储路径
 lyricPath = os.getenv("HOME") .. "/Music/Lyrics/"
