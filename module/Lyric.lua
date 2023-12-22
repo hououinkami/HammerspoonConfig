@@ -20,6 +20,7 @@ Lyric.main = function()
 	-- 初始化
     lyricurl = nil
 	lyricTable = nil
+	lyrictext = ""
 	lineNO = 1
 	hide(c_lyric)
 	if c_lyric then
@@ -30,7 +31,7 @@ Lyric.main = function()
 	end
 	-- 搜索的关键词
 	local formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
-	local titleFormated = Music.title()
+	titleFormated = Music.title()
 	for i,v in ipairs(formateString) do
 		titleFormated = titleFormated:gsub(v,"")
 	end
@@ -51,6 +52,7 @@ Lyric.main = function()
 			lyricOnline = nil
 			print("歌詞をロード中")
 		else
+			Lyric.menubar()
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
 			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
 			if lyricfileError then
@@ -68,23 +70,7 @@ Lyric.main = function()
 		return
 	end
 	-- 显示歌词
-	if lyricTable then
-		-- 歌词图层初始化
-		Lyric.setcanvas()
-		-- 设定计时器
-		lyricTimer = hs.timer.new(1, function()
-			a = lineNO
-			Lyric.show(a,lyricTable)
-			stayTime = stayTime or 1
-			b = stayTime + lyricTimeOffset
-			if lastLine == true then
-				b = Music.duration() - Music.currentposition()
-			end
-			if lyricTimer and b > 0 then
-				lyricTimer:setNextTrigger(b)
-			end
-		end):start()
-	end
+	Lyric.show(lyricTable)
 end
 
 -- 搜索歌词并保存
@@ -95,42 +81,51 @@ Lyric.search = function(keyword)
 	print(keyword .. " の歌詞を検索中...")
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
-            local musicinfo = hs.json.decode(musicBody)
-            local similarity = 0
-			if not musicinfo.result then
-				return
-			end
-            if musicinfo.result.songs and #musicinfo.result.songs > 0 then
-				-- 歌手名称里有括弧的情况
-				if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
-					searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
-					searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）') or ""
+			if not song then
+				musicinfo = hs.json.decode(musicBody)
+				similarity = 0
+				if not musicinfo.result then
+					return
 				end
-				for i = 1, #musicinfo.result.songs, 1 do
-					if compareString(musicinfo.result.songs[i].name, searchtitle) > 70 then
-						if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
-							song = i
-							break
-						end
-						if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
-							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
-						else
-							tempS = 0
-						end
-						if math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS) > similarity then
-							similarity = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS)
-							song = i
+				if musicinfo.result.songs and #musicinfo.result.songs > 0 then
+					Lyric.menubar(musicinfo.result.songs)
+					-- 歌手名称里有括弧的情况
+					if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
+						searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
+						searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）') or ""
+					end
+					for i = 1, #musicinfo.result.songs, 1 do
+						if compareString(musicinfo.result.songs[i].name, searchtitle) > 70 then
+							if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
+								song = i
+								break
+							end
+							if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
+								tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
+							else
+								tempS = 0
+							end
+							if math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS) > similarity then
+								similarity = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS)
+								song = i
+							end
 						end
 					end
-                end
-            end
+				end
+			end
 			-- 判断是否需要重新搜索
 			if song then
-				lyricurl = lyricAPI .. "lyric?id=" .. musicinfo.result.songs[song].id
+				songid = id or musicinfo.result.songs[song].id
+				lyricurl = lyricAPI .. "lyric?id=" .. songid
 				song = nil
+				id = nil
 			else
 				if searchType == nil or searchType == "A" then
-					searchType = "B"
+					if titleFormated ~= Music.title() then
+						searchType = "B"
+					else
+						searchType = "C"
+					end
 				elseif searchType == "B" then
 					searchType = "C"
 				elseif searchType == "C" then
@@ -150,7 +145,7 @@ Lyric.search = function(keyword)
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
 						lyric = lyricRaw.lrc.lyric
-						if string.find(lyric,'-1%]') or lyric == "" then
+						if string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
 							print("該当する歌詞はません")
 							return
 						end
@@ -200,7 +195,11 @@ Lyric.edit = function(lyric)
 						allLine = allLine + 1
 						lyricLine.index = allLine
 						lyricLine.time = _line[t]:gsub("%.",":")
-						lyricLine.lyric = _line[#_line] or ""
+						if _line[#_line]:find('^%d+:%d+') then
+							lyricLine.lyric = ""
+						else
+							lyricLine.lyric = _line[#_line]
+						end
 						table.insert(lyricTable, lyricLine)
 					end
 				end
@@ -216,10 +215,6 @@ Lyric.edit = function(lyric)
 			time = v.time
 			min = tonumber(stringSplit(time, ":")[1]) or 0
 			if min > 59 then
-				if min == 99 then
-					print("該当する歌詞はません")
-					Lyric.delete(Music.title() ..  " - " .. Music.artist())
-				end
 				hour = min // 60
 				min = min - 60 * hour
 			end
@@ -237,77 +232,95 @@ Lyric.edit = function(lyric)
 end
 
 -- 显示歌词
-Lyric.show = function(startline,lyric)
-	if not lyric then
-		return
+Lyric.show = function(lyricTable)
+	if lyricTable then
+		-- 歌词图层初始化
+		Lyric.setcanvas()
+		-- 设定计时器
+		lyricTimer = hs.timer.new(1, function()
+			a = lineNO
+			showLyric(a,lyricTable)
+			stayTime = stayTime or 1
+			b = stayTime + lyricTimeOffset
+			if lastLine == true then
+				b = Music.duration() - Music.currentposition()
+			end
+			if lyricTimer and b > 0 then
+				lyricTimer:setNextTrigger(b)
+			end
+		end):start()
 	end
-	-- 定位
-	local currentPosition = Music.currentposition() - lyricTimeOffset
-	for l = startline, #lyric, 1 do
-		if l < #lyric then
-			if currentPosition < lyric[l].time or currentPosition > lyric[l+1].time then
-				for j = 1, #lyric, 1 do
-					if j < #lyric then
-						if currentPosition > lyric[j].time and currentPosition < lyric[j+1].time then
-							l = j
-							break
+	-- 歌词显示函数
+	showLyric = function(startline,lyric)
+		if not lyric then
+			return
+		end
+		-- 定位
+		local currentPosition = Music.currentposition() - lyricTimeOffset
+		for l = startline, #lyric, 1 do
+			if l < #lyric then
+				if currentPosition < lyric[l].time or currentPosition > lyric[l+1].time then
+					for j = 1, #lyric, 1 do
+						if j < #lyric then
+							if currentPosition > lyric[j].time and currentPosition < lyric[j+1].time then
+								l = j
+								break
+							end
+						else
+							l = #lyric
 						end
-					else
-						l = #lyric
 					end
 				end
 			end
-		end
-		if l < #lyric then
-			if currentPosition > lyric[l].time and currentPosition < lyric[l+1].time then
-				currentLyric = lyric[l].lyric
-				stayTime = lyric[l+1].time - currentPosition or 0
-				lineNO = l
-				lastLine = false
-				break
+			if l < #lyric then
+				if currentPosition > lyric[l].time and currentPosition < lyric[l+1].time then
+					currentLyric = lyric[l].lyric
+					stayTime = lyric[l+1].time - currentPosition or 0
+					lineNO = l
+					lastLine = false
+					break
+				end
+			else
+				if currentPosition >= lyric[l].time then
+					currentLyric = lyric[#lyric].lyric
+					stayTime = 1
+					lineNO = l
+					lastLine = true
+				end
 			end
+		end
+		-- 仅播放状态下显示
+		if Music.state() == "playing" then
+			if not lyricTimer then
+				Lyric.main()
+			else
+				lyricTimer:start()
+			end
+		elseif Music.state() == "paused" then
+			hide(c_lyric)
+			lyricTimer:stop()
 		else
-			if currentPosition >= lyric[l].time then
-				currentLyric = lyric[#lyric].lyric
-				stayTime = 1
-				lineNO = l
-				lastLine = true
+			delete(c_lyric)
+			lyricTimer:stop()
+			lyricTimer = nil
+		end
+		-- 歌词刷新
+		if currentLyric ~= lyrictext then
+			if not c_lyric:isShowing() then
+				show(c_lyric)
 			end
+			if lyricTimer and not lyricTimer:running() then
+				lyricTimer:start()
+			end
+			c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
+			lyrictext = currentLyric
+			-- 设置歌词图层自适应宽度
+			lyricSize = c_lyric:minimumTextSize(1, c_lyric["lyric"].text)
+			c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
+			c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
+			c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
+			c_lyric["lyric"].frame.h = lyricSize.h
 		end
-	end
-	-- 仅播放状态下显示
-	if Music.state() == "playing" then
-		if not lyricTimer then
-			Lyric.main()
-		end
-		if not c_lyric:isShowing() then
-			show(c_lyric)
-		end
-		lyricTimer:start()
-	elseif Music.state() == "paused" then
-		hide(c_lyric)
-		lyricTimer:stop()
-	else
-		delete(c_lyric)
-		lyricTimer:stop()
-		lyricTimer = nil
-	end
-	-- 歌词刷新
-	if currentLyric ~= lyrictext then
-		if not c_lyric:isShowing() then
-			show(c_lyric)
-		end
-		if lyricTimer and not lyricTimer:running() then
-			lyricTimer:start()
-		end
-		c_lyric["lyric"].text = Lyric.handleLyric(currentLyric)
-		lyrictext = currentLyric
-		-- 设置歌词图层自适应宽度
-		lyricSize = c_lyric:minimumTextSize(1, c_lyric["lyric"].text)
-		c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
-		c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
-		c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
-		c_lyric["lyric"].frame.h = lyricSize.h
 	end
 end
 
@@ -433,10 +446,11 @@ Lyric.save = function(lyric)
 	artistFormated = Music.artist():gsub("/",":")
 	local lyricFile = lyricPath .. Music.title() ..  " - " .. artistFormated .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
-	if not lyricExt then
+	if not lyricExt or update then
 		file = io.open(lyricFile, "w+")
 		file:write(lyric)
 		file:close()
+		update = false
 		print("歌詞ファイルをダウンロードしました")
 	end
 end
@@ -479,3 +493,49 @@ hotkey.bind(hyper_coc, "l", function()
 		Lyric.main()
 	end
 end)
+
+if c_lyric then
+	lyricEnable = c_lyric:isShowing()
+else
+	lyricEnable = false
+end
+Lyric.menubar = function(songs)
+	if not LyricBar then
+		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
+	end
+	menudata = {
+		{
+			title = "歌詞显示开关",
+			checked = lyricEnable,
+			fn = function()
+				lyricEnable = not lyricEnable
+				if lyricEnable then
+					show(c_lyric)
+					Lyric.menubar()
+				else
+					hide(c_lyric)
+					Lyric.menubar()
+				end
+			end,
+		},
+		{ title = "-" },
+	}
+	if songs then
+		for i = 1, #songs, 1 do
+			item = { 
+				title = songs[i].name .. " - " .. songs[i].artists[1].name, 
+				fn = function()
+					song = i
+					id = songs[i].id
+					lyricTable = Lyric.search(keyword)
+					update = true
+					Lyric.show(lyricTable)
+				end
+			}
+			table.insert(menudata, item)
+		end
+	end
+	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
+	LyricBar:setIcon(icon)
+	LyricBar:setMenu(menudata)
+end
