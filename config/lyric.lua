@@ -45,4 +45,4 @@ blackList = {
     "歌手："
 }
 -- 本地歌词文件存储路径
-lyricPath = os.getenv("HOME") .. "/Music/Lyrics/"
+lyricPath = HOME .. "/Music/Lyrics/"

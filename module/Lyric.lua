@@ -1,7 +1,7 @@
 require ('module.base') 
 require ('module.apple-music') 
 require ('config.lyric')
-local secret = io.open(os.getenv("HOME") .. "/.hammerspoon/module/secret.lua", "r")
+local secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
 if secret then
     require ('module.secret')
     io.close(secret)
@@ -30,7 +30,7 @@ Lyric.main = function()
 		lyricTimer:stop()
 	end
 	-- 搜索的关键词
-	local formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
+	formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
 	titleFormated = Music.title()
 	for i,v in ipairs(formateString) do
 		titleFormated = titleFormated:gsub(v,"")
@@ -88,7 +88,9 @@ Lyric.search = function(keyword)
 					return
 				end
 				if musicinfo.result.songs and #musicinfo.result.songs > 0 then
-					Lyric.menubar(musicinfo.result.songs)
+					if searchType == nil or searchType == "A" then
+						Lyric.menubar(musicinfo.result.songs)
+					end
 					-- 歌手名称里有括弧的情况
 					if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
 						searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
@@ -291,6 +293,9 @@ Lyric.show = function(lyricTable)
 		end
 		-- 仅播放状态下显示
 		if Music.state() == "playing" then
+			if not c_lyric:isShowing() then
+				show(c_lyric)
+			end
 			if not lyricTimer then
 				Lyric.main()
 			else
@@ -306,9 +311,6 @@ Lyric.show = function(lyricTable)
 		end
 		-- 歌词刷新
 		if currentLyric ~= lyrictext then
-			if not c_lyric:isShowing() then
-				show(c_lyric)
-			end
 			if lyricTimer and not lyricTimer:running() then
 				lyricTimer:start()
 			end
@@ -460,6 +462,51 @@ Lyric.delete = function(file)
 	os.remove(filepath)
 end
 
+Lyric.menubar = function(songs)
+	if not LyricBar then
+		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
+	end
+	menudata = {
+		-- {
+		-- 	title = "歌詞显示开关",
+		-- 	checked = lyricEnable,
+		-- 	fn = function()
+		-- 		lyricEnable = not lyricEnable
+		-- 		if lyricEnable then
+		-- 			show(c_lyric)
+		-- 			Lyric.menubar()
+		-- 		else
+		-- 			hide(c_lyric)
+		-- 			Lyric.menubar()
+		-- 		end
+		-- 	end,
+		-- },
+		-- { title = "-" },
+		{ 
+			title = "検索結果の候補", 
+			disabled = true 
+		}
+	}
+	if songs then
+		for i = 1, #songs, 1 do
+			item = { 
+				title = songs[i].name .. " - " .. songs[i].artists[1].name, 
+				fn = function()
+					song = i
+					id = songs[i].id
+					lyricTable = Lyric.search(keyword)
+					update = true
+					Lyric.show(lyricTable)
+				end
+			}
+			table.insert(menudata, item)
+		end
+	end
+	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
+	LyricBar:setIcon(icon)
+	LyricBar:setMenu(menudata)
+end
+
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
     if c_lyric then
@@ -493,49 +540,3 @@ hotkey.bind(hyper_coc, "l", function()
 		Lyric.main()
 	end
 end)
-
-if c_lyric then
-	lyricEnable = c_lyric:isShowing()
-else
-	lyricEnable = false
-end
-Lyric.menubar = function(songs)
-	if not LyricBar then
-		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
-	end
-	menudata = {
-		{
-			title = "歌詞显示开关",
-			checked = lyricEnable,
-			fn = function()
-				lyricEnable = not lyricEnable
-				if lyricEnable then
-					show(c_lyric)
-					Lyric.menubar()
-				else
-					hide(c_lyric)
-					Lyric.menubar()
-				end
-			end,
-		},
-		{ title = "-" },
-	}
-	if songs then
-		for i = 1, #songs, 1 do
-			item = { 
-				title = songs[i].name .. " - " .. songs[i].artists[1].name, 
-				fn = function()
-					song = i
-					id = songs[i].id
-					lyricTable = Lyric.search(keyword)
-					update = true
-					Lyric.show(lyricTable)
-				end
-			}
-			table.insert(menudata, item)
-		end
-	end
-	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
-	LyricBar:setIcon(icon)
-	LyricBar:setMenu(menudata)
-end

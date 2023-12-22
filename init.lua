@@ -13,6 +13,7 @@ screenFrame = hs.screen.mainScreen():fullFrame()
 desktopFrame = hs.screen.mainScreen():frame()
 menubarHeight = desktopFrame.y
 owner = hs.host.localizedName()
+HOME = os.getenv("HOME")
 -- 定义快捷键修饰键
 hyper_ccs = {'⌘⌃⇧'}
 hyper_cs = {'⌘⇧'}
