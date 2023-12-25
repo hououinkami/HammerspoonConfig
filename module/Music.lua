@@ -705,11 +705,11 @@ function MusicBarUpdate()
 			c_progress = nil
 		---连接完成
 		elseif Music.title() ~= songtitle then
+			Lyric.main()
 			Music.saveartwork()
 			songtitle = Music.title()
 			settitle()	
 			setMenu()
-			Lyric.main()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu and c_mainmenu:isShowing() then
 				hideall()

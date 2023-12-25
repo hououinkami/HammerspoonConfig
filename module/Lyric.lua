@@ -12,9 +12,11 @@ end
 Lyric = {}
 -- 获取并显示歌词
 Lyric.main = function()
+	hide(c_lyric)
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
+		print("歌詞の検索ができません、ネットワークの接続を確認してください。")
 		return
 	end
 	-- 初始化
@@ -22,7 +24,6 @@ Lyric.main = function()
 	lyricTable = nil
 	lyrictext = ""
 	lineNO = 1
-	hide(c_lyric)
 	if c_lyric then
 		c_lyric["lyric"].text = Lyric.handleLyric("")
 	end
@@ -30,20 +31,19 @@ Lyric.main = function()
 		lyricTimer:stop()
 	end
 	-- 搜索的关键词
-	formateString = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
-	titleFormated = Music.title()
-	for i,v in ipairs(formateString) do
-		titleFormated = titleFormated:gsub(v,"")
-	end
+	titleFormated = Music.title():gsub("(.-)[%s]*$", "%1")--去除歌曲名末尾空格
 	if searchType == nil or searchType == "A" then
-		keyword = Music.title() .. " " .. Music.artist()
-		searchtitle = Music.title()
-	elseif searchType == "B" then
 		keyword = titleFormated .. " " .. Music.artist()
-		searchtitle = titleFormated:gsub("(.-)[%s]*$", "%1")
-	elseif searchType == "C" then
-		keyword = titleFormated
-		searchtitle = titleFormated:gsub("(.-)[%s]*$", "%1")
+	else
+		local specialStringinTitle = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
+		for i,v in ipairs(specialStringinTitle) do
+			titleFormated = titleFormated:gsub(v,"")
+		end
+		if searchType == "B" then
+			keyword = titleFormated .. " " .. Music.artist()
+		elseif searchType == "C" then
+			keyword = titleFormated
+		end
 	end
 	-- 搜寻本地歌词文件
 	if searchType == nil or searchType == "A" then
@@ -52,12 +52,17 @@ Lyric.main = function()
 			lyricOnline = nil
 			print("歌詞をロード中")
 		else
-			Lyric.menubar()
+			if LyricBar and LyricBar:isInMenuBar() then
+				LyricBar:delete()
+				LyricBar = nil
+			end
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
 			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
+			-- 歌词文件标记为错误歌词则不执行操作
 			if lyricfileError then
 				return
 			end
+			-- 歌词文件存在则载入，否则执行搜索
 			if lyricfileExist then
 				lyricTable = Lyric.edit(lyricfileContent)
 			else
@@ -77,10 +82,10 @@ end
 Lyric.search = function(keyword)
 	-- 获取歌曲ID
 	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword):gsub("%%26","&") .. "&limit=10"
-	-- 监控是否陷入死循环
 	print(keyword .. " の歌詞を検索中...")
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
+			-- 若无手动选择需要下载的歌词则自动匹配
 			if not song then
 				musicinfo = hs.json.decode(musicBody)
 				similarity = 0
@@ -88,27 +93,38 @@ Lyric.search = function(keyword)
 					return
 				end
 				if musicinfo.result.songs and #musicinfo.result.songs > 0 then
+					-- 在菜单栏显示首次搜索的候选结果
 					if searchType == nil or searchType == "A" then
 						Lyric.menubar(musicinfo.result.songs)
 					end
-					-- 歌手名称里有括弧的情况
-					if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
-						searchartist1 = Music.artist():gsub("%(.*%)",""):gsub("（.*）",""):gsub("feat%..*","")
-						searchartist2 = Music.artist():match('%((.+)%)') or Music.artist():match('（(.+)）') or ""
+					-- 处理特殊格式的歌手名称
+					local specialStringinArtist = {"%(.+%)","（.+）","feat%..*"}
+					for i,v in ipairs(specialStringinArtist) do
+						if Music.artist():find(v) then
+							searchartist1 = Music.artist():gsub(v,"")
+							if v:find("%.%+") then
+								v2 = v:gsub("%.%+","(.+)")
+								searchartist2 = Music.artist():match(v2)
+							end
+						end
 					end
 					for i = 1, #musicinfo.result.songs, 1 do
-						if compareString(musicinfo.result.songs[i].name, searchtitle) > 70 then
+						if compareString(musicinfo.result.songs[i].name, titleFormated) > 70 then
 							if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
 								song = i
 								break
 							end
-							if Music.artist():find("%(.*%)") or Music.artist():find("（.*）") or Music.artist():find("feat%..*") then
-								tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, searchartist1), compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
-							else
-								tempS = 0
+							if searchartist1 then
+								tempS = compareString(musicinfo.result.songs[i].artists[1].name, searchartist1)
+								searchartist1 = nil
 							end
-							if math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS) > similarity then
-								similarity = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS)
+							if searchartist2 then
+								tempS = math.max(tempS, compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
+								searchartist2 = nil
+							end
+							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS or 0)
+							if tempS > similarity then
+								similarity = tempS
 								song = i
 							end
 						end
@@ -207,11 +223,6 @@ Lyric.edit = function(lyric)
 				end
 			end
 		end
-	end
-	if #lyricTable == 0 then
-		lyricTable = nil
-		print("該当する歌詞はません")
-	else
 		for i,v in ipairs(lyricTable) do
 			hour = 0
 			time = v.time
@@ -445,8 +456,8 @@ end
 
 -- 保存歌词至本地文件
 Lyric.save = function(lyric)
-	artistFormated = Music.artist():gsub("/",":")
-	local lyricFile = lyricPath .. Music.title() ..  " - " .. artistFormated .. ".lrc"
+	local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	local lyricFile = lyricFile:gsub("/",":")
 	local lyricExt = io.open(lyricFile, "r")
 	if not lyricExt or update then
 		file = io.open(lyricFile, "w+")
@@ -459,6 +470,7 @@ end
 
 Lyric.delete = function(file)
 	local filepath = lyricPath .. file .. ".lrc"
+	local filepath = filepath:gsub("/",":")
 	os.remove(filepath)
 end
 
