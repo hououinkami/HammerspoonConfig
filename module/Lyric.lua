@@ -52,10 +52,6 @@ Lyric.main = function()
 			lyricOnline = nil
 			print("歌詞をロード中")
 		else
-			if LyricBar and LyricBar:isInMenuBar() then
-				LyricBar:delete()
-				LyricBar = nil
-			end
 			local lyricfileName = Music.title() .. " - " .. Music.artist()
 			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
 			-- 歌词文件标记为错误歌词则不执行操作
@@ -64,6 +60,11 @@ Lyric.main = function()
 			end
 			-- 歌词文件存在则载入，否则执行搜索
 			if lyricfileExist then
+				-- 本地歌词不显示菜单栏图标
+				-- if LyricBar and LyricBar:isInMenuBar() then
+				-- 	LyricBar = nil
+				-- end
+				Lyric.menubar()
 				lyricTable = Lyric.edit(lyricfileContent)
 			else
 				lyricTable = Lyric.search(keyword)
@@ -157,7 +158,7 @@ Lyric.search = function(keyword)
         end
 		searchType = nil
 		if lyricurl then
-			print(lyricurl .. " から歌詞を取得中...")
+			print("歌詞を取得中...")
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
 				if status == 200 then
 					local lyricRaw = hs.json.decode(body)
@@ -189,12 +190,14 @@ Lyric.edit = function(lyric)
 	local lyricTable = {}
 	if #lyricData > 2 then
 		for l = 1, #lyricData, 1 do
+			-- 歌词黑名单替换为空行
 			for i,v in ipairs(blackList) do
 				if string.find(lyricData[l],v) then
 					lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
 					break
 				end
 			end
+			-- 只处理包含正确时间戳的歌词行
 			if string.find(lyricData[l],'%[%d+:%d+') then
 				local lyricLine = {}
 				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
@@ -208,6 +211,7 @@ Lyric.edit = function(lyric)
 				table.insert(lyricTable, lyricLine)
 				-- 多个时间戳时的处理
 				if #_line > 2 then
+					multiTime = true
 					for t = 2, #_line - 1, 1 do
 						local lyricLine = {}
 						allLine = allLine + 1
@@ -223,6 +227,7 @@ Lyric.edit = function(lyric)
 				end
 			end
 		end
+		-- 将时间戳转换成秒
 		for i,v in ipairs(lyricTable) do
 			hour = 0
 			time = v.time
@@ -235,12 +240,17 @@ Lyric.edit = function(lyric)
 			minisec = stringSplit(time, ":")[3] or 0
 			v.time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
 		end
-		-- 按时间排序
-		table.sort(lyricTable,function(a,b) return a.time < b.time end)
-		for i = 1, #lyricTable, 1 do
-			lyricTable[i].index = i
+		-- 若有多个时间戳的情况则将歌词表按时间排序
+		if multiTime then
+			table.sort(lyricTable,function(a,b) return a.time < b.time end)
+			for i = 1, #lyricTable, 1 do
+				lyricTable[i].index = i
+			end
+			multiTime = false
 		end
 	end
+	-- 在最后插入空行方便处理
+	table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
 	return lyricTable
 end
 
@@ -253,53 +263,36 @@ Lyric.show = function(lyricTable)
 		lyricTimer = hs.timer.new(1, function()
 			a = lineNO
 			showLyric(a,lyricTable)
-			stayTime = stayTime or 1
+			stayTime = stayTime or 0
 			b = stayTime + lyricTimeOffset
-			if lastLine == true then
-				b = Music.duration() - Music.currentposition()
-			end
 			if lyricTimer and b > 0 then
 				lyricTimer:setNextTrigger(b)
 			end
 		end):start()
 	end
 	-- 歌词显示函数
-	showLyric = function(startline,lyric)
-		if not lyric then
+	showLyric = function(startline,lyricTable)
+		if not lyricTable then
 			return
 		end
-		-- 定位
+		-- 歌词定位
 		local currentPosition = Music.currentposition() - lyricTimeOffset
-		for l = startline, #lyric, 1 do
-			if l < #lyric then
-				if currentPosition < lyric[l].time or currentPosition > lyric[l+1].time then
-					for j = 1, #lyric, 1 do
-						if j < #lyric then
-							if currentPosition > lyric[j].time and currentPosition < lyric[j+1].time then
-								l = j
-								break
-							end
-						else
-							l = #lyric
-						end
+		for l = startline, #lyricTable - 1 , 1 do
+			-- 快进或快退时从第一行开始重新定位
+			if currentPosition < lyricTable[l].time or currentPosition > lyricTable[l+1].time then
+				for j = 1, #lyricTable - 1, 1 do
+					if currentPosition > lyricTable[j].time and currentPosition < lyricTable[j+1].time then
+						l = j
+						break
 					end
 				end
 			end
-			if l < #lyric then
-				if currentPosition > lyric[l].time and currentPosition < lyric[l+1].time then
-					currentLyric = lyric[l].lyric
-					stayTime = lyric[l+1].time - currentPosition or 0
-					lineNO = l
-					lastLine = false
-					break
-				end
-			else
-				if currentPosition >= lyric[l].time then
-					currentLyric = lyric[#lyric].lyric
-					stayTime = 1
-					lineNO = l
-					lastLine = true
-				end
+			-- 正常情况下的定位
+			if currentPosition > lyricTable[l].time and currentPosition < lyricTable[l+1].time then
+				currentLyric = lyricTable[l].lyric
+				stayTime = lyricTable[l+1].time - currentPosition or 0
+				lineNO = l
+				break
 			end
 		end
 		-- 仅播放状态下显示
@@ -309,9 +302,8 @@ Lyric.show = function(lyricTable)
 			end
 			if not lyricTimer then
 				Lyric.main()
-			else
-				lyricTimer:start()
 			end
+			lyricTimer:start()
 		elseif Music.state() == "paused" then
 			hide(c_lyric)
 			lyricTimer:stop()
@@ -468,39 +460,90 @@ Lyric.save = function(lyric)
 	end
 end
 
-Lyric.delete = function(file)
-	local _deletename = string.gsub(file,"/",":")
+-- 删除当前曲目的本地歌词文件
+Lyric.delete = function()
+	local _deletename = string.gsub(Music.title() ..  " - " .. Music.artist(),"/",":")
 	local filepath = lyricPath .. _deletename .. ".lrc"
-	local filepath = filepath:gsub("/",":")
 	os.remove(filepath)
+	local filepath_error = lyricPath .. _deletename .. "_ERROR.lrc"
+	os.remove(filepath_error)
 end
 
+-- 歌词模块应用开关
+Lyric.toggleEnable = function()
+    if lyricTimer and lyricTimer:running() then
+        delete(c_lyric)
+		lyricTimer:stop()
+    else
+		Lyric.setcanvas()
+        Lyric.main()
+	end
+end
+
+-- 歌词显示开关
+Lyric.toggleShow = function()
+    if c_lyric then
+        if not c_lyric:isShowing() then
+            lyricTimer:start()
+        else
+            hide(c_lyric)
+            lyricTimer:stop()
+        end
+	end
+end
+
+-- 标记错误歌词预防加载或重新搜索
+Lyric.error = function()
+    local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	local lyricExt = io.open(lyricFile, "r")
+	if lyricExt then
+		os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
+		print("歌詞をエラーとしてマーク")
+		Lyric.main()
+	end
+end
+
+-- 歌词功能菜单
+lyricShow = true
+lyricEnable = true
 Lyric.menubar = function(songs)
 	if not LyricBar then
 		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
 	end
 	menudata = {
-		-- {
-		-- 	title = "歌詞显示开关",
-		-- 	checked = lyricEnable,
-		-- 	fn = function()
-		-- 		lyricEnable = not lyricEnable
-		-- 		if lyricEnable then
-		-- 			show(c_lyric)
-		-- 			Lyric.menubar()
-		-- 		else
-		-- 			hide(c_lyric)
-		-- 			Lyric.menubar()
-		-- 		end
-		-- 	end,
-		-- },
-		-- { title = "-" },
-		{ 
-			title = "検索結果の候補", 
-			disabled = true 
-		}
+		{
+			title = lyricString.enable,
+			checked = lyricEnable,
+			fn = function()
+				lyricEnable = not lyricEnable
+				Lyric.toggleEnable()
+				Lyric.menubar()
+			end,
+		},
+		{
+			title = lyricString.show,
+			checked = lyricShow,
+			fn = function()
+				lyricShow = not lyricShow
+				Lyric.toggleShow()
+				Lyric.menubar()
+			end,
+		},
+		{
+			title = lyricString.error,
+			fn = Lyric.error,
+		},
+		{
+			title = lyricString.delete,
+			fn = function()
+				Lyric.delete()
+				Lyric.main()
+			end
+		},
+		{ title = "-" }
 	}
 	if songs then
+		table.insert(menudata, { title = lyricString.search, disabled = true })
 		for i = 1, #songs, 1 do
 			item = { 
 				title = songs[i].name .. " - " .. songs[i].artists[1].name, 
@@ -521,35 +564,10 @@ Lyric.menubar = function(songs)
 end
 
 -- 歌词显示与隐藏快捷键
-hotkey.bind(hyper_cs, "l", function()
-    if c_lyric then
-        if not c_lyric:isShowing() then
-            lyricTimer:start()
-        else
-            hide(c_lyric)
-            lyricTimer:stop()
-        end
-	end
-end)
+hotkey.bind(hyper_cs, "l", Lyric.toggleShow)
 
 -- 歌词模块停用与启用快捷键
-hotkey.bind(hyper_cos, "l", function()
-    if lyricTimer and lyricTimer:running() then
-        delete(c_lyric)
-		lyricTimer:stop()
-    else
-		Lyric.setcanvas()
-        Lyric.main()
-	end
-end)
+hotkey.bind(hyper_cos, "l", Lyric.toggleEnable)
 
 -- 歌词错误时标记
-hotkey.bind(hyper_coc, "l", function()
-    local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
-	local lyricExt = io.open(lyricFile, "r")
-	if lyricExt then
-		os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
-		print("歌詞はエラーとしてマーク")
-		Lyric.main()
-	end
-end)
+hotkey.bind(hyper_coc, "l", Lyric.error)
