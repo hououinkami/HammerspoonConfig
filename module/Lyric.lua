@@ -456,8 +456,8 @@ end
 
 -- 保存歌词至本地文件
 Lyric.save = function(lyric)
-	local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
-	local lyricFile = lyricFile:gsub("/",":")
+	local _savename = string.gsub(Music.title() ..  " - " .. Music.artist(),"/",":")
+	local lyricFile = lyricPath .. _savename .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
 	if not lyricExt or update then
 		file = io.open(lyricFile, "w+")
@@ -469,7 +469,8 @@ Lyric.save = function(lyric)
 end
 
 Lyric.delete = function(file)
-	local filepath = lyricPath .. file .. ".lrc"
+	local _deletename = string.gsub(file,"/",":")
+	local filepath = lyricPath .. _deletename .. ".lrc"
 	local filepath = filepath:gsub("/",":")
 	os.remove(filepath)
 end
