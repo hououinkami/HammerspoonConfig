@@ -162,7 +162,7 @@ Lyric.search = function(keyword)
 				if status == 200 then
 					local lyricRaw = hs.json.decode(body)
 					if lyricRaw.lrc then
-						lyric = lyricRaw.lrc.lyric
+						local lyric = lyricRaw.lrc.lyric
 						if string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
 							print("該当する歌詞はません")
 							return
