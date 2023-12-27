@@ -29,9 +29,24 @@ lyricStrokeWidth = 0
 lyricStrokeColor = {1, 1, 1}
 -- 描边透明度
 lyricStrokeAlpha = 1
+-- 本地化
+lyricString = {
+    enable = "歌詞モジュールの適用",
+    show = "歌詞の表示",
+    search = "検索結果の候補",
+    error = "歌詞をエラーとしてマーク",
+    delete = "歌詞ファイルを削除して再検索"
+}
 -- 粉色歌词
 if not string.find(owner,"Kami") then
     lyricTextColor = {189, 138, 189}
+    lyricString = {
+        enable = "启用歌词模块",
+        show = "显示歌词",
+        search = "候选结果",
+        error = "标记错误歌词",
+        delete = "删除歌词文件并重新搜索"
+    }
 end
 -- 歌词黑名单
 blackList = {
