@@ -45,6 +45,9 @@ Lyric.main = function()
 			keyword = titleFormated
 		end
 	end
+	-- 是否将存储歌词文件
+	save = Music.existinlibrary() or Music.loved()
+	filename = Music.title() ..  " - " .. Music.artist()
 	-- 搜寻本地歌词文件
 	if searchType == nil or searchType == "A" then
 		if lyricOnline then
@@ -67,12 +70,12 @@ Lyric.main = function()
 				Lyric.menubar()
 				lyricTable = Lyric.edit(lyricfileContent)
 			else
-				lyricTable = Lyric.search(keyword)
+				lyricTable = Lyric.search(keyword,save)
 				return
 			end
 		end
 	else
-		lyricTable = Lyric.search(keyword)
+		lyricTable = Lyric.search(keyword,save)
 		return
 	end
 	-- 显示歌词
@@ -80,9 +83,9 @@ Lyric.main = function()
 end
 
 -- 搜索歌词并保存
-Lyric.search = function(keyword)
+Lyric.search = function(keyword,saveFile)
 	-- 获取歌曲ID
-	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword):gsub("%%26","&") .. "&limit=10"
+	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
 	print(keyword .. " の歌詞を検索中...")
     hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
@@ -169,8 +172,8 @@ Lyric.search = function(keyword)
 							return
 						end
 						lyricOnline = Lyric.edit(lyric)
-						if Music.existinlibrary() or Music.loved() then
-							Lyric.save(lyric)
+						if saveFile then
+							Lyric.save(lyric,filename)
 						end
 						Lyric.main()
 					end
@@ -447,8 +450,8 @@ Lyric.load = function(lyricfileName)
 end
 
 -- 保存歌词至本地文件
-Lyric.save = function(lyric)
-	local _savename = string.gsub(Music.title() ..  " - " .. Music.artist(),"/",":")
+Lyric.save = function(lyric,filename)
+	local _savename = string.gsub(filename,"/",":")
 	local lyricFile = lyricPath .. _savename .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
 	if not lyricExt or update then
@@ -550,7 +553,7 @@ Lyric.menubar = function(songs)
 				fn = function()
 					song = i
 					id = songs[i].id
-					lyricTable = Lyric.search(keyword)
+					lyricTable = Lyric.search(keyword,save)
 					update = true
 					Lyric.show(lyricTable)
 				end
