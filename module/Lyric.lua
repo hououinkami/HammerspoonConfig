@@ -1,22 +1,6 @@
 require ('module.base') 
 require ('module.apple-music') 
 require ('config.lyric')
-local lyric163API = true
-local secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
-if not lyric163API and secret then
-    require ('module.secret')
-    io.close(secret)
-	idAPI = lyricAPI .. "search?limit=10&offset=0&type=1&keywords="
-	lyricAPI = lyricAPI .. "lyric?id="
-	musicheaders = nil
-else
-	idAPI = "https://music.163.com/api/search/pc?limit=10&offset=0&type=1&s="
-    lyricAPI = "https://music.163.com/api/song/lyric?os=pc&lv=-1&kv=-1&tv=-1&id="
-	musicheaders = {
-		["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
-		["cookie"] = "NMTID=00OImW8FZYRLmd7XU5cuO6K8blcSucAAAGMoACXwQ"
-	}
-end
 
 Lyric = {}
 -- 获取并显示歌词
@@ -90,6 +74,28 @@ Lyric.main = function()
 	-- 显示歌词
 	Lyric.show(lyricTable)
 end
+
+-- 歌词搜索API选择
+Lyric.api = function(api)
+	idAPI = nil
+	lyricAPI = nil
+	local secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
+	if not api and secret then
+		require ('module.secret')
+		io.close(secret)
+		idAPI = lyricAPI .. "search?limit=10&offset=0&type=1&keywords="
+		lyricAPI = lyricAPI .. "lyric?id="
+		musicheaders = nil
+	else
+		idAPI = "https://music.163.com/api/search/pc?limit=10&offset=0&type=1&s="
+		lyricAPI = "https://music.163.com/api/song/lyric?os=pc&lv=-1&kv=-1&tv=-1&id="
+		musicheaders = {
+			["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
+			["cookie"] = "NMTID=00OImW8FZYRLmd7XU5cuO6K8blcSucAAAGMoACXwQ"
+		}
+	end
+end
+Lyric.api(true)
 
 -- 搜索歌词并保存
 Lyric.search = function(keyword,saveFile)
@@ -519,6 +525,7 @@ end
 lyricShow = true
 lyricEnable = true
 lyric163API = true
+lyricselfAPI = not lyric163API
 Lyric.menubar = function(songs)
 	if not LyricBar then
 		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
@@ -541,6 +548,31 @@ Lyric.menubar = function(songs)
 				Lyric.toggleShow()
 				Lyric.menubar()
 			end,
+		},
+		{
+			title = lyricString.api,
+			menu = {
+				{
+					title = "网易云音乐",
+					checked = lyric163API,
+					fn = function()
+						lyricselfAPI = lyric163API
+						lyric163API = not lyric163API
+						Lyric.api(lyric163API)
+						Lyric.menubar()
+					end,
+				},
+				{
+					title = "自建",
+					checked = lyricselfAPI,
+					fn = function()
+						lyric163API = lyricselfAPI
+						lyricselfAPI = not lyricselfAPI
+						Lyric.api(lyric163API)
+						Lyric.menubar()
+					end,
+				},
+			},
 		},
 		{
 			title = lyricString.error,

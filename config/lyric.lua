@@ -35,7 +35,8 @@ lyricString = {
     show = "歌詞の表示",
     search = "検索結果の候補",
     error = "歌詞をエラーとしてマーク",
-    delete = "歌詞ファイルを削除して再検索"
+    delete = "歌詞ファイルを削除して再検索",
+    api = "歌詞検索のAPIを選択"
 }
 -- 粉色歌词
 if not string.find(owner,"Kami") then
@@ -45,7 +46,8 @@ if not string.find(owner,"Kami") then
         show = "显示歌词",
         search = "候选结果",
         error = "标记错误歌词",
-        delete = "删除歌词文件并重新搜索"
+        delete = "删除歌词文件并重新搜索",
+        api = "选择歌词搜索API"
     }
 end
 -- 歌词黑名单
