@@ -1,12 +1,21 @@
 require ('module.base') 
 require ('module.apple-music') 
 require ('config.lyric')
+local lyric163API = true
 local secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
-if secret then
+if not lyric163API and secret then
     require ('module.secret')
     io.close(secret)
+	idAPI = lyricAPI .. "search?limit=10&offset=0&type=1&keywords="
+	lyricAPI = lyricAPI .. "lyric?id="
+	musicheaders = nil
 else
-    lyricAPI = "https://yourownlyricapi.com/"
+	idAPI = "https://music.163.com/api/search/pc?limit=10&offset=0&type=1&s="
+    lyricAPI = "https://music.163.com/api/song/lyric?os=pc&lv=-1&kv=-1&tv=-1&id="
+	musicheaders = {
+		["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
+		["cookie"] = "NMTID=00OImW8FZYRLmd7XU5cuO6K8blcSucAAAGMoACXwQ"
+	}
 end
 
 Lyric = {}
@@ -85,9 +94,9 @@ end
 -- 搜索歌词并保存
 Lyric.search = function(keyword,saveFile)
 	-- 获取歌曲ID
-	local musicurl = lyricAPI .. "search?keywords=" .. hs.http.encodeForQuery(keyword) .. "&limit=10"
+	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
 	print(keyword .. " の歌詞を検索中...")
-    hs.http.asyncGet(musicurl, nil, function(musicStatus,musicBody,musicHeader)
+    hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
 			-- 若无手动选择需要下载的歌词则自动匹配
 			if not song then
@@ -138,7 +147,7 @@ Lyric.search = function(keyword,saveFile)
 			-- 判断是否需要重新搜索
 			if song then
 				songid = id or musicinfo.result.songs[song].id
-				lyricurl = lyricAPI .. "lyric?id=" .. songid
+				lyricurl = lyricAPI .. songid
 				song = nil
 				id = nil
 			else
@@ -509,6 +518,7 @@ end
 -- 歌词功能菜单
 lyricShow = true
 lyricEnable = true
+lyric163API = true
 Lyric.menubar = function(songs)
 	if not LyricBar then
 		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
