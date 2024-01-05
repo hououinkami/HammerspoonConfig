@@ -469,6 +469,12 @@ Lyric.save = function(lyric,filename)
 	local _savename = string.gsub(filename,"/",":")
 	local lyricFile = lyricPath .. _savename .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
+	-- 判断储存本地歌词的文件夹是否存在
+	local lyricFolder = io.open(lyricPath,"rb")
+	if not lyricFolder then
+		os.execute("mkdir ".. lyricPath)
+	end
+	-- 若歌词文件不存在则保存
 	if not lyricExt or update then
 		file = io.open(lyricFile, "w+")
 		file:write(lyric)
