@@ -24,7 +24,7 @@ Lyric.main = function()
 		lyricTimer:stop()
 	end
 	-- 搜索的关键词
-	titleFormated = Music.title():gsub("(.-)[%s]*$", "%1")--去除歌曲名末尾空格
+	titleFormated = Music.title()
 	if searchType == nil or searchType == "A" then
 		keyword = titleFormated .. " " .. Music.artist()
 	else
@@ -32,6 +32,7 @@ Lyric.main = function()
 		for i,v in ipairs(specialStringinTitle) do
 			titleFormated = titleFormated:gsub(v,"")
 		end
+		titleFormated:gsub("(.-)[%s]*$", "%1")--去除歌曲名末尾空格
 		if searchType == "B" then
 			keyword = titleFormated .. " " .. Music.artist()
 		elseif searchType == "C" then
