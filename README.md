@@ -40,6 +40,8 @@ cd ~/.hammerspoon && git pull
 
 ## 桌面悬浮歌词（Desktop Canvas Lyrics）
 
+![image](https://github.com/hououinkami/HammerspoonConfig/raw/main/image/README/Lyrics.png)
+
 1. 与Music悬浮菜单栏模块配合使用，切换曲目时会自动从网易云音乐搜寻歌词
 
 2. 歌词搜寻结果自动选择匹配度最高的歌词
