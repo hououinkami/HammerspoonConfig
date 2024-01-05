@@ -16,40 +16,55 @@ cd ~/.hammerspoon && git pull
 
 ## Music悬浮菜单栏（Apple Music Canvas Menu）
 
-### Big Sur对应
+![image](https://github.com/hououinkami/HammerspoonConfig/raw/main/image/README/Music.png)
 
-![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/Music.png)
+1. 菜单栏显示当前正在播放的歌曲标题及艺术家, 显示长度会根据菜单栏空白空间自动调节
 
-1. 菜单栏显示当前正在播放的歌曲标题及艺术家，单击后显示悬浮菜单，菜单长度根据歌名长度自动调节
+2. 单击后显示悬浮菜单，悬浮菜单长度根据歌曲名称长度自动调节
 
-2. 点击曲目信息跳转到Music对应曲目
+3. 点击悬浮菜单上的曲目信息跳转到Music对应曲目
 
-3. 若为本地曲目，显示“星级评价”图标，点击对应星级可以对歌曲进行评价，点击第一颗星底部附近可以取消星级评价
+4. 若为本地曲库中的歌曲，则显示“星级评价”图标，点击对应星级可以对歌曲进行评价，点击第一颗星底部附近可以取消星级评价
 
-4. 若为Apple Music曲目，显示“喜欢”图标，点击可以切换“喜欢”状态
+5. 若为Apple Music中的歌曲，则a显示“喜爱”图标，点击可以切换“喜爱”状态
 
-5. 若为本地曲目上传后匹配了Apple Music曲目，则同时显示“喜欢”图标和“星级评价”图标
+6. 若为本地曲目上传后匹配了Apple Music曲库的歌曲，则同时显示“喜爱”和“星级评价”图标
 
-6. 下方控制菜单包含随机状态切换、循环状态切换
+7. 下方控制菜单包含随机状态切换、循环状态切换
 
-7. 下方控制菜单“+”图标，若为Apple Music曲目，点击则为添加到本地曲库，添加成功后，图标将显示为蓝色；若为本地曲目或是已经添加到曲库中的Apple Music曲目，点击则弹出播放列表菜单，点击相应列表可将当前曲目添加到对应播放列表
+8. 下方控制菜单“+”图标，若为Apple Music曲目，点击则为添加到本地曲库，添加成功后，图标将显示为红色；若为本地曲目或是已经添加到曲库中的Apple Music曲目，点击则弹出播放列表菜单，点击相应列表可将当前曲目添加到对应播放列表
 
-8. 下方边缘为当前曲目进度条，点击相应位置可以跳转至对应位置开始播放
+9. 下方边缘为当前曲目进度条，点击相应位置可以跳转至对应位置播放
 
-9. 鼠标移出悬浮菜单后自动隐藏，若没有正常触发隐藏，则当鼠标不在菜单栏文字或悬浮菜单范围内时一定时间后自动隐藏
+10. 鼠标移出悬浮菜单后自动隐藏，若没有正常触发隐藏，则当鼠标不在菜单栏文字或悬浮菜单范围内时一定时间后自动隐藏
+
+## 桌面悬浮歌词（Desktop Canvas Lyrics）
+
+1. 与Music悬浮菜单栏模块配合使用，切换曲目时会自动从网易云音乐搜寻歌词
+
+2. 歌词搜寻结果自动选择匹配度最高的歌词
+
+3. 菜单栏上的歌词图标可以从候选结果中手动选择想要匹配的歌词
+
+4. 若为本地曲库中的歌曲或是标记了“喜爱”的歌曲，会将歌词保存为本地文件
+
+5. 歌词配置项单独分离出来，可以随时更改随时生效，无需重载配置
+
+6. 菜单栏上的歌词图标可以控制歌词模块是否启用、是否显示桌面歌词、标记错误歌词、删除本地歌词文件
 
 
 ## 类Spotlight搜索（SpotlightLike Search）
 
 <kbd>⌥</kbd> + <kbd>Space</kbd>
 
-![image](https://github.com/hououinkami/HammerspoonConfig/raw/master/image/README/SpotlightLike.png)
+![image](https://github.com/hououinkami/HammerspoonConfig/raw/main/image/README/SpotlightLike.png)
 
 1. 实时调用并显示DuckDuckGO的搜索建议
 
 2. 默认使用Google搜索
 
 3. 点击工具栏对应图标则将选用对应搜索引擎搜索当前高亮关键词
+
 
 ## 窗口管理（Windows Manage）
 
