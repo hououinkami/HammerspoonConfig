@@ -204,12 +204,14 @@ end
 
 -- 热更新
 function hotfix(_mname)
-	print(string.format("开始热更新 %s", _mname))
+	print(string.format("%s を更新しました", _mname))
 	if package.loaded[_mname] then
-		print(string.format("重载模块 %s", _mname))
+		print(string.format("%s をリロード", _mname))
+		package.loaded[_mname] = nil
+		require( _mname )
+	else
+		print(string.format("%s はロードされていません", _mname))
 	end
-	package.loaded[_mname] = nil
-	require( _mname )
 end
 
 -- 获取文件列表

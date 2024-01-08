@@ -80,7 +80,7 @@ function reloadConfig(files)
 		hotfix('config.' .. filename)
 		if filename == "lyric" then
 			lyrictext = nil
-			Lyric.show(a,lyricTable)
+			Lyric.show(lyricTable)
 		elseif filename == "music" then
 			musicstate = nil
 			MusicBarUpdate()
