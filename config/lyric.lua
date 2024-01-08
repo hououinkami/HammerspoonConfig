@@ -60,7 +60,8 @@ blackList = {
     "曲：",
     "词：",
     "歌：",
-    "歌手："
+    "歌手：",
+    "制作人"
 }
 -- 本地歌词文件存储路径
 lyricPath = HOME .. "/Music/Lyrics/"
