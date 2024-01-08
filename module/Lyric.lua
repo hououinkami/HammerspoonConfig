@@ -23,57 +23,32 @@ Lyric.main = function()
 	if lyricTimer then
 		lyricTimer:stop()
 	end
-	-- 搜索的关键词
-	titleFormated = Music.title()
-	local specialStringinTitle = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
-	for i,v in ipairs(specialStringinTitle) do
-		titleFormated = titleFormated:gsub(v,"")
-	end
-	titleFormated:gsub("(.-)[%s]*$", "%1")-- 去除歌曲名末尾空格
-	if searchType == nil or searchType == "A" then
-		keyword = Music.title() .. " " .. Music.artist()
-	elseif searchType == "B" then
-		if titleFormated ~= Music.title() then
-			keyword = titleFormated .. " " .. Music.artist()
-		else
-			searchType = "C"
-			keyword = titleFormated
-		end
-	elseif searchType == "C" then
-		keyword = titleFormated
-	end
-	-- 是否将存储歌词文件
-	save = Music.existinlibrary() or Music.loved()
+	-- 是否存储歌词文件
 	filename = Music.title() ..  " - " .. Music.artist()
 	-- 搜寻本地歌词文件
-	if searchType == nil or searchType == "A" then
-		if lyricOnline then
-			lyricTable = lyricOnline
-			lyricOnline = nil
-			print("歌詞をロード中")
-		else
-			local lyricfileName = Music.title() .. " - " .. Music.artist()
-			lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
-			-- 歌词文件标记为错误歌词则不执行操作
-			if lyricfileError then
-				return
-			end
-			-- 歌词文件存在则载入，否则执行搜索
-			if lyricfileExist then
-				-- 本地歌词不显示菜单栏图标
-				-- if LyricBar and LyricBar:isInMenuBar() then
-				-- 	LyricBar = nil
-				-- end
-				Lyric.menubar()
-				lyricTable = Lyric.edit(lyricfileContent)
-			else
-				lyricTable = Lyric.search(keyword,save)
-				return
-			end
-		end
+	if lyricOnline then
+		lyricTable = lyricOnline
+		lyricOnline = nil
+		print("歌詞をロード中")
 	else
-		lyricTable = Lyric.search(keyword,save)
-		return
+		local lyricfileName = Music.title() .. " - " .. Music.artist()
+		lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
+		-- 歌词文件标记为错误歌词则不执行操作
+		if lyricfileError then
+			return
+		end
+		-- 歌词文件存在则载入，否则执行搜索
+		if lyricfileExist then
+			Lyric.menubar()
+			lyricTable = Lyric.edit(lyricfileContent)
+			if not Music.existinlibrary() and not Music.loved() then
+				Lyric.delete()
+			end
+		else
+			keywordNO = 1
+			lyricTable = Lyric.search()
+			return
+		end
 	end
 	-- 显示歌词
 	Lyric.show(lyricTable)
@@ -102,19 +77,62 @@ end
 Lyric.api(true)
 
 -- 搜索歌词并保存
-Lyric.search = function(keyword,saveFile)
+Lyric.search = function()
+	if keywordNO == 1 then
+		saveFile = Music.existinlibrary() or Music.loved()
+		songsResult = {}
+		-- 搜索的关键词
+		searchKeywords = {Music.title() .. " " .. Music.artist()}
+		searchTitle = {Music.title()}
+		searchArtist = {Music.artist()}
+		-- 处理特殊格式的歌曲名称
+		titleFormated = Music.title()
+		local specialStringinTitle = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
+		for i,v in ipairs(specialStringinTitle) do
+			titleFormated = titleFormated:gsub(v,"")
+		end
+		titleFormated = titleFormated:gsub("(.-)[%s]*$", "%1")-- 去除歌曲名末尾空格
+		
+		if titleFormated ~= Music.title() then
+			table.insert(searchKeywords, titleFormated .. " " .. Music.artist())
+			table.insert(searchTitle, titleFormated)
+			table.insert(searchKeywords, Music.title())
+			table.insert(searchTitle, Music.title())
+			table.insert(searchKeywords, titleFormated)
+			table.insert(searchTitle, titleFormated)
+		end
+		-- 处理特殊格式的歌手名称
+		local specialStringinArtist = {"%(.+%)","（.+）","feat%..*"}
+		for i,v in ipairs(specialStringinArtist) do
+			if Music.artist():find(v) then
+				table.insert(searchArtist, Music.artist():gsub(v,""))
+				if v:find("%.%+") then
+					v2 = v:gsub("%.%+","(.+)")
+					table.insert(searchArtist, Music.artist():match(v2))
+				end
+			end
+		end
+	end
+	-- 执行遍历搜索
+	keyword = searchKeywords[keywordNO]
+	-- 若歌曲名为英文与数字，则提升匹配阈值
+	for i in string.gmatch(searchTitle[keywordNO], "[%z\1-\127\194-\244][\128-\191]*") do
+		if not i:find("%w") then
+			titleSimilarity = 70
+			break
+		else
+			titleSimilarity = 80
+		end
+	end
 	-- 获取歌曲ID
 	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
-	if not song then
+	if not songID then
 		print(keyword .. " の歌詞を検索中...")
 	end
-    hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
-        if musicStatus == 200 then
+	hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
+		if musicStatus == 200 then
 			-- 若无手动选择需要下载的歌词则自动匹配
-			if not song then
-				if not songsResult or not searchType then
-					songsResult = {}
-				end
+			if not songID then
 				musicinfo = hs.json.decode(musicBody)
 				similarity = 0
 				if not musicinfo.result then
@@ -122,63 +140,47 @@ Lyric.search = function(keyword,saveFile)
 				end
 				if musicinfo.result.songs and #musicinfo.result.songs > 0 then
 					table.insert(songsResult, musicinfo.result.songs)
-					-- 处理特殊格式的歌手名称
-					local specialStringinArtist = {"%(.+%)","（.+）","feat%..*"}
-					for i,v in ipairs(specialStringinArtist) do
-						if Music.artist():find(v) then
-							searchartist1 = Music.artist():gsub(v,"")
-							if v:find("%.%+") then
-								v2 = v:gsub("%.%+","(.+)")
-								searchartist2 = Music.artist():match(v2)
+					for i = 1, #musicinfo.result.songs, 1 do
+						if compareString(musicinfo.result.songs[i].name, searchTitle[keywordNO]) > titleSimilarity then
+							for a = 1, #searchArtist, 1 do
+								tempS = compareString(musicinfo.result.songs[i].artists[1].name, searchArtist[a])
+								if tempS == 100 then
+									similarity = tempS
+									songID = musicinfo.result.songs[i].id
+									break
+								else
+									if tempS > similarity then
+										similarity = tempS
+										songID = musicinfo.result.songs[i].id
+									end
+								end
 							end
 						end
-					end
-					for i = 1, #musicinfo.result.songs, 1 do
-						if compareString(musicinfo.result.songs[i].name, titleFormated) > 70 then
-							if compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()) == 100 then
-								song = i
-								break
-							end
-							if searchartist1 then
-								tempS = compareString(musicinfo.result.songs[i].artists[1].name, searchartist1)
-								searchartist1 = nil
-							end
-							if searchartist2 then
-								tempS = math.max(tempS, compareString(musicinfo.result.songs[i].artists[1].name, searchartist2))
-								searchartist2 = nil
-							end
-							tempS = math.max(compareString(musicinfo.result.songs[i].artists[1].name, Music.artist()),tempS or 0)
-							if tempS > similarity then
-								similarity = tempS
-								song = i
-							end
+						if similarity == 100 then
+							break
 						end
 					end
 				end
 			end
 			-- 判断是否需要重新搜索
-			if song then
-				songid = id or musicinfo.result.songs[song].id
-				lyricurl = lyricAPI .. songid
-				song = nil
-				id = nil
+			if songID then
+				lyricurl = lyricAPI .. songID
+				songID = nil
 			else
-				if searchType == nil or searchType == "A" then
-					searchType = "B"
-				elseif searchType == "B" then
-					searchType = "C"
-				elseif searchType == "C" then
-					searchType = nil
+				if keywordNO < #searchKeywords then
+					keywordNO = keywordNO + 1
+					Lyric.search()
+					return
+				else
+					-- 在菜单栏显示每次搜索的候选结果
+					Lyric.menubar(songsResult)
 					print("該当する歌詞はません")
 					return
 				end
-				Lyric.main()
-				return
 			end
-        end
+		end
 		-- 在菜单栏显示每次搜索的候选结果
 		Lyric.menubar(songsResult)
-		searchType = nil
 		if lyricurl then
 			print("歌詞を取得中...")
 			hs.http.asyncGet(lyricurl, nil, function(status,body,headers)
@@ -202,7 +204,7 @@ Lyric.search = function(keyword,saveFile)
 			print("該当する歌詞はません")
 		end
 		return lyricTable
-    end)
+	end)
 end
 
 -- 将歌词从json转变成table
@@ -278,20 +280,6 @@ end
 
 -- 显示歌词
 Lyric.show = function(lyricTable)
-	if lyricTable then
-		-- 歌词图层初始化
-		Lyric.setcanvas()
-		-- 设定计时器
-		lyricTimer = hs.timer.new(1, function()
-			a = lineNO
-			showLyric(a,lyricTable)
-			stayTime = stayTime or 0
-			b = stayTime + lyricTimeOffset
-			if lyricTimer and b > 0 then
-				lyricTimer:setNextTrigger(b)
-			end
-		end):start()
-	end
 	-- 歌词显示函数
 	showLyric = function(startline,lyricTable)
 		if not lyricTable then
@@ -348,6 +336,20 @@ Lyric.show = function(lyricTable)
 			c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
 			c_lyric["lyric"].frame.h = lyricSize.h
 		end
+	end
+	if lyricTable then
+		-- 歌词图层初始化
+		Lyric.setcanvas()
+		-- 设定计时器
+		lyricTimer = hs.timer.new(1, function()
+			a = lineNO
+			showLyric(a,lyricTable)
+			stayTime = stayTime or 0
+			b = stayTime + lyricTimeOffset
+			if lyricTimer and b > 0 then
+				lyricTimer:setNextTrigger(b)
+			end
+		end):start()
 	end
 end
 
@@ -447,7 +449,7 @@ Lyric.load = function(lyricfileName)
 	for _,file in pairs(alllyricFile) do
 		-- 不加载错误歌词
 		if file:find(_filename .. "_ERROR.lrc") then
-			print("歌詞が間違った")
+			print("歌詞が曲と合っていません")
 			lyricfileError = true
 			break
 		end
@@ -461,7 +463,7 @@ Lyric.load = function(lyricfileName)
 			lyricfileContent = _lrcfile:read("*a")
 			lyricfileExist = true
 			_lrcfile:close()
-			print("ローカル歌詞をロード中")
+			print("歌詞ファイルをロードしました")
 			break
 		end
     end
@@ -495,6 +497,7 @@ Lyric.delete = function()
 	os.remove(filepath)
 	local filepath_error = lyricPath .. _deletename .. "_ERROR.lrc"
 	os.remove(filepath_error)
+	print("歌詞ファイルを削除しました")
 end
 
 -- 歌词模块应用开关
@@ -540,7 +543,7 @@ Lyric.menubar = function(songs)
 	if not LyricBar then
 		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
 	end
-	menudata = {
+	menudata1 = {
 		{
 			title = lyricString.enable,
 			checked = lyricEnable,
@@ -573,7 +576,7 @@ Lyric.menubar = function(songs)
 					end,
 				},
 				{
-					title = "自建",
+					title = "自部署",
 					checked = lyricselfAPI,
 					fn = function()
 						lyric163API = lyricselfAPI
@@ -581,9 +584,11 @@ Lyric.menubar = function(songs)
 						Lyric.api(lyric163API)
 						Lyric.menubar()
 					end,
-				},
+				}
 			},
-		},
+		}
+	}
+	menudata2 = {
 		{
 			title = lyricString.error,
 			fn = Lyric.error,
@@ -594,9 +599,17 @@ Lyric.menubar = function(songs)
 				Lyric.delete()
 				Lyric.main()
 			end
-		},
-		{ title = "-" }
+		}
 	}
+	if not songs or saveFile then
+		for i,v in ipairs(menudata2) do
+			menudata = menudata1
+			table.insert(menudata, v)
+		end
+	else
+		menudata = menudata1
+	end
+	menudata[#menudata + 1] = { title = "-" }
 	if songs then
 		table.insert(menudata, { title = lyricString.search, disabled = true })
 		for s = 1, #songs, 1 do 
@@ -604,9 +617,8 @@ Lyric.menubar = function(songs)
 				item = { 
 					title = songs[s][i].name .. " - " .. songs[s][i].artists[1].name, 
 					fn = function()
-						song = i
-						id = songs[s][i].id
-						lyricTable = Lyric.search(keyword,save)
+						songID = songs[s][i].id
+						lyricTable = Lyric.search()
 						update = true
 						Lyric.show(lyricTable)
 					end
