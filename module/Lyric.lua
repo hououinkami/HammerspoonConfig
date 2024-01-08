@@ -25,19 +25,22 @@ Lyric.main = function()
 	end
 	-- 搜索的关键词
 	titleFormated = Music.title()
+	local specialStringinTitle = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
+	for i,v in ipairs(specialStringinTitle) do
+		titleFormated = titleFormated:gsub(v,"")
+	end
+	titleFormated:gsub("(.-)[%s]*$", "%1")-- 去除歌曲名末尾空格
 	if searchType == nil or searchType == "A" then
-		keyword = titleFormated .. " " .. Music.artist()
-	else
-		local specialStringinTitle = {"%(.*%)", "（.*）", " %- 「.*」", "「.*」", "OP$", "ED$", "feat%..*"} 
-		for i,v in ipairs(specialStringinTitle) do
-			titleFormated = titleFormated:gsub(v,"")
-		end
-		titleFormated:gsub("(.-)[%s]*$", "%1")--去除歌曲名末尾空格
-		if searchType == "B" then
+		keyword = Music.title() .. " " .. Music.artist()
+	elseif searchType == "B" then
+		if titleFormated ~= Music.title() then
 			keyword = titleFormated .. " " .. Music.artist()
-		elseif searchType == "C" then
+		else
+			searchType = "C"
 			keyword = titleFormated
 		end
+	elseif searchType == "C" then
+		keyword = titleFormated
 	end
 	-- 是否将存储歌词文件
 	save = Music.existinlibrary() or Music.loved()
@@ -102,21 +105,23 @@ Lyric.api(true)
 Lyric.search = function(keyword,saveFile)
 	-- 获取歌曲ID
 	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
-	print(keyword .. " の歌詞を検索中...")
+	if not song then
+		print(keyword .. " の歌詞を検索中...")
+	end
     hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
         if musicStatus == 200 then
 			-- 若无手动选择需要下载的歌词则自动匹配
 			if not song then
+				if not songsResult or not searchType then
+					songsResult = {}
+				end
 				musicinfo = hs.json.decode(musicBody)
 				similarity = 0
 				if not musicinfo.result then
 					return
 				end
 				if musicinfo.result.songs and #musicinfo.result.songs > 0 then
-					-- 在菜单栏显示首次搜索的候选结果
-					if searchType == nil or searchType == "A" then
-						Lyric.menubar(musicinfo.result.songs)
-					end
+					table.insert(songsResult, musicinfo.result.songs)
 					-- 处理特殊格式的歌手名称
 					local specialStringinArtist = {"%(.+%)","（.+）","feat%..*"}
 					for i,v in ipairs(specialStringinArtist) do
@@ -159,11 +164,7 @@ Lyric.search = function(keyword,saveFile)
 				id = nil
 			else
 				if searchType == nil or searchType == "A" then
-					if titleFormated ~= Music.title() then
-						searchType = "B"
-					else
-						searchType = "C"
-					end
+					searchType = "B"
 				elseif searchType == "B" then
 					searchType = "C"
 				elseif searchType == "C" then
@@ -175,6 +176,8 @@ Lyric.search = function(keyword,saveFile)
 				return
 			end
         end
+		-- 在菜单栏显示每次搜索的候选结果
+		Lyric.menubar(songsResult)
 		searchType = nil
 		if lyricurl then
 			print("歌詞を取得中...")
@@ -351,7 +354,7 @@ end
 -- 将歌词按照中英数分割方便设置不同字体
 Lyric.handleLyric = function(lyric)
 	local lyricObjTable = {}
-	if #lyric > 0 then
+	if lyric and #lyric > 0 then
 		local s_list = stringSplit2(lyric)
 		for i,v in ipairs(s_list) do
 			lyricStyled = hs.styledtext.new(v, {
@@ -596,18 +599,20 @@ Lyric.menubar = function(songs)
 	}
 	if songs then
 		table.insert(menudata, { title = lyricString.search, disabled = true })
-		for i = 1, #songs, 1 do
-			item = { 
-				title = songs[i].name .. " - " .. songs[i].artists[1].name, 
-				fn = function()
-					song = i
-					id = songs[i].id
-					lyricTable = Lyric.search(keyword,save)
-					update = true
-					Lyric.show(lyricTable)
-				end
-			}
-			table.insert(menudata, item)
+		for s = 1, #songs, 1 do 
+			for i = 1, #songs[s], 1 do
+				item = { 
+					title = songs[s][i].name .. " - " .. songs[s][i].artists[1].name, 
+					fn = function()
+						song = i
+						id = songs[s][i].id
+						lyricTable = Lyric.search(keyword,save)
+						update = true
+						Lyric.show(lyricTable)
+					end
+				}
+				table.insert(menudata, item)
+			end
 		end
 	end
 	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
