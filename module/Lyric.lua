@@ -5,7 +5,7 @@ require ('config.lyric')
 Lyric = {}
 -- 获取并显示歌词
 Lyric.main = function()
-	hide(c_lyric)
+	hide(c_lyric,0)
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
@@ -282,14 +282,17 @@ Lyric.search = function()
 							if lyricurl then
 								return
 							end
-						end
-						if not noLyric then
-							lyricOnline = Lyric.edit(lyric)
-							if saveFile then
-								Lyric.save(lyric,filename)
+						else
+							if currentAPI and apiNO ~= currentAPI then
+								Lyric.api(apiList[currentAPI])
+								currentAPI = nil
 							end
-							Lyric.main()
 						end
+						lyricOnline = Lyric.edit(lyric)
+						if saveFile then
+							Lyric.save(lyric,filename)
+						end
+						Lyric.main()
 					end
 				end
 			end)
@@ -306,7 +309,7 @@ Lyric.edit = function(lyric)
 		for l = 1, #lyricData, 1 do
 			-- 歌词黑名单替换为空行
 			for i,v in ipairs(blackList) do
-				if string.find(lyricData[l],"%]" .. v) then
+				if string.find(lyricData[l],"%][%s]*" .. v) then
 					lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
 					break
 				end
