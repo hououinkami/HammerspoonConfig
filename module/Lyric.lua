@@ -56,11 +56,15 @@ end
 
 -- 歌词搜索API选择
 Lyric.api = function(api)
+	apiList = {"163","QQ"}
 	idAPI = nil
 	lyricAPI = nil
-	local secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
-	if api == "163" then
-		apiName = "163"
+	if not secret then
+		secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
+	end
+	if api == apiList[1] then
+		apiNO = 1
+		apiName = "网易云音乐"
 		idAPI = "https://music.163.com/api/search/pc?limit=10&offset=0&type=1&s="
 		lyricAPI = "https://music.163.com/api/song/lyric?os=pc&lv=-1&kv=-1&tv=-1&id="
 		musicheaders = {
@@ -89,8 +93,9 @@ Lyric.api = function(api)
 		function trackLyric(lyricRaw)
 			return lyricRaw.lrc.lyric
 		end
-	elseif api == "QQ" then
-		apiName = "QQ"
+	elseif api == apiList[2] then
+		apiNO = 2
+		apiName = "QQ音乐"
 		idAPI = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key="
 		-- idAPI = "https://c.y.qq.com/soso/fcgi-bin/search_for_qq_cp/?format=json&p=1&n=1&remoteplace=txt.yqq.song&w="
 		lyricAPI = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&nobase64=1&songmid="
@@ -124,7 +129,8 @@ Lyric.api = function(api)
 			return lyricRaw.lyric
 		end
 	elseif api == "Self" then
-		apiName = "Self"
+		apiNO = "Self"
+		apiName = "自建API"
 		if secret then
 			require ('module.secret')
 			io.close(secret)
@@ -188,7 +194,8 @@ Lyric.search = function()
 		local specialStringinArtist = {"%(.+%)","（.+）","feat%..*"}
 		for i,v in ipairs(specialStringinArtist) do
 			if Music.artist():find(v) then
-				table.insert(searchArtist, Music.artist():gsub(v,""))
+				artistFormated = Music.artist():gsub(v,"")
+				table.insert(searchArtist, artistFormated)
 				if v:find("%.%+") then
 					v2 = v:gsub("%.%+","(.+)")
 					table.insert(searchArtist, Music.artist():match(v2))
@@ -210,7 +217,7 @@ Lyric.search = function()
 	-- 获取歌曲ID
 	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
 	if not songID then
-		print(keyword .. " の歌詞を検索中...")
+		print(apiName .. " で " .. keyword .. " の歌詞を検索中...")
 	end
 	hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
 		if musicStatus == 200 then
@@ -255,14 +262,10 @@ Lyric.search = function()
 				if keywordNO < #searchKeywords then
 					keywordNO = keywordNO + 1
 					Lyric.search()
-					return
 				else
-					print("該当する歌詞はません")
-					-- if apiName == "QQ" then
-					-- 	Lyric.api("163")
-					-- 	Lyric.search()
-					-- end
+					Lyric.nolyric()
 				end
+				return
 			end
 		end
 		-- 在菜单栏显示每次搜索的候选结果
@@ -274,20 +277,22 @@ Lyric.search = function()
 					local lyricRaw = hs.json.decode(body)
 					if getLyric(lyricRaw) then
 						local lyric = trackLyric(lyricRaw)
-						if string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
-							print("該当する歌詞はません")
-							return
+						if not lyric or string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
+							Lyric.nolyric()
+							if lyricurl then
+								return
+							end
 						end
-						lyricOnline = Lyric.edit(lyric)
-						if saveFile then
-							Lyric.save(lyric,filename)
+						if not noLyric then
+							lyricOnline = Lyric.edit(lyric)
+							if saveFile then
+								Lyric.save(lyric,filename)
+							end
+							Lyric.main()
 						end
-						Lyric.main()
 					end
 				end
 			end)
-		else
-			print("該当する歌詞はません")
 		end
 	end)
 end
@@ -309,7 +314,7 @@ Lyric.edit = function(lyric)
 			-- 只处理包含正确时间戳的歌词行
 			if string.find(lyricData[l],'%[%d+:%d+') then
 				local lyricLine = {}
-				line = lyricData[l]:gsub("%[",""):gsub("%]","`")
+				line = lyricData[l]:gsub("%[(%d+:)","%1"):gsub("(%d+)%]","%1`")
 				_line = stringSplit(line, "`")
 				if #_line == 1 then
 					table.insert(_line, "")
@@ -361,6 +366,27 @@ Lyric.edit = function(lyric)
 	-- 在最后插入空行方便处理
 	table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
 	return lyricTable
+end
+
+-- 无歌词时执行的函数
+Lyric.nolyric = function()
+	print("該当する歌詞はません")
+	if not currentAPI then
+		currentAPI = apiNO
+	end
+	if apiNO < #apiList then
+		newAPI = apiNO + 1
+	else
+		newAPI = apiNO - #apiList + 1
+	end
+	if newAPI == currentAPI then
+		Lyric.api(apiList[currentAPI])
+		currentAPI = nil
+	else
+		Lyric.api(apiList[newAPI])
+		Lyric.search()
+		return
+	end
 end
 
 -- 显示歌词
