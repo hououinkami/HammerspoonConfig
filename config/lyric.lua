@@ -33,7 +33,10 @@ lyricStrokeAlpha = 1
 lyricString = {
     enable = "歌詞モジュールの適用",
     show = "歌詞の表示",
-    search = "検索結果の候補",
+    search = {
+        "网易云音乐からの検索結果候補",
+        "QQ音乐からの検索結果候補",
+    },
     error = "歌詞をエラーとしてマーク",
     delete = "歌詞ファイルを削除して再検索",
     api = "歌詞検索のAPIを選択"
@@ -44,7 +47,10 @@ if not string.find(owner,"Kami") then
     lyricString = {
         enable = "启用歌词模块",
         show = "显示歌词",
-        search = "候选结果",
+        search = {
+            "来自网易云音乐的候选结果",
+            "来自QQ音乐的候选结果",
+        },
         error = "标记错误歌词",
         delete = "删除歌词文件并重新搜索",
         api = "选择歌词搜索API"
