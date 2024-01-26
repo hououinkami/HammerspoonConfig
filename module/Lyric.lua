@@ -780,6 +780,12 @@ Lyric.menubar = function(songs)
 		end
 	else
 		menudata = menudata1
+		if not songs then
+			menudata[#menudata + 1] = {
+				title = lyricString.error,
+				fn = Lyric.toggleShow,
+			}
+		end
 	end
 	menudata[#menudata + 1] = { title = "-" }
 	if songs then
