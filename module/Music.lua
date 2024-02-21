@@ -103,9 +103,10 @@ end
 function setmainmenu()
 	barframe = MusicBar:frame()
 	barframe.x = initialx - 36 - barframe.w
-	delete(c_mainmenu)
 	-- 框架尺寸
-	c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
+	if not c_mainmenu then
+		c_mainmenu = c.new({x = barframe.x, y = barframe.h + 5, h = artworksize.h + border.y * 2, w = smallsize}):level(c.windowLevels.cursor)
+	end
 	-- 菜单项目
 	c_mainmenu:replaceElements(
 		{-- 背景
@@ -138,13 +139,14 @@ function setmainmenu()
 	infosize = c_mainmenu:minimumTextSize(3, c_mainmenu["info"].text)
 	local defaultsize = infosize.w + artworksize.w + border.x * 2 + gap.x
 	if defaultsize < smallsize then
-		menuframe = {x = barframe.x, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = smallsize}
-	elseif defaultsize < screenFrame.w - barframe.x - 5 then
-		menuframe = {x = barframe.x, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = defaultsize}
-	elseif defaultsize > screenFrame.w - barframe.x - 5 and defaultsize < screenFrame.w -10 then
-		menuframe = {x = screenFrame.w - 5 - defaultsize, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = defaultsize}
-	elseif defaultsize > screenFrame.w - 10 then
-		menuframe = {x = screenFrame.x + 5, y = barframe.h + 5, h = artworksize.h + 2 * border.y, w = screenFrame.w - 10}
+		defaultsize = smallsize
+	end
+	menuframe = {x = barframe.x, y = barframe.h + gap.y / 2, h = artworksize.h + 2 * border.y, w = defaultsize}
+	if defaultsize > screenFrame.w - barframe.x - gap.x / 2 and defaultsize < screenFrame.w - gap.x then
+		menuframe.x = screenFrame.w - gap.x / 2 - defaultsize
+	elseif defaultsize > screenFrame.w - gap.x then
+		menuframe.x = screenFrame.x + gap.x / 2
+		menuframe.w = screenFrame.w - gap.x
 	end
 	c_mainmenu:frame(menuframe)
 	if infosize.w < 100 then
@@ -196,7 +198,6 @@ function setmainmenu()
 end
 -- 设置Apple Music悬浮菜单项目
 function setapplemusicmenu()
-	delete(c_applemusicmenu)
 	-- 喜爱
 	if Music.loved() then
 		lovedimage = img.imageFromPath(hs.configdir .. "/image/Loved.png"):setSize(imagesize, absolute == true)
@@ -205,32 +206,26 @@ function setapplemusicmenu()
 	end
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "applemusic" then
-		c_applemusicmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 3}):level(c_mainmenu:level() + 2)
-		c_applemusicmenu:replaceElements(
-			 {-- 喜爱
-				id = "loved",
-				frame = {x = 0, y = 0, h = imagesize.h, w = imagesize.w},
-				type = "image",
-				image = lovedimage,
-				imageScaling = "shrinkToFit",
-				imageAlignment = "left",
-				trackMouseUp = true
-			}
-			)
+		c_applemusicmenu_frame = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 3}
 	elseif Music.kind() == "matched" then
-		c_applemusicmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h, w = imagesize.w}):level(c_mainmenu:level() + 2)
-		c_applemusicmenu:replaceElements(
-			 {-- 喜爱
-				id = "loved",
-				frame = {x = 0, y = 0, h = imagesize.h, w = imagesize.w},
-				type = "image",
-				image = lovedimage,
-				imageScaling = "shrinkToFit",
-				imageAlignment = "left",
-				trackMouseUp = true
-			}
-			)
+		c_applemusicmenu_frame = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h, w = imagesize.w}
 	end
+	if not c_applemusicmenu then
+		c_applemusicmenu = c.new(c_applemusicmenu_frame):level(c_mainmenu:level() + 2)
+	else
+		c_applemusicmenu:frame(c_applemusicmenu_frame)
+	end
+	c_applemusicmenu:replaceElements(
+		{-- 喜爱
+			id = "loved",
+			frame = {x = 0, y = 0, h = imagesize.h, w = imagesize.w},
+			type = "image",
+			image = lovedimage,
+			imageScaling = "shrinkToFit",
+			imageAlignment = "left",
+			trackMouseUp = true
+		}
+	)
 	-- 鼠标行为
 	c_applemusicmenu:mouseCallback(function(canvas, event, id, x, y)
 		-- x,y为距离整个悬浮菜单边界的坐标
@@ -247,7 +242,6 @@ function setapplemusicmenu()
 end
 -- 设置本地音乐悬浮菜单项目
 function setlocalmusicmenu()
-	delete(c_localmusicmenu)
 	-- 生成菜单框架和菜单项目
 	if Music.kind() == "localmusic" then
 		localmusicmenuframe = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 5.7}
@@ -256,55 +250,58 @@ function setlocalmusicmenu()
 		localmusicmenuframe = {x = menuframe.x + border.x + artworksize.w + gap.x + imagesize.w, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 6.7}
 		rateframe = {x = imagesize.w * 0.2, y = 0, h = imagesize.h, w = imagesize.w * 5.5}
 	end
+	if not c_localmusicmenu then
 		c_localmusicmenu = c.new(localmusicmenuframe):level(c_mainmenu:level() + 1)
-		c_localmusicmenu:replaceElements(
-			{
-				id = "background",
-				type = "rectangle",
-				action = "fill",
-				fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
-				trackMouseUp = true
-			}, {
-				id = "rate",
-				frame = rateframe,
-				type = "image",
-				image = img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imagesize, absolute == true),
-				imageAlignment = "left",
-				trackMouseUp = true
-			}
-			)
-		-- 鼠标行为
-		c_localmusicmenu:mouseCallback(function(canvas, event, id, x, y)
-			-- x,y为距离整个悬浮菜单边界的坐标
-    		if id == "background" and event == "mouseUp" and y > imagesize.h and x > imagesize.w * 0.2 and x <  c_localmusicmenu["rate"].frame.w / 5 * 1 then
-    				Music.setrating(0)
-    				setlocalmusicmenu()
-    				c_localmusicmenu:orderAbove(c_mainmenu)
-       				show(c_localmusicmenu)
-    		end
-    		if id == "rate" and event == "mouseUp" then
-    			if  y < imagesize.h then
-    				if x > imagesize.w * 0.2 and x <  c_localmusicmenu["rate"].frame.w / 5 * 1 then
-    					Music.setrating(1)
-    				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 1 and x < c_localmusicmenu["rate"].frame.w / 5 * 2 then
-    					Music.setrating(2)
-    				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 2 and x < c_localmusicmenu["rate"].frame.w / 5 * 3 then
-    					Music.setrating(3)
-    				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 3 and x < c_localmusicmenu["rate"].frame.w / 5 * 4 then
-    					Music.setrating(4)
-    				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 4 and x < c_localmusicmenu["rate"].frame.w / 5 * 5 then
-    					Music.setrating(5)
-    				end
-    			end
-    			setlocalmusicmenu()
-    			c_localmusicmenu:orderAbove(c_mainmenu)
-       			show(c_localmusicmenu)
-   			end
-   		end)
+	else
+		c_localmusicmenu:frame(localmusicmenuframe)
+	end
+	c_localmusicmenu:replaceElements(
+		{
+			id = "background",
+			type = "rectangle",
+			action = "fill",
+			fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
+			trackMouseUp = true
+		}, {
+			id = "rate",
+			frame = rateframe,
+			type = "image",
+			image = img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imagesize, absolute == true),
+			imageAlignment = "left",
+			trackMouseUp = true
+		}
+	)
+	-- 鼠标行为
+	c_localmusicmenu:mouseCallback(function(canvas, event, id, x, y)
+		-- x,y为距离整个悬浮菜单边界的坐标
+		if id == "background" and event == "mouseUp" and y > imagesize.h and x > imagesize.w * 0.2 and x <  c_localmusicmenu["rate"].frame.w / 5 * 1 then
+				Music.setrating(0)
+				setlocalmusicmenu()
+				c_localmusicmenu:orderAbove(c_mainmenu)
+				show(c_localmusicmenu)
+		end
+		if id == "rate" and event == "mouseUp" then
+			if  y < imagesize.h then
+				if x > imagesize.w * 0.2 and x <  c_localmusicmenu["rate"].frame.w / 5 * 1 then
+					Music.setrating(1)
+				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 1 and x < c_localmusicmenu["rate"].frame.w / 5 * 2 then
+					Music.setrating(2)
+				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 2 and x < c_localmusicmenu["rate"].frame.w / 5 * 3 then
+					Music.setrating(3)
+				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 3 and x < c_localmusicmenu["rate"].frame.w / 5 * 4 then
+					Music.setrating(4)
+				elseif  x > c_localmusicmenu["rate"].frame.w / 5 * 4 and x < c_localmusicmenu["rate"].frame.w / 5 * 5 then
+					Music.setrating(5)
+				end
+			end
+			setlocalmusicmenu()
+			c_localmusicmenu:orderAbove(c_mainmenu)
+			show(c_localmusicmenu)
+		end
+	end)
 end
 -- 设置播放控制悬浮菜单项目
 function setcontrolmenu()
-	delete(c_controlmenu)
 	-- 随机菜单项目
 	if Music.shuffle() then
 		shuffleimage = img.imageFromPath(hs.configdir .. "/image/shuffle_on.png"):setSize(imagesize, absolute == true)
@@ -330,7 +327,12 @@ function setcontrolmenu()
 		addedimage = img.imageFromPath(hs.configdir .. "/image/add.png"):setSize(imagesize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
-	c_controlmenu = c.new({x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * (1 + 1.5 * 2)}):level(c_mainmenu:level() + 1)
+	c_controlmenu_frame = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h + imagesize.h + gap.y, h = imagesize.h, w = imagesize.w * (1 + 1.5 * 2)}
+	if not c_controlmenu then
+		c_controlmenu = c.new(c_controlmenu_frame):level(c_mainmenu:level() + 1)
+	else
+		c_controlmenu:frame(c_controlmenu_frame)
+	end
 	c_controlmenu:replaceElements(
 		 {
 			id = "shuffle",
@@ -387,7 +389,6 @@ function setcontrolmenu()
 end
 -- 播放列表悬浮菜单
 function setplaylistmenu()
-	delete(c_playlist)
 	-- 获取播放列表个数
 	local playlistcount = Music.tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
@@ -395,7 +396,11 @@ function setplaylistmenu()
 	-- 框架尺寸
 	controlmenuframe = c_controlmenu:frame()
 	playlistframe = {x = controlmenuframe.x + c_controlmenu["playlist"].frame.x + c_controlmenu["playlist"].frame.w / 2, y = controlmenuframe.y + c_controlmenu["playlist"].frame.y + c_controlmenu["playlist"].frame.h / 2, h = textsize * playlistcount, w = smallsize}
-	c_playlist = c.new(playlistframe):level(c_mainmenu:level() + 1)
+	if not c_playlist then
+		c_playlist = c.new(playlistframe):level(c_mainmenu:level() + 1)
+	else
+		c_playlist:frame(playlistframe)
+	end
 	-- 设置菜单宽度
 	local _,test,_ = as.applescript([[
 		tell application "Music"
@@ -520,34 +525,36 @@ function setplaylistmenu()
 end
 -- 设置进度条悬浮菜单
 function setprogresscanvas()
-	-- 生成悬浮进度条
-	delete(c_progress)
-	local per = 60 / 100
-	if Music.duration() > 0 then
-		musicDuration = Music.duration()
-	else
-		musicDuration = 300
+	-- 进度条更新函数
+	updateprogress = function()
+		if c_progress:frame().w and Music.currentposition() and Music.duration() then
+			progressElement.frame.w = c_progress:frame().w * Music.currentposition() / musicDuration
+			c_progress:replaceElements(progressElement)
+		end
 	end
-	c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
-	progressElement = {
-		id = "progress",
-    	type = "rectangle",
-    	roundedRectRadii = {xRadius = 2, yRadius = 2},
-    	frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / musicDuration},
-		fillColor = {alpha = progressAlpha, red = progressColor[1] / 255, green = progressColor[2] / 255, blue = progressColor[3] / 255},
-    	trackMouseUp = true
-	}
-	c_progress:appendElements(progressElement)
-	progressTimer = hs.timer.doWhile(function()
-		return c_progress:isShowing()
-		end, 
-		function()
-			if c_progress:frame().w and Music.currentposition() and Music.duration() then
-				progressElement.frame.w = c_progress:frame().w * Music.currentposition() / musicDuration
-				c_progress:replaceElements(progressElement):show()
-			end
-		end,
-		updatetime)
+	-- 生成悬浮进度条
+	if not c_progress then
+		per = 60 / 100
+		if Music.duration() > 0 then
+			musicDuration = Music.duration()
+		else
+			musicDuration = 300
+		end
+		c_progress = c.new({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2}):level(c_mainmenu:level() + 0)
+		progressElement = {
+			id = "progress",
+			type = "rectangle",
+			roundedRectRadii = {xRadius = 2, yRadius = 2},
+			frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentposition() / musicDuration},
+			fillColor = {alpha = progressAlpha, red = progressColor[1] / 255, green = progressColor[2] / 255, blue = progressColor[3] / 255},
+			trackMouseUp = true
+		}
+		c_progress:appendElements(progressElement)
+	else
+		c_progress:frame({x = menuframe.x + border.x, y = menuframe.y + border.y + artworksize.h + border.y * (1 - per) / 2, h = border.y * per, w = menuframe.w - border.x * 2})
+		updateprogress()
+	end
+	progressTimer = hs.timer.doWhile(function() return c_progress:isShowing() end, updateprogress, updatetime)
 	progressTimer:stop()
 end
 
@@ -575,6 +582,7 @@ function showall()
 	show(c_applemusicmenu,fadetime)
 	show(c_localmusicmenu,fadetime)
 	show(c_controlmenu,fadetime)
+	updateprogress()
 	show(c_progress,fadetime)
 end
 -- 判断鼠标指针是否处于悬浮菜单内
@@ -604,8 +612,6 @@ function setMenu()
 			end
 		else
 			setmainmenu()
-			c_applemusicmenu = nil
-			c_localmusicmenu = nil
 			if Music.kind() == "applemusic" then
 				setapplemusicmenu()
 			elseif Music.kind() == "localmusic" then
@@ -698,11 +704,6 @@ function MusicBarUpdate()
 		if Music.kind() == "connecting" then
 			settitle()
 			songkind = Music.kind()
-			c_mainmenu = nil
-			c_applemusicmenu = nil
-			c_localmusicmenu = nil
-			c_controlmenu = nil
-			c_progress = nil
 		---连接完成
 		elseif Music.title() ~= songtitle then
 			Lyric.main()
@@ -714,7 +715,16 @@ function MusicBarUpdate()
 			if c_mainmenu and c_mainmenu:isShowing() then
 				hideall()
 				setmainmenu()
-				setMenu()
+				if Music.kind() == "applemusic" then
+					setapplemusicmenu()
+				elseif Music.kind() == "localmusic" then
+					setlocalmusicmenu()
+				elseif Music.kind() == "matched" then
+					setapplemusicmenu()
+					setlocalmusicmenu()
+				end
+				setcontrolmenu()
+				setprogresscanvas()
 				deleteTimer(changeTimer)
 				changeTimer = delay(0.6, togglecanvas)
 			end
