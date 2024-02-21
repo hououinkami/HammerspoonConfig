@@ -377,6 +377,9 @@ Lyric.edit = function(lyric)
 				min = min - 60 * hour
 			end
 			sec = stringSplit(time, ":")[2] or 0
+			if tonumber(sec) > 59 then
+				sec = 59
+			end
 			minisec = stringSplit(time, ":")[3] or 0
 			v.time = hs.timer.seconds(hour .. ":" .. min .. ":" .. sec) + minisec / 1000
 		end
