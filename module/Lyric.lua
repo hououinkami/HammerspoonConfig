@@ -221,6 +221,9 @@ Lyric.search = function()
 		end
 	end
 	-- 获取歌曲ID
+	if not idAPI then
+		Lyric.api(lyricDefault)
+	end
 	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
 	if not songID then
 		print(apiName .. " で " .. keyword .. " の歌詞を検索中...")
