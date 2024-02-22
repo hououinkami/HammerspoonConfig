@@ -46,60 +46,35 @@ end
 --------**--------
 -- 按比例缩放当前窗口
 function pushCurrent(x, y, w, h)
-    local window = win.focusedWindow()
-	windowStash(window)
+	local this = windowMeta.new()
+	windowStash(this.window)
 	if type(x) == "number" then
-		pushWindow(window, x, y, w, h)
+		local frame = this.windowFrame
+		frame.x = this.screenFrame.x + (this.screenFrame.w * x)
+		frame.y = this.screenFrame.y + (this.screenFrame.h * y)
+		frame.w = this.screenFrame.w * w
+		frame.h = this.screenFrame.h * h
+		this.window:setFrame(frame)
 	elseif x == "fullscreen" then
-		window:toggleFullScreen()
+		this.window:toggleFullScreen()
 	elseif x == "center" then
-		window:centerOnScreen()
+		this.window:centerOnScreen()
 	end
-end
--- 按比例缩放指定窗口
-function pushWindow(window, x, y, w, h)
-    local frame = window:frame()
-    local screen = window:screen()
-    local max = screen:frame()
-    frame.x = max.x + (max.w * x)
-    frame.y = max.y + (max.h * y)
-    frame.w = max.w * w
-    frame.h = max.h * h
-    window:setFrame(frame)
 end
 -- 平滑调节窗口大小
 function resizeWindow(window, dir, step)
-	local frame = window:frame()
-    local screen = window:screen()
-    local max = screen:frame()
+	local this = windowMeta.new()
+	windowStash(this.window)
+	local frame = this.windowFrame
+    local max = this.screenFrame
 	if dir == "right" then
-		if frame.x + frame.w  < max.w then
-			frame.w = frame.w + step
-		else
-			frame.x = frame.x + step
-			frame.w = frame.w - step
-		end
+		frame.w = frame.w + step
 	elseif dir == "left" then
-		if frame.x + frame.w  < max.w then
-			frame.w = frame.w - step
-		else
-			frame.x = frame.x - step
-			frame.w = frame.w + step
-		end
+		frame.w = frame.w - step
 	elseif dir == "up" then
-		if frame.y + frame.h  < max.h then
-			frame.h = frame.h - step
-		else
-			frame.y = frame.y - step
-			frame.h = frame.h + step
-		end
+		frame.h = frame.h - step
 	elseif dir == "down" then
-		if frame.y + frame.h  < max.h then
-			frame.h = frame.h + step
-		else
-			frame.y = frame.y + step
-			frame.h = frame.h - step
-		end
+		frame.h = frame.h + step
 	end
 	if frame.x < max.x then
         frame.x = max.x
@@ -113,7 +88,7 @@ function resizeWindow(window, dir, step)
     if frame.h > max.h then
         frame.h = max.h
     end
-    window:setFrame(frame)
+    this.window:move(frame)
 end
 -- 撤销最近一次动作
 function Undo()
@@ -199,7 +174,6 @@ Resize.todown = function ()
 		this.window:moveOneScreenSouth()
 	end
 end
--- 
 Resize.right = function ()
 	local this = windowMeta.new()
 	windowStash(this.window)
@@ -251,54 +225,10 @@ windowsManagement(hyper_co, {
 	down = Resize.todown,
 }, false)
 windowsManagement(hyper_coc, {
-	left = function () 
-		local this = windowMeta.new()
-		if this.windowFrame.x > 0 then
-			if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
-				Resize.toleft()
-			else
-				Resize.left()
-			end
-		else
-			Resize.left()
-		end
-	end,
-	right = function () 
-		local this = windowMeta.new()
-		if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
-			if this.windowFrame.x > 0 then
-				Resize.toright()
-			else
-				Resize.right()
-			end
-		else
-			Resize.right()
-		end
-	end,
-	up = function () 
-		local this = windowMeta.new()
-		if this.windowFrame.y > 25 then
-			if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
-				Resize.toup()
-			else
-				Resize.up()
-			end
-		else
-			Resize.up()
-		end
-	end,
-	down = function () 
-		local this = windowMeta.new()
-		if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
-			if this.windowFrame.y > 25 then
-				Resize.todown()
-			else
-				Resize.down()
-			end
-		else
-			Resize.down()
-		end
-	end,
+	left = Resize.left,
+	right = Resize.right,
+	up = Resize.up,
+	down = Resize.down,
 	c = Resize.center,
 	delete = Resize.reset,
 }, true)
