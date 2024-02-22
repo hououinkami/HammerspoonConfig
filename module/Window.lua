@@ -47,7 +47,14 @@ end
 -- 按比例缩放当前窗口
 function pushCurrent(x, y, w, h)
     local window = win.focusedWindow()
-    pushWindow(window, x, y, w, h)
+	windowStash(window)
+	if type(x) == "number" then
+		pushWindow(window, x, y, w, h)
+	elseif x == "fullscreen" then
+		window:toggleFullScreen()
+	elseif x == "center" then
+		window:centerOnScreen()
+	end
 end
 -- 按比例缩放指定窗口
 function pushWindow(window, x, y, w, h)
@@ -126,74 +133,71 @@ end
 local Resize = {}
 -- 半屏
 Resize.halfleft = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	pushWindow(this.window, 0, 0, 1/2, 1)
-	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
+	pushCurrent(0, 0, 1/2, 1)
 end
 Resize.halfright = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	pushWindow(this.window, 1/2, 0, 1/2, 1)
-	--this.window:setFrame({ this.screenFrame.x+this.screenFrame.w / 2, this.screenFrame.y, this.screenFrame.w / 2, this.screenFrame.h })
+	pushCurrent(1/2, 0, 1/2, 1)
 end
 Resize.halfup = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	pushWindow(this.window, 0, 0, 1, 1/2)
-	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y, this.screenFrame.w, this.screenFrame.h / 2 })
+	pushCurrent(0, 0, 1, 1/2)
 end
 Resize.halfdown = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	pushWindow(this.window, 0, 1/2, 1, 1/2)
-	--this.window:setFrame({ this.screenFrame.x, this.screenFrame.y + this.screenFrame.h / 2, this.screenFrame.w, this.screenFrame.h / 2 })
+	pushCurrent(0, 1/2, 1, 1/2)
 end
 Resize.maximize = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	pushWindow(this.window, 0, 0, 1, 1)
-	--this.window:setFrame({ x = this.resolution.x, y = this.resolution.y, w = this.resolution.w, h = this.resolution.h})
+	pushCurrent(0, 0, 1, 1)
 end
 Resize.fullscreen = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:toggleFullScreen()
+	pushCurrent("fullscreen")
 end
 Resize.center = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:centerOnScreen()
+	pushCurrent("center")
 end
 Resize.reset = function ()
-	local this = windowMeta.new()
-	local thisid = this.window:id()
+	local currentWindow = win.focusedWindow()
+	local currentid = currentWindow:id()
 	for idx,val in ipairs(winhistory) do
-		if val[1] == thisid then
-			this.window:setFrame(val[2])
+		if val[1] == currentid then
+			currentWindow:setFrame(val[2])
 		end
 	end
 end
 -- 平移至贴近屏幕边缘
 Resize.toleft = function ()
 	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:move({ 0, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
+	if this.windowFrame.x > 0 then
+		windowStash(this.window)
+		this.window:move({ 0, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
+	else
+		this.window:moveOneScreenWest()
+	end
 end
 Resize.toright = function ()
 	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:move({ this.screenFrame.w - this.windowFrame.w, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
+	if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
+		windowStash(this.window)
+		this.window:move({ this.screenFrame.w - this.windowFrame.w, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
+	else
+		this.window:moveOneScreenEast()
+	end
 end
 Resize.toup = function ()
 	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:move({ this.windowFrame.x, 0, this.windowFrame.w, this.windowFrame.h })
+	if this.windowFrame.y > 0 then
+		windowStash(this.window)
+		this.window:move({ this.windowFrame.x, 0, this.windowFrame.w, this.windowFrame.h })
+	else
+		this.window:moveOneScreenNorth()
+	end
 end
 Resize.todown = function ()
 	local this = windowMeta.new()
-	windowStash(this.window)
-	this.window:move({ this.windowFrame.x, this.screenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h })
+	if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
+		windowStash(this.window)
+		this.window:move({ this.windowFrame.x, this.screenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h })
+	else
+		this.window:moveOneScreenSouth()
+	end
 end
 -- 
 Resize.right = function ()
