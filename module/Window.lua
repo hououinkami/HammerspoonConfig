@@ -314,9 +314,9 @@ function applicationWatcher(appName, eventType, appObject)
 			if appObject:focusedWindow() then
 				appObject:focusedWindow():move({ 810, 140, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 			end
-		elseif (appName == "") then
-			if appObject:focusedWindow() and appObject:focusedWindow():title() then
-				hs.osascript.applescript([[tell application "Music" to activate]])
+		elseif (appName == "Telegram") then
+			if appObject:focusedWindow() then
+				appObject:focusedWindow():move({ 20, 140, appObject:focusedWindow():frame().w, appObject:focusedWindow():frame().h })
 			end
 		elseif (appName == "") then
 			if appObject:focusedWindow() and appObject:focusedWindow():title() then
