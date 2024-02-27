@@ -300,8 +300,6 @@ Lyric.search = function()
 					local lyricRaw = hs.json.decode(body)
 					if getLyric(lyricRaw) then
 						local lyric = trackLyric(lyricRaw)
-						-- 特殊字符处理
-						local lyric = lyric:gsub("%&apos;","'")
 						if not lyric or string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
 							Lyric.nolyric()
 							if lyricurl then
@@ -313,6 +311,8 @@ Lyric.search = function()
 								currentAPI = nil
 							end
 						end
+						-- 特殊字符处理
+						local lyric = lyric:gsub("%&apos;","'")
 						lyricOnline = Lyric.edit(lyric)
 						if saveFile then
 							Lyric.save(lyric,filename)
