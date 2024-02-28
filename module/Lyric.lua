@@ -789,7 +789,7 @@ Lyric.menubar = function(songs)
 	else
 		menudata = menudata1
 		menudata[#menudata + 1] = {
-			title = lyricString.erroronline,
+			title = lyricString.error,
 			fn = Lyric.toggleShow,
 		}
 	end
