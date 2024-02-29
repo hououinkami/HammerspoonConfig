@@ -258,7 +258,7 @@ Lyric.search = function()
 		musicurl = idAPI .. hs.http.encodeForQuery(keyword)
 	else
 		musicurl = idAPI
-		musicbodies = musicbodies:gsub("KEWORDDECODE", keyword)
+		musicbodies = musicbodies:gsub("\"query\":\".*\",\"search_type\"", "\"query\":\"" .. keyword .. "\",\"search_type\"")
 	end
 	if not songID then
 		print(apiName .. " で " .. keyword .. " の歌詞を検索中...")
@@ -319,7 +319,6 @@ Lyric.search = function()
 					keywordNO = 1
 					Lyric.menubar(songsResult)
 					Lyric.nolyric()
-
 				end
 				return
 			end
