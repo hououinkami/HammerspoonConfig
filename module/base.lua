@@ -223,4 +223,13 @@ function getAllFiles(dir)
 	end
 	p:close()
 	return files
-  end
+end
+
+-- HTTP Method
+function httpRequest(method, url, header, body, fn)
+	if method == "GET" then
+		hs.http.asyncGet(url, header, fn)
+	elseif method == "POST" then
+		hs.http.asyncPost(url, body, header, fn)
+	end
+end

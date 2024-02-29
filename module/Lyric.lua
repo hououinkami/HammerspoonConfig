@@ -62,14 +62,76 @@ Lyric.api = function(api)
 	apiList = {
 		{
 			apiNO = 1,
+			apiTag = "QQ",
+			apiName = "QQ音乐",
+			apiMethod = "POST",
+			-- idAPI = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key=",
+			idAPI = "https://u.y.qq.com/cgi-bin/musicu.fcg",
+			lyricAPI = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&nobase64=1&songmid=",
+			musicbodies = hs.json.encode(
+				{
+					["music.search.SearchCgiService"]={
+						["method"]="DoSearchForQQMusicDesktop",
+						["module"]="music.search.SearchCgiService",
+						["param"]={
+							["num_per_page"]=1,
+							["page_num"]=1,
+							["query"]="KEWORDDECODE",
+							["search_type"]=0
+						}
+					}
+				}
+			),
+			musicheaders = {
+				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
+				["Referer"] = "https://c.y.qq.com"
+			},
+			lyricheaders = {
+				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
+				["Referer"] = "https://lyric.music.qq.com"
+			},
+			gettrackResult = function(musicinfo)
+				if apiMethod == "GET" then
+					return musicinfo.data.song
+				else
+					return musicinfo["music.search.SearchCgiService"].data.body.song
+				end
+			end,
+			gettrackList = function(trackResult)
+				if apiMethod == "GET" then
+					return trackResult.itemlist
+				else
+					return trackResult.list
+				end
+			end,
+			trackID = function(index)
+				return trackList[index].mid
+			end,
+			trackName = function(index)
+				return trackList[index].name
+			end,
+			trackArtist = function(index)
+				return trackList[index].singer[1].name
+			end,
+			getLyric = function(lyricRaw)
+				return lyricRaw
+			end,
+			trackLyric = function(lyricRaw)
+				return lyricRaw.lyric
+			end
+		},
+		{
+			apiNO = 2,
 			apiTag = "163",
 			apiName = "网易云音乐",
+			apiMethod = "GET",
 			idAPI = "https://music.163.com/api/search/pc?limit=10&offset=0&type=1&s=",
 			lyricAPI = "https://music.163.com/api/song/lyric?os=pc&lv=-1&kv=-1&tv=-1&id=",
 			musicheaders = {
 				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
 				["cookie"] = "NMTID=00OImW8FZYRLmd7XU5cuO6K8blcSucAAAGMoACXwQ"
 			},
+			musicbodies = nil,
 			lyricheaders = nil,
 			gettrackResult = function(musicinfo)
 				return musicinfo.result
@@ -92,43 +154,6 @@ Lyric.api = function(api)
 			trackLyric = function(lyricRaw)
 				return lyricRaw.lrc.lyric
 			end
-		},
-		{
-			apiNO = 2,
-			apiTag = "QQ",
-			apiName = "QQ音乐",
-			idAPI = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key=",
-			-- idAPI = "https://c.y.qq.com/soso/fcgi-bin/search_for_qq_cp/?format=json&p=1&n=1&remoteplace=txt.yqq.song&w=",
-			lyricAPI = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&nobase64=1&songmid=",
-			musicheaders = {
-				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
-				["Referer"] = "https://c.y.qq.com"
-			},
-			lyricheaders = {
-				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
-				["Referer"] = "https://lyric.music.qq.com"
-			},
-			gettrackResult = function(musicinfo)
-				return musicinfo.data.song
-			end,
-			gettrackList = function(trackResult)
-				return trackResult.itemlist
-			end,
-			trackID = function(index)
-				return trackList[index].mid
-			end,
-			trackName = function(index)
-				return trackList[index].name
-			end,
-			trackArtist = function(index)
-				return trackList[index].singer
-			end,
-			getLyric = function(lyricRaw)
-				return lyricRaw
-			end,
-			trackLyric = function(lyricRaw)
-				return lyricRaw.lyric
-			end
 		}
 	}
 	for a = 1, #apiList, 1 do
@@ -136,9 +161,11 @@ Lyric.api = function(api)
 			apiNO = apiList[a].apiNO
 			apiTag = apiList[a].apiTag
 			apiName = apiList[a].apiName
+			apiMethod = apiList[a].apiMethod
 			idAPI = apiList[a].idAPI
 			lyricAPI = apiList[a].lyricAPI
 			musicheaders = apiList[a].musicheaders
+			musicbodies = apiList[a].musicbodies
 			lyricheaders = apiList[a].lyricheaders
 			gettrackResult = apiList[a].gettrackResult
 			gettrackList = apiList[a].gettrackList
@@ -154,6 +181,7 @@ Lyric.api = function(api)
 			apiNO = 99
 			apiTag = "Self"
 			apiName = "自建API"
+			apiMethod = "GET"
 			if not secret then
 				secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
 			end
@@ -224,11 +252,16 @@ Lyric.search = function()
 	if not idAPI then
 		Lyric.api(lyricDefault)
 	end
-	local musicurl = idAPI .. hs.http.encodeForQuery(keyword)
+	if apiMethod == "GET" then
+		musicurl = idAPI .. hs.http.encodeForQuery(keyword)
+	else
+		musicurl = idAPI
+		musicbodies = musicbodies:gsub("KEWORDDECODE", keyword)
+	end
 	if not songID then
 		print(apiName .. " で " .. keyword .. " の歌詞を検索中...")
 	end
-	hs.http.asyncGet(musicurl, musicheaders, function(musicStatus,musicBody,musicHeader)
+	httpGetID = function(musicStatus,musicBody,musicHeader)
 		if musicStatus == 200 then
 			-- 若无手动选择需要下载的歌词则自动匹配
 			if not songID then
@@ -295,7 +328,7 @@ Lyric.search = function()
 		end
 		if lyricurl then
 			print("歌詞を取得中...")
-			hs.http.asyncGet(lyricurl, lyricheaders, function(status,body,headers)
+			httpGetLyric = function(status,body,headers)
 				if status == 200 then
 					local lyricRaw = hs.json.decode(body)
 					if getLyric(lyricRaw) then
@@ -320,9 +353,11 @@ Lyric.search = function()
 						Lyric.main()
 					end
 				end
-			end)
+			end
+			httpRequest("GET", lyricurl, lyricheaders, nil, httpGetLyric)
 		end
-	end)
+	end
+	httpRequest(apiMethod, musicurl, musicheaders, musicbodies, httpGetID)
 end
 
 -- 将歌词从json转变成table
@@ -721,21 +756,6 @@ Lyric.menubar = function(songs)
 			title = lyricString.api,
 			menu = {
 				{
-					title = "网易云音乐",
-					checked = lyricAPIs.API163,
-					fn = function()
-						if not lyricAPIs.API163 then
-							for i,v in pairs(lyricAPIs) do
-								lyricAPIs[i] = false
-							end
-							lyricAPIs.API163 = true
-							Lyric.api("163")
-							Lyric.menubar()
-							Lyric.search()
-						end
-					end,
-				},
-				{
 					title = "QQ音乐",
 					checked = lyricAPIs.APIQQ,
 					fn = function()
@@ -745,6 +765,21 @@ Lyric.menubar = function(songs)
 							end
 							lyricAPIs.APIQQ = true
 							Lyric.api("QQ")
+							Lyric.menubar()
+							Lyric.search()
+						end
+					end,
+				},
+				{
+					title = "网易云音乐",
+					checked = lyricAPIs.API163,
+					fn = function()
+						if not lyricAPIs.API163 then
+							for i,v in pairs(lyricAPIs) do
+								lyricAPIs[i] = false
+							end
+							lyricAPIs.API163 = true
+							Lyric.api("163")
 							Lyric.menubar()
 							Lyric.search()
 						end
