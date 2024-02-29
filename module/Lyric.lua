@@ -5,6 +5,9 @@ require ('config.lyric')
 Lyric = {}
 -- 获取并显示歌词
 Lyric.main = function()
+	if c_lyric then
+		c_lyric["lyric"].text = Lyric.handleLyric("")
+	end
 	hide(c_lyric,0)
 	songsResult = {}
 	-- 若没有联网则不搜寻歌词
@@ -18,9 +21,6 @@ Lyric.main = function()
 	lyricTable = nil
 	lyrictext = ""
 	lineNO = 1
-	if c_lyric then
-		c_lyric["lyric"].text = Lyric.handleLyric("")
-	end
 	if lyricTimer then
 		lyricTimer:stop()
 	end
