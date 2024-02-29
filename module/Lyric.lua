@@ -94,7 +94,9 @@ Lyric.api = function(api)
 				if apiMethod == "GET" then
 					return musicinfo.data.song
 				else
-					return musicinfo["music.search.SearchCgiService"].data.body.song
+					if musicinfo["music.search.SearchCgiService"] then
+						return musicinfo["music.search.SearchCgiService"].data.body.song
+					end
 				end
 			end,
 			gettrackList = function(trackResult)
