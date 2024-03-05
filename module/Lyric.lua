@@ -100,10 +100,12 @@ Lyric.api = function(api)
 				end
 			end,
 			gettrackList = function(trackResult)
-				if apiMethod == "GET" then
-					return trackResult.itemlist
-				else
-					return trackResult.list
+				if trackResult then
+					if apiMethod == "GET" then
+						return trackResult.itemlist
+					else
+						return trackResult.list
+					end
 				end
 			end,
 			trackID = function(index)
@@ -139,7 +141,9 @@ Lyric.api = function(api)
 				return musicinfo.result
 			end,
 			gettrackList = function(trackResult)
-				return trackResult.songs
+				if trackResult then
+					return trackResult.songs
+				end
 			end,
 			trackID = function(index)
 				return trackList[index].id
