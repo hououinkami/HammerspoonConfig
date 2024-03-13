@@ -354,7 +354,7 @@ function applicationWatcher(appName, eventType, appObject)
   	end
 end
 -- 查看当前激活窗口的App路径及名称
-hs.hotkey.bind(hyper_coc, ".", function()
+hotkey.bind(hyper_coc, ".", function()
 	hs.pasteboard.setContents(win.focusedWindow():application():path())
 	hs.alert.show(
 		"App Path:        "
