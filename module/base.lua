@@ -233,3 +233,17 @@ function httpRequest(method, url, header, body, fn)
 		hs.http.asyncPost(url, body, header, fn)
 	end
 end
+
+-- 音量调整
+function setVolume(method, step)
+	if not step then
+		step = 1
+	end
+	local setVolumeScript = "set volume output volume "
+	local _,currentVolume,_ = as.applescript([[(get volume settings)'s output volume]])
+	if method == "up" then
+		as.applescript(setVolumeScript .. currentVolume + step)
+	elseif method == "down" then
+		as.applescript(setVolumeScript .. currentVolume - step)
+	end
+end
