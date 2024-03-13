@@ -79,6 +79,14 @@ Music.toggledisliked = function ()
 		end tell
 	]])
 end
+-- 下一首
+Music.next = function ()
+	Music.tell('next track')
+end
+-- 上一首
+Music.previous = function ()
+	Music.tell('previous track')
+end
 -- 歌曲种类
 Music.kind = function()
 	local kind = Music.tell('kind of current track')
