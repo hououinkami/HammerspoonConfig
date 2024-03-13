@@ -5,24 +5,21 @@ require ('config.lyric')
 Lyric = {}
 -- 获取并显示歌词
 Lyric.main = function()
-	if c_lyric then
-		c_lyric["lyric"].text = Lyric.handleLyric("")
-	end
+	-- 初始化
 	hide(c_lyric,0)
+    lyricurl = nil
+	lyricTable = nil
+	lyrictext = ""
+	lineNO = 1
 	songsResult = {}
+	if lyricTimer then
+		lyricTimer:stop()
+	end
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
 		print("歌詞の検索ができません、ネットワークの接続を確認してください。")
 		return
-	end
-	-- 初始化
-    lyricurl = nil
-	lyricTable = nil
-	lyrictext = ""
-	lineNO = 1
-	if lyricTimer then
-		lyricTimer:stop()
 	end
 	-- 是否存储歌词文件
 	filename = Music.title() ..  " - " .. Music.artist()
