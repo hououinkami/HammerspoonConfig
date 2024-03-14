@@ -25,6 +25,7 @@ hyper_cc = {'⌘⌃'}
 hyper_cmd = {'⌘'}
 hyper_ctrl = {'⌃'}
 hyper_opt = {'⌥'}
+hyper_shift = {'⇧'}
 -- Hammerspoon快捷键
 hotkey.bind(hyper_ccs, "r", hs.reload)
 hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
