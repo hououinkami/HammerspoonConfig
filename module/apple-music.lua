@@ -79,6 +79,10 @@ Music.toggledisliked = function ()
 		end tell
 	]])
 end
+-- 切换播放状态
+Music.toggleplay = function ()
+	Music.tell('playpause')
+end
 -- 下一首
 Music.next = function ()
 	Music.tell('next track')

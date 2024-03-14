@@ -753,6 +753,7 @@ end
 Switch = hs.timer.new(1, MusicBarUpdate)
 Switch:start()
 -- 快捷键
+hotkey.bind(hyper_shift, 'return', Music.toggleplay)
 hotkey.bind(hyper_opt, 'right', Music.next)
 hotkey.bind(hyper_opt, 'left', Music.previous)
 hotkey.bind(hyper_opt, 'up', function() setVolume("up") end, nil, function() setVolume("up") end)
