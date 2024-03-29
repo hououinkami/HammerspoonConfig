@@ -243,7 +243,7 @@ windowsManagement(hyper_cos, {
 
 --------**--------
 -- App自动窗口布局
---------**--------　
+--------**--------
 -- 自定义App窗口布局
 local layouts = {
 	{
@@ -373,5 +373,5 @@ hotkey.bind(hyper_coc, ".", function()
 		..win.focusedWindow():application():bundleID()
 	)
 end)
-appWatcherForresize = app.watcher.new(applicationWatcher)
-appWatcherForresize:start()
+-- appWatcherForresize = app.watcher.new(applicationWatcher)
+-- appWatcherForresize:start()
