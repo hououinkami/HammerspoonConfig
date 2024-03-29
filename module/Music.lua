@@ -11,89 +11,40 @@ function settitle(quitMark)
 		initialx = MusicBar:frame().x
 		firstIcon = initialx - 36
 	end
-	c_menubar = c.new({x = 0, y = 0, h = menubarHeight, w = 100})
+	-- 定义菜单栏文本
+	local maxLen = 500
+	if quitMark == "quit" then
+		menubarIcon = playIcon
+		menubarTitle = ClicktoRun
+	elseif Music.state() == "playing" then
+		menubarIcon = playIcon
+		if Music.title() == connectingFile then
+			menubarTitle = connectingFile
+		else
+			menubarTitle = Music.title() .. gaptext .. Music.artist()
+		end
+	elseif Music.state() == "paused" or Music.title() ~= " " then
+		menubarIcon = pauseIcon
+		menubarTitle = Music.title() .. gaptext .. Music.artist()
+	elseif Music.state() == "stopped" then
+		menubarIcon = stopIcon
+		menubarTitle = Stopped
+	end
+	titleShown = menubarIcon .. '  ' .. menubarTitle
 	-- Music退出时避免触发打开
 	if quitMark == "quit" then
-		c_menubar:appendElements(
-		{
-			id = "typeD",
-			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
-			type = "text",
-			text = '♫ ' .. ClicktoRun,
-			textSize = 14
-		}
-		)
-		titlesizeD = c_menubar:minimumTextSize(1, c_menubar["typeD"].text)
-		delete(c_menubar)
-		maxlen = firstIcon - getMenu()
-		if titlesizeD.w < maxlen then
-			MusicBar:setTitle('♫ ' .. ClicktoRun)
-		else
-			MusicBar:setTitle('♫')
-		end
+		MusicBar:setTitle(titleShown)
 		return
 	end
-	-- 菜单栏标题长度
-	if Music.state() == "playing" or Music.state() == "paused" then
-		c_menubar:appendElements(
-		{
-			id = "typeA",
-			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
-			type = "text",
-			text = '♫ ' .. Music.title() .. gaptext .. Music.artist(),
-			textSize = 14
-		},
-		{
-			id = "typeB",
-			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
-			type = "text",
-			text = '♫ ' .. Music.title(),
-			textSize = 14
-		}
-		)
-		titlesizeA = c_menubar:minimumTextSize(1, c_menubar["typeA"].text)
-		titlesizeB = c_menubar:minimumTextSize(2, c_menubar["typeB"].text)
-	elseif Music.state() == "stopped" then
-		c_menubar:appendElements(
-		{
-			id = "typeC",
-			frame = {x = border.x + artworksize.w + gap.x, y = border.y, h = artworksize.h, w = 100},
-			type = "text",
-			text = '◼ ' .. Stopped,
-			textSize = 14
-		}
-		)
-		titlesizeC = c_menubar:minimumTextSize(1, c_menubar["typeC"].text)		
-	end
-	delete(c_menubar)
-	maxlen = firstIcon - getMenu()
-	if Music.state() == "playing" then
-		if Music.title() == connectingFile then
-			MusicBar:setTitle('♫ ' .. connectingFile)
+	-- 根据预设宽度确定显示的文本内容
+	if countWords(titleShown) * 13 > maxLen then
+		if countWords(menubarIcon .. ' ' .. Music.title()) < maxLen then
+			titleShown = menubarIcon .. ' ' .. Music.title()
 		else
-			if titlesizeA.w < maxlen then
-				MusicBar:setTitle('♫ ' .. Music.title() .. gaptext .. Music.artist())
-			elseif titlesizeB.w < maxlen then
-				MusicBar:setTitle('♫ ' .. Music.title())
-			else
-				MusicBar:setTitle('♫')
-			end
-		end
-	elseif Music.state() == "paused" then
-		if titlesizeA.w < maxlen then
-			MusicBar:setTitle('❙ ❙ ' .. Music.title() .. gaptext .. Music.artist())
-		elseif titlesizeB.w < maxlen then
-			MusicBar:setTitle('❙ ❙ ' .. Music.title())
-		else
-			MusicBar:setTitle('❙ ❙ ')
-		end
-	elseif Music.state() == "stopped" then
-		if titlesizeC.w < maxlen then
-			MusicBar:setTitle('◼ ' .. Stopped)
-		else
-			MusicBar:setTitle('◼')
+			titleShown = menubarIcon
 		end
 	end
+	MusicBar:setTitle(titleShown)
 end
 
 --
@@ -210,6 +161,7 @@ function setapplemusicmenu()
 	elseif Music.kind() == "matched" then
 		c_applemusicmenu_frame = {x = menuframe.x + border.x + artworksize.w + gap.x, y = menuframe.y + border.y + infosize.h, h = imagesize.h, w = imagesize.w}
 	end
+	delete(c_localmusicmenu)
 	if not c_applemusicmenu then
 		c_applemusicmenu = c.new(c_applemusicmenu_frame):level(c_mainmenu:level() + 2)
 	else
@@ -249,6 +201,9 @@ function setlocalmusicmenu()
 	elseif Music.kind() == "matched" then
 		localmusicmenuframe = {x = menuframe.x + border.x + artworksize.w + gap.x + imagesize.w, y = menuframe.y + border.y + infosize.h, h = imagesize.h + gap.y, w = imagesize.w * 6.7}
 		rateframe = {x = imagesize.w * 0.2, y = 0, h = imagesize.h, w = imagesize.w * 5.5}
+	end
+	if Music.kind() ~= "matched" then
+		delete(c_applemusicmenu)
 	end
 	if not c_localmusicmenu then
 		c_localmusicmenu = c.new(localmusicmenuframe):level(c_mainmenu:level() + 1)
@@ -683,14 +638,9 @@ function MusicBarUpdate()
 	if Music.state() ~= musicstate then
 		musicstate = Music.state()
 		settitle()
-		if Music.state() == "playing" then
+		if Music.state() == "playing" or Music.state() == "paused" then
 			setMenu()
 		end
-	end
-	-- 若菜单栏空白宽度有变更则触发更新
-	if firstIcon - getMenu() ~= maxlen then
-		maxlen = firstIcon - getMenu()
-		settitle()
 	end
 	-- 若切换Space则隐藏
 	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
@@ -699,17 +649,15 @@ function MusicBarUpdate()
 	end
 	-- 正常情况下的更新
 	if Music.state() == "playing" or Music.state() == "paused" then
-		--若更换了曲目
-		---连接中
+		-- 若连接中
 		if Music.kind() == "connecting" then
 			settitle()
-			songkind = Music.kind()
-		---连接完成
+		-- 若更换了曲目
 		elseif Music.title() ~= songtitle then
-			Lyric.main()
 			Music.saveartwork()
 			songtitle = Music.title()
-			settitle()	
+			settitle()
+			Lyric.main()
 			setMenu()
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainmenu and c_mainmenu:isShowing() then
@@ -729,13 +677,6 @@ function MusicBarUpdate()
 				changeTimer = delay(0.6, togglecanvas)
 			end
 		end
-		timeleft = Music.duration() - Music.currentposition()
-		if Switch:nextTrigger() < 1 then
-			Switch:setNextTrigger(1)
-		end
-		if timeleft < 1 then
-			Switch:setNextTrigger(timeleft)
-		end
 	else
 		progressTimer = nil
 	end
@@ -754,7 +695,19 @@ Switch = hs.timer.new(1, MusicBarUpdate)
 Switch:start()
 -- 快捷键
 hotkey.bind(hyper_shift, 'return', Music.toggleplay)
-hotkey.bind(hyper_opt, 'right', Music.next)
-hotkey.bind(hyper_opt, 'left', Music.previous)
+hotkey.bind(hyper_opt, 'right', function()
+	if hs.spotify.isPlaying() then
+		hs.spotify.next()
+	else
+		Music.next()
+	end
+end)
+hotkey.bind(hyper_opt, 'left', function()
+	if hs.spotify.isPlaying() then
+		hs.spotify.previous()
+	else
+		Music.previous()
+	end
+end)
 hotkey.bind(hyper_opt, 'up', function() setVolume("up") end, nil, function() setVolume("up") end)
 hotkey.bind(hyper_opt, 'down', function() setVolume("down") end, nil, function() setVolume("down") end)
