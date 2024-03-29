@@ -9,6 +9,7 @@ Lyric.main = function()
 	hide(c_lyric,0)
     lyricurl = nil
 	lyricTable = nil
+	currentLyric = nil
 	lyrictext = ""
 	lineNO = 1
 	songsResult = {}
