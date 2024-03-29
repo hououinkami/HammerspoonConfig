@@ -1,6 +1,12 @@
 ---------------------
 -- Music菜单栏设置项
 ---------------------
+-- 播放中图标
+playIcon = '♫'
+-- 暂停图标
+pauseIcon = '❙ ❙'
+-- 停止图标
+stopIcon = '◼'
 -- 菜单栏标题的间隔字符
 gaptext = "｜"
 -- 淡入淡出时间
@@ -72,6 +78,7 @@ if string.find(owner,"Kami") or string.find(owner,"カミ") then
 	streamingFile = "インターネットオーディオストリーム"
 	genius = "Genius"
 	unknowTitle = "未知"
+	station = "ステーション"
 -- Edit here for other languages!
 else
 	MusicApp = "音乐"
@@ -83,4 +90,5 @@ else
 	streamingFile = "互联网音频流"
 	genius = "妙选"
 	unknowTitle = "未知"
+	station = "电台"
 end
