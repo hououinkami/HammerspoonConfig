@@ -114,5 +114,5 @@ function applicationWatcher(appName, eventType, appObject)
 		updateFocusAppInputMethod()
 	end
 end
-appWatcher = hs.application.watcher.new(applicationWatcher)
+-- appWatcher = hs.application.watcher.new(applicationWatcher)
 -- appWatcher:start()
