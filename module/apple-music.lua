@@ -97,18 +97,18 @@ Music.kind = function()
 	local cloudstatus = Music.tell('cloud status of current track as string')
 	local class = Music.tell('class of current track as string')
 	if kind ~= nil then
-		--若为本地曲目
-		if (string.find(kind, localFile) and string.find(kind, "Apple Music") == nil) and cloudstatus ~= "matched" then
-			musictype = "localmusic"
+		-- 若为匹配Apple Music的本地歌曲
+		if cloudstatus == "matched" then
+			musictype = "matched"
 		-- 若Apple Μsic连接中
-		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),unknowTitle) or string.find(Music.artist(),genius) or string.find(kind, streamingFile) then
+		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),unknowTitle) or string.find(Music.artist(),genius) or string.find(kind, streamingFile) or string.find(Music.title(),station) then
 			musictype = "connecting"
 		-- 若为Apple Music
 		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then
 			musictype = "applemusic"
-		-- 若为匹配Apple Music的本地歌曲
-		elseif cloudstatus == "matched" then
-			musictype = "matched"
+		--若为本地曲目
+		elseif string.find(kind, localFile) then
+			musictype = "localmusic"
 		end
 	end
 	return musictype
