@@ -61,6 +61,15 @@ function stringSplit2(s)
     return s_list
 end
 
+-- 获取文本字数
+function countWords(str)
+    local count = 0
+    for word in str:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        count = count + 1
+    end
+    return count
+end
+
 -- 比较字符串相似度
 function compareString(strA, strB)
 	strA = stringSplit(string.lower(strA))
