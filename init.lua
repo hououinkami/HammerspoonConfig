@@ -44,14 +44,14 @@ end
 -- 组件加载管理
 local owner = hs.host.localizedName()
 local module_list = {
-	"Network",
 	"Music",
 	"Window",
 	"Space",
-	"Spotlightlike",
+	-- "Spotlightlike",
 	"IME",
-	"AppKeyMap",	
-	"Hotkey",	
+	"Hotkey",
+	-- "Network",
+	-- "AppKeyMap",	
 	-- "DesktopWidget",
 	-- "test",
 }
