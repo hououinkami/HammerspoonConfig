@@ -40,7 +40,7 @@ Lyric.main = function()
 		if lyricfileExist then
 			Lyric.menubar()
 			lyricTable = Lyric.edit(lyricfileContent)
-			if not Music.existinlibrary() and not Music.loved() then
+			if not Music.existInLibrary() and not Music.loved() then
 				Lyric.delete()
 			end
 		else
@@ -208,7 +208,7 @@ Lyric.api(lyricDefault)
 -- 搜索歌词并保存
 Lyric.search = function()
 	if keywordNO == 1 then
-		saveFile = Music.existinlibrary() or Music.loved()
+		saveFile = Music.existInLibrary() or Music.loved()
 		-- 搜索的关键词
 		searchKeywords = {Music.title() .. " " .. Music.artist(), Music.title()}
 		searchTitle = {Music.title(), Music.title()}
@@ -470,7 +470,7 @@ Lyric.show = function(lyricTable)
 			return
 		end
 		-- 歌词定位
-		local currentPosition = Music.currentposition() - lyricTimeOffset
+		local currentPosition = Music.currentPosition() - lyricTimeOffset
 		for l = startline, #lyricTable - 1 , 1 do
 			-- 快进或快退时从第一行开始重新定位
 			if currentPosition < lyricTable[l].time or currentPosition > lyricTable[l+1].time then
