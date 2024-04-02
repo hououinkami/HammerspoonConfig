@@ -47,7 +47,7 @@ local module_list = {
 	"Music",
 	"Window",
 	"Space",
-	-- "Spotlightlike",
+	"Spotlightlike",
 	"IME",
 	"Hotkey",
 	-- "Network",
