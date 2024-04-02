@@ -2,7 +2,7 @@ require ('module.base')
 Music = {}
 -- 调用AppleScript模块
 Music.tell = function (cmd)
-	if quit or not Music.checkrunning() then
+	if quit or not Music.checkRunning() then
 		return nil
 	end
 	local _cmd = 'tell application "Music" to ' .. cmd
@@ -30,9 +30,9 @@ Music.duration = function()
 	local duration = Music.tell('finish of current track') or 1
 	return duration
 end
-Music.currentposition = function()
-	local currentposition = Music.tell('player position') or 0
-	return currentposition
+Music.currentPosition = function()
+	local currentPosition = Music.tell('player position') or 0
+	return currentPosition
 end
 Music.loved = function ()
 	return Music.tell('loved of current track')
@@ -52,11 +52,11 @@ Music.shuffle = function ()
 	return Music.tell('shuffle enabled')
 end
 -- 星级评价
-Music.setrating = function (rating)
+Music.setRating = function (rating)
 	Music.tell('set rating of current track to ' .. rating * 20)
 end
 -- 标记为喜爱
-Music.toggleloved = function ()
+Music.toggleLoved = function ()
 	as.applescript([[
 		tell application "Music"
 			if loved of current track is false then
@@ -68,7 +68,7 @@ Music.toggleloved = function ()
 	]])
 end
 -- 标记为不喜欢
-Music.toggledisliked = function ()
+Music.toggleDisliked = function ()
 	as.applescript([[
 		tell application "Music"
 			if disliked of current track is false then
@@ -80,7 +80,7 @@ Music.toggledisliked = function ()
 	]])
 end
 -- 切换播放状态
-Music.toggleplay = function ()
+Music.togglePlay = function ()
 	Music.tell('playpause')
 end
 -- 下一首
@@ -118,13 +118,13 @@ Music.volume = function (volumeValue)
 	Music.tell('set sound volume to ' .. volumeValue)
 end
 -- 检测Music是否在运行
-Music.checkrunning = function()
+Music.checkRunning = function()
 	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
 	return isrunning
 end
 -- 检测播放状态
 Music.state = function ()
-	if Music.checkrunning() == true then
+	if Music.checkRunning() == true then
 		return Music.tell('player state as string')
 	else
 		return "norunning"
@@ -140,7 +140,7 @@ Music.locate = function ()
 	]])
 end
 -- 切换随机模式
-Music.toggleshuffle = function ()
+Music.toggleShuffle = function ()
 	if Music.shuffle() == false then
 		Music.tell("set shuffle enabled to true")
 	else
@@ -148,7 +148,7 @@ Music.toggleshuffle = function ()
 	end
 end
 -- 切换重复模式
-Music.toggleloop = function ()
+Music.toggleLoop = function ()
 	if Music.loop() == "all" then
 		Music.tell('set song repeat to one')
 	elseif Music.loop() == "one" then
@@ -158,7 +158,7 @@ Music.toggleloop = function ()
 	end
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
-Music.existinlibrary = function ()
+Music.existInLibrary = function ()
 	local existinlibraryScript = [[
 		tell application "Music"
 			set a to current track's name
@@ -170,7 +170,7 @@ Music.existinlibrary = function ()
 	return existinlibrary
 end
 -- 将Apple Music曲目添加到本地曲库
-Music.addtolibrary = function()
+Music.addToLibrary = function()
 	local addtolibraryScript = [[
 		tell application "Music"
 			try
@@ -185,7 +185,7 @@ Music.addtolibrary = function()
 	end
 end
 -- 判断Apple Music曲目是否存在于播放列表中
-Music.existinplaylist = function (playlistname)
+Music.existInPlaylist = function (playlistname)
 	local existinscript = [[
 		tell application "Music"
 			set trackName to current track's name
@@ -197,7 +197,7 @@ Music.existinplaylist = function (playlistname)
 	return existinplaylist
 end
 -- 将当前曲目添加到指定播放列表
-Music.addtoplaylist = function(playlistname)
+Music.addToPlaylist = function(playlistname)
 	if Music.existinplaylist(playlistname) == false then
 		local addscript = [[
 			tell application "Music"
@@ -216,7 +216,7 @@ Music.addtoplaylist = function(playlistname)
 	end
 end
 -- 随机播放指定播放列表中曲目
-Music.shuffleplay = function (playlist)
+Music.shufflePlay = function (playlist)
 	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
 	if Music.tell('shuffle enabled') == false then
 		Music.tell('set shuffle enabled to true')
@@ -224,7 +224,7 @@ Music.shuffleplay = function (playlist)
 	Music.tell('play playlist named ' .. playlist)
 end
 -- 保存专辑封面
-Music.saveartwork = function ()
+Music.saveArtwork = function ()
 	if Music.album() ~= songalbum or Music.album() == "" then
 		songalbum = Music.album()
 		as.applescript([[
@@ -247,7 +247,7 @@ Music.saveartwork = function ()
 	end
 end
 -- 保存专辑封面（利用iTunes的API）
-Music.saveartworkbyapi = function (set_artwork_object)
+Music.saveArtworkByAPI = function (set_artwork_object)
 	-- 判断是否为Apple Music
 	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
@@ -325,7 +325,7 @@ Music.saveartworkbyapi = function (set_artwork_object)
 	end
 end
 -- 获取专辑封面路径
-Music.getartworkpath = function()
+Music.getArtworkPath = function()
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
 		local format = Music.tell('format of artwork 1 of current track as string')
