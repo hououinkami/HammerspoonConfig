@@ -8,25 +8,25 @@ pauseIcon = '❙ ❙'
 -- 停止图标
 stopIcon = '◼'
 -- 菜单栏标题的间隔字符
-gaptext = "｜"
+gapText = "｜"
 -- 淡入淡出时间
-fadetime = 0.6
+fadeTime = 0.6
 -- 显示时间
-staytime = 2
+stayTime = 2
 -- 刷新时间
-updatetime = 0.5
+updateTime = 0.5
 -- 专辑封面显示尺寸
-artworksize = {h = 200, w = 200}
+artworkSize = {h = 200, w = 200}
 -- 边框尺寸
-border = {x = 10, y = 10}
+borderSize = {x = 10, y = 10}
 -- 项目之间的间隔
-gap = {x = 10, y = 10}
+gapSize = {x = 10, y = 10}
 -- 默认最小尺寸
-smallsize = 600
+smallSize = 600
 -- 悬浮菜单字体大小
-textsize = 20
+textSize = 20
 -- 菜单图标大小
-imagesize = {h = 15, w = 15}
+imageSize = {h = 15, w = 15}
 -- 背景颜色（RGB）
 bgColor = {35, 37, 34}
 -- 背景透明度
