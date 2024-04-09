@@ -620,8 +620,11 @@ function toggleCanvas()
 				else
 					showall()
 					watchClick = hs.eventtap.new({hs.eventtap.event.types.leftMouseDown}, function(e)
-						hideall()
-						watchClick:stop()
+						local mp = hs.mouse.absolutePosition()
+						if (mp.x < c_mainMenu:frame().x or mp.x > c_mainMenu:frame().x + c_mainMenu:frame().w) and (mp.y > c_mainMenu:frame().y + c_mainMenu:frame().h) then
+							hideall()
+							watchClick:stop()
+						end
 					end):start()
 				end
 			end
