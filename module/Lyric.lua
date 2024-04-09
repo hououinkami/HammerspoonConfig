@@ -7,15 +7,15 @@ Lyric = {}
 Lyric.main = function()
 	-- 初始化
 	hide(c_lyric,0)
+	if c_lyric then
+		c_lyric["lyric"].text = nil
+	end
+	if lyricTimer then
+		deleteTimer(lyricTimer)
+	end
     lyricurl = nil
-	lyricTable = nil
-	currentLyric = nil
-	lyrictext = ""
 	lineNO = 1
 	songsResult = {}
-	if lyricTimer then
-		lyricTimer:stop()
-	end
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
@@ -503,8 +503,7 @@ Lyric.show = function(lyricTable)
 			lyricTimer:stop()
 		else
 			delete(c_lyric)
-			lyricTimer:stop()
-			lyricTimer = nil
+			deleteTimer(lyricTimer)
 		end
 		-- 歌词刷新
 		if currentLyric ~= lyrictext then
