@@ -174,9 +174,9 @@ Music.addToLibrary = function()
 	local addtolibraryScript = [[
 		tell application "Music"
 			try
-				duplicate current track to library playlist "Library"
-			on error
 				duplicate current track to first source
+			on error
+				duplicate current track to library playlist "Library"
 			end try
 		end tell
 	]]

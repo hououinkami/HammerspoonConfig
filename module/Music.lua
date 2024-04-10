@@ -491,7 +491,7 @@ function setProgressCanvas()
 	-- 进度条更新函数
 	updateProgress = function()
 		if c_progress:frame().w and Music.currentPosition() and Music.duration() then
-			progressElement[1].frame.w = c_progress:frame().w * Music.currentPosition() / musicDuration
+			progressElement[1].frame.w = c_progress:frame().w * Music.currentPosition() / Music.duration()
 			c_progress:replaceElements(progressElement)
 		end
 	end
@@ -501,7 +501,7 @@ function setProgressCanvas()
 		if Music.duration() > 0 then
 			musicDuration = Music.duration()
 		else
-			musicDuration = 300
+			musicDuration = math.huge
 		end
 		c_progress = c.new({x = menuFrame.x + borderSize.x, y = menuFrame.y + borderSize.y + artworkSize.h + borderSize.y * (1 - per) / 2, h = borderSize.y * per, w = menuFrame.w - borderSize.x * 2}):level(c_mainMenu:level() + 2)
 		progressElement = {
@@ -530,7 +530,7 @@ function setProgressCanvas()
 		if id == "background" and (x >= 0 and x <= c_progress:frame().w and y >= 0 and y <= c_progress:frame().h) then
     		if event == "mouseUp" then
     			local mousePoint = hs.mouse.absolutePosition()
-    			local currentPosition = (mousePoint.x - menuFrame.x - borderSize.x) / c_progress:frame().w * Music.duration()
+    			local currentPosition = (mousePoint.x - c_progress:frame().x) / c_progress:frame().w * Music.duration()
     			c_progress:replaceElements(progressElement):show()
 				Music.tell('set player position to "' .. currentPosition .. '"')
     		end
@@ -581,9 +581,7 @@ function mousePosition()
 end
 -- 建立悬浮菜单元素
 function setMenu()
-	if not c_mainMenu then
-		setMainMenu()
-	end
+	setMainMenu()
 	if c_mainMenu then
 		if c_mainMenu:isShowing() then
 			hideall()
@@ -591,7 +589,6 @@ function setMenu()
 				progressTimer:stop()
 			end
 		else
-			setMainMenu()
 			setRateMenu()
 			setControlMenu()
 			setProgressCanvas()
@@ -647,9 +644,6 @@ function musicBarUpdate()
 	if Music.state() ~= musicstate then
 		musicstate = Music.state()
 		setTitle()
-		if Music.state() == "playing" or Music.state() == "paused" then
-			setMenu()
-		end
 	end
 	-- 若切换Space则隐藏
 	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
