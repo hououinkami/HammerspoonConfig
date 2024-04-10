@@ -10,11 +10,11 @@ stopIcon = '◼'
 -- 菜单栏标题的间隔字符
 gapText = "｜"
 -- 淡入淡出时间
-fadeTime = 0.6
+fadeTime = 0
 -- 显示时间
 stayTime = 2
 -- 刷新时间
-updateTime = 0.5
+updateTime = 1
 -- 专辑封面显示尺寸
 artworkSize = {h = 200, w = 200}
 -- 边框尺寸

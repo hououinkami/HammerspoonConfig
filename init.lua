@@ -84,7 +84,7 @@ function reloadConfig(files)
 			Lyric.show(lyricTable)
 		elseif filename == "music" then
 			musicstate = nil
-			MusicBarUpdate()
+			musicBarUpdate()
 		end
     end
 end
