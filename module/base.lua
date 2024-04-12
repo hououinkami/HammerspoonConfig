@@ -182,9 +182,9 @@ end
 -- 隐藏图层
 function hide(canvas,fadetime)
     if not fadetime then
-        fadetime = 1
+        fadetime = 0
     end
-    if canvas then
+    if canvas and canvas:isShowing()then
         canvas:hide(fadetime)
     end
 end
@@ -192,9 +192,9 @@ end
 -- 显示图层
 function show(canvas,fadetime)
     if not fadetime then
-        fadetime = 0.5
+        fadetime = 0
     end
-	if canvas then
+	if canvas and not canvas:isShowing() then
 		canvas:show(fadetime)
 	end
 end

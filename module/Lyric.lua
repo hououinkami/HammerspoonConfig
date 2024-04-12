@@ -10,45 +10,54 @@ Lyric.main = function()
 	if c_lyric then
 		c_lyric["lyric"].text = nil
 	end
-	if lyricTimer then
-		deleteTimer(lyricTimer)
-	end
-    lyricurl = nil
+	deleteTimer(lyricTimer)
+    lyricURL = nil
 	lineNO = 1
 	songsResult = {}
+	fileName = Music.title() .. " - " .. Music.artist()
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
 		print("歌詞の検索ができません、ネットワークの接続を確認してください。")
 		return
 	end
-	-- 是否存储歌词文件
-	filename = Music.title() ..  " - " .. Music.artist()
-	-- 搜寻本地歌词文件
-	if lyricOnline then
+	-- 判断类型
+	if Music.kind() == "matched" or Music.kind() == "localmusic" or Music.existInLibrary() then
+		lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(fileName)
+		if lyricfileError then
+			lyricType = "error"
+		elseif lyricfileExist then
+			lyricType = "local"
+		else
+			lyricType = "search"
+		end
+	else
+		if lyricOnline then
+			lyricType = "online"
+		else
+			lyricType = "search"
+		end
+	end
+	-- 执行操作
+	if lyricType == "error" then
+		print("歌詞をエラーとしてマーク")
+		return
+	elseif lyricType == "online" then
 		lyricTable = lyricOnline
 		lyricOnline = nil
 		print("歌詞をロード中")
-	else
-		local lyricfileName = Music.title() .. " - " .. Music.artist()
-		lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(lyricfileName)
-		-- 歌词文件标记为错误歌词则不执行操作
-		if lyricfileError then
-			return
+	elseif lyricType == "local" then
+		lyricTable = Lyric.edit(lyricfileContent)
+		if not Music.existInLibrary() and not Music.loved() then
+			Lyric.delete()
 		end
-		-- 歌词文件存在则载入，否则执行搜索
-		if lyricfileExist then
-			Lyric.menubar()
-			lyricTable = Lyric.edit(lyricfileContent)
-			if not Music.existInLibrary() and not Music.loved() then
-				Lyric.delete()
-			end
-		else
-			keywordNO = 1
-			Lyric.search()
-			return
-		end
+	elseif lyricType == "search" then
+		keywordNO = 1
+		Lyric.search()
+		return
 	end
+	-- 渲染菜单项
+	Lyric.menubar()
 	-- 显示歌词
 	Lyric.show(lyricTable)
 end
@@ -223,8 +232,6 @@ Lyric.search = function()
 		if titleFormated ~= Music.title() then
 			table.insert(searchKeywords, titleFormated .. " " .. Music.artist())
 			table.insert(searchTitle, titleFormated)
-			table.insert(searchKeywords, Music.title())
-			table.insert(searchTitle, Music.title())
 			table.insert(searchKeywords, titleFormated)
 			table.insert(searchTitle, titleFormated)
 		end
@@ -307,9 +314,9 @@ Lyric.search = function()
 			-- 判断是否需要重新搜索
 			if songID then
 				if isSelected then
-					lyricurl = songlyricURL
+					lyricURL = songlyricURL
 				else
-					lyricurl = lyricAPI .. songID
+					lyricURL = lyricAPI .. songID
 				end
 				songID = nil
 			else
@@ -320,7 +327,7 @@ Lyric.search = function()
 					-- 更换搜索引擎之前重置关键词索引
 					keywordNO = 1
 					Lyric.menubar(songsResult)
-					Lyric.nolyric()
+					Lyric.noLyric()
 				end
 				return
 			end
@@ -329,7 +336,7 @@ Lyric.search = function()
 		if not isSelected then
 			Lyric.menubar(songsResult)
 		end
-		if lyricurl then
+		if lyricURL then
 			print("歌詞を取得中...")
 			httpGetLyric = function(status,body,headers)
 				if status == 200 then
@@ -337,8 +344,8 @@ Lyric.search = function()
 					if getLyric(lyricRaw) then
 						local lyric = trackLyric(lyricRaw)
 						if not lyric or string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
-							Lyric.nolyric()
-							if lyricurl then
+							Lyric.noLyric()
+							if lyricURL then
 								return
 							end
 						else
@@ -351,13 +358,13 @@ Lyric.search = function()
 						local lyric = lyric:gsub("%&apos;","'")
 						lyricOnline = Lyric.edit(lyric)
 						if saveFile then
-							Lyric.save(lyric,filename)
+							Lyric.save(lyric,fileName)
 						end
 						Lyric.main()
 					end
 				end
 			end
-			httpRequest("GET", lyricurl, lyricheaders, nil, httpGetLyric)
+			httpRequest("GET", lyricURL, lyricheaders, nil, httpGetLyric)
 		end
 	end
 	httpRequest(apiMethod, musicurl, musicheaders, musicbodies, httpGetID)
@@ -438,7 +445,7 @@ Lyric.edit = function(lyric)
 end
 
 -- 无歌词时执行的函数
-Lyric.nolyric = function()
+Lyric.noLyric = function()
 	print("該当する歌詞はません")
 	if songlyricURL then
 		songlyricURL = nil
@@ -491,9 +498,7 @@ Lyric.show = function(lyricTable)
 		end
 		-- 仅播放状态下显示
 		if Music.state() == "playing" then
-			if not c_lyric:isShowing() then
-				show(c_lyric)
-			end
+			show(c_lyric)
 			if not lyricTimer then
 				Lyric.main()
 			end
@@ -522,7 +527,7 @@ Lyric.show = function(lyricTable)
 	end
 	if lyricTable then
 		-- 歌词图层初始化
-		Lyric.setcanvas()
+		Lyric.setCanvas()
 		-- 设定计时器
 		lyricTimer = hs.timer.new(1, function()
 			a = lineNO
@@ -600,7 +605,7 @@ Lyric.handleLyric = function(lyric)
 end
 
 -- 建立歌词图层
-Lyric.setcanvas = function() 
+Lyric.setCanvas = function() 
 	if not c_lyric then
 		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
 		c_lyric:appendElements(
@@ -615,31 +620,31 @@ Lyric.setcanvas = function()
 end
 
 -- 加载本地歌词文件
-Lyric.load = function(lyricfileName)
+Lyric.load = function(fileName)
 	-- 文件名有'/'时替换成":"
-	lyricfileName = lyricfileName:gsub("/",":")
+	fileName = fileName:gsub("/",":")
 	lyricfileContent = nil
 	lyricfileExist = false
 	alllyricFile = getAllFiles(lyricPath)
 	-- 格式化正则检索词
 	local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
-	local _filename = lyricfileName
+	local _fileName = fileName
 	for i,v in ipairs(specialString) do
-		_filename = _filename:gsub("%" .. v,"%%" .. v)
+		_fileName = _fileName:gsub("%" .. v,"%%" .. v)
 	end
-	_filename = _filename:gsub("/",":")
+	_fileName = _fileName:gsub("/",":")
 	-- 搜寻本地歌词文件夹
 	for _,file in pairs(alllyricFile) do
 		-- 不加载错误歌词
-		if file:find(_filename .. "_ERROR.lrc") then
+		if file:find(_fileName .. "_ERROR.lrc") then
 			print("歌詞が曲と合っていません")
 			lyricfileError = true
 			break
 		end
 		lyricfileError = false
 		-- 加载本地歌词文件
-		local lyricFile = lyricPath .. lyricfileName .. ".lrc"
-		if file:find(_filename) then
+		local lyricFile = lyricPath .. fileName .. ".lrc"
+		if file:find(_fileName) then
 			-- 以可读写方式打开文件
 			local _lrcfile = io.open(lyricFile, "r+")
 			-- 读取文件所有内容
@@ -654,8 +659,8 @@ Lyric.load = function(lyricfileName)
 end
 
 -- 保存歌词至本地文件
-Lyric.save = function(lyric,filename)
-	local _savename = string.gsub(filename,"/",":")
+Lyric.save = function(lyric,fileName)
+	local _savename = string.gsub(fileName,"/",":")
 	local lyricFile = lyricPath .. _savename .. ".lrc"
 	local lyricExt = io.open(lyricFile, "r")
 	-- 判断储存本地歌词的文件夹是否存在
@@ -689,7 +694,7 @@ Lyric.toggleEnable = function()
         delete(c_lyric)
 		lyricTimer:stop()
     else
-		Lyric.setcanvas()
+		Lyric.setCanvas()
         Lyric.main()
 	end
 end
@@ -732,8 +737,31 @@ for i,v in pairs(lyricAPIs) do
 	end
 end
 Lyric.menubar = function(songs)
-	if not LyricBar then
-		LyricBar = hs.menubar.new(true):autosaveName("Lyric")
+	if lyricType == "online" then
+		return
+	end
+	if not lyricBar then
+		lyricBar = hs.menubar.new(true):autosaveName("Lyric")
+	end
+	updateMenu = function(menuTitle, menuChecked)
+		for i,v in pairs(menudata) do
+			if not v["menu"] then
+				if v["title"] == menuTitle then
+					v["checked"] = menuChecked
+					break
+				end
+			else
+				for i = 1, #v["menu"], 1 do
+					local menuItem = v["menu"][i]
+					if menuItem["title"] == menuTitle then
+						menuItem["checked"] = menuChecked
+					else
+						menuItem["checked"] = not menuChecked
+					end
+				end
+			end
+		end
+		lyricBar:setMenu(menudata)
 	end
 	menudata1 = {
 		{
@@ -742,7 +770,7 @@ Lyric.menubar = function(songs)
 			fn = function()
 				lyricEnable = not lyricEnable
 				Lyric.toggleEnable()
-				Lyric.menubar()
+				updateMenu(lyricString.enable, lyricEnable)
 			end,
 		},
 		{
@@ -751,7 +779,7 @@ Lyric.menubar = function(songs)
 			fn = function()
 				lyricShow = not lyricShow
 				Lyric.toggleShow()
-				Lyric.menubar()
+				updateMenu(lyricString.show, lyricShow)
 			end,
 		},
 		{
@@ -767,7 +795,7 @@ Lyric.menubar = function(songs)
 							end
 							lyricAPIs.APIQQ = true
 							Lyric.api("QQ")
-							Lyric.menubar()
+							updateMenu("QQ音乐", lyricAPIs.APIQQ)
 							Lyric.search()
 						end
 					end,
@@ -782,7 +810,7 @@ Lyric.menubar = function(songs)
 							end
 							lyricAPIs.API163 = true
 							Lyric.api("163")
-							Lyric.menubar()
+							updateMenu("网易云音乐", lyricAPIs.API163)
 							Lyric.search()
 						end
 					end,
@@ -797,7 +825,7 @@ Lyric.menubar = function(songs)
 							end
 							lyricAPIs.APISelf = true
 							Lyric.api("Self")
-							Lyric.menubar()
+							updateMenu("自部署", lyricAPIs.APISelf)
 							Lyric.search()
 						end
 					end,
@@ -858,8 +886,8 @@ Lyric.menubar = function(songs)
 		end
 	end
 	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
-	LyricBar:setIcon(icon)
-	LyricBar:setMenu(menudata)
+	lyricBar:setIcon(icon)
+	lyricBar:setMenu(menudata)
 end
 Lyric.menubar()
 
