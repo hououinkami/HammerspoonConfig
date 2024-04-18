@@ -67,7 +67,7 @@ function setMainMenu()
 			roundedRectRadii = {xRadius = 6, yRadius = 6},
 			fillColor = {alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
 			-- trackMouseEnterExit = true,
-			-- trackMouseUp = true
+			trackMouseUp = true
 		}, {-- 专辑封面
 			id = "artwork",
 			frame = {x = borderSize.x, y = borderSize.y, h = artworkSize.h, w = artworkSize.w},
@@ -664,11 +664,14 @@ function musicBarUpdate()
 			Music.saveArtwork()
 			songtitle = Music.title()
 			setTitle()
-			Lyric.main()
+			if Music.isSong() then
+				Lyric.main()
+			end
 			setMenu()
 		end
 	else
 		progressTimer = nil
+		hideall()
 	end
 	-- 非播放状态立即隐藏歌词
 	if Music.state() ~= "playing" then
