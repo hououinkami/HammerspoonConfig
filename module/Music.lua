@@ -646,10 +646,10 @@ function musicBarUpdate()
 		setTitle()
 	end
 	-- 若切换Space则隐藏
-	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
-		spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-		hideall()
-	end
+	-- if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
+	-- 	spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+	-- 	hideall()
+	-- end
 	-- 正常情况下的更新
 	if Music.state() == "playing" or Music.state() == "paused" then
 		-- 若连接中
@@ -664,9 +664,7 @@ function musicBarUpdate()
 			Music.saveArtwork()
 			songtitle = Music.title()
 			setTitle()
-			if Music.isSong() then
-				Lyric.main()
-			end
+			Lyric.main()
 			setMenu()
 		end
 	else
