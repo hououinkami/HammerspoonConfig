@@ -2,16 +2,30 @@ require ('module.base')
 Music = {}
 -- 调用AppleScript模块
 Music.tell = function (cmd)
-	if quit or not Music.checkRunning() then
-		return nil
+	local AS = function(cmd)
+		local _cmd = 'tell application "Music" to ' .. cmd
+		local ok, result = as.applescript(_cmd)
+		if ok then
+			return result
+		else
+			return nil
+		end
 	end
-	local _cmd = 'tell application "Music" to ' .. cmd
-	local ok, result = as.applescript(_cmd)
-	if ok then
-	  return result
-	else
-	  return nil
+	
+	if quit then
+		if cmd == "quit" then
+			AS(cmd)
+		else
+			return nil
+		end
+	elseif not Music.checkRunning() then
+		if cmd == "activate" then
+			AS(cmd)
+		else
+			return nil
+		end
 	end
+	return AS(cmd)
 end
 -- 曲目信息
 Music.title = function ()
@@ -43,13 +57,34 @@ end
 Music.rating = function ()
 	if Music.tell('rating of current track') then
 		return Music.tell('rating of current track')//20
+	else return 0
 	end
+end
+Music.group = function()
+	return Music.tell("grouping of current track")
+end
+Music.comment = function()
+	return Music.tell("comment of current track")
 end
 Music.loop = function ()
 	return Music.tell('song repeat as string')
 end
 Music.shuffle = function ()
 	return Music.tell('shuffle enabled')
+end
+Music.isSong = function()
+	isSong = true
+	local group = Music.group()
+	if group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" then
+		if Music.comment() ~= "Theme" then
+			isSong = false
+		end
+	else
+		if Music.comment() == "Soundtrack" then
+			isSong = false
+		end
+	end
+	return isSong
 end
 -- 星级评价
 Music.setRating = function (rating)
