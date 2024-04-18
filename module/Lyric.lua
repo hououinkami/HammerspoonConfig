@@ -26,6 +26,8 @@ Lyric.main = function()
 		lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(fileName)
 		if lyricfileError then
 			lyricType = "error"
+		elseif lyricOnline then
+			lyricType = "online"
 		elseif lyricfileExist then
 			lyricType = "local"
 		else
