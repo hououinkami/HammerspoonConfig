@@ -642,28 +642,25 @@ function musicBarUpdate()
 	end
 	-- 若更换了播放状态则触发更新
 	if Music.state() ~= musicstate then
+		stateChange = true
 		musicstate = Music.state()
 		setTitle()
 	end
-	-- 若切换Space则隐藏
-	-- if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
-	-- 	spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-	-- 	hideall()
-	-- end
 	-- 正常情况下的更新
 	if Music.state() == "playing" or Music.state() == "paused" then
-		-- 若连接中
-		if Music.kind() == "connecting" then
-			setTitle()
 		-- 若更换了曲目
-		elseif Music.title() ~= songtitle then
+		if Music.title() ~= songtitle then
 			--若切换歌曲时悬浮菜单正在显示则刷新
 			if c_mainMenu and c_mainMenu:isShowing() then
 				hideall()
 			end
 			Music.saveArtwork()
 			songtitle = Music.title()
-			setTitle()
+			if not stateChange then
+				setTitle()
+			else
+				stateChange = false
+			end
 			Lyric.main()
 			setMenu()
 		end
@@ -675,6 +672,11 @@ function musicBarUpdate()
 	if Music.state() ~= "playing" then
 		hide(c_lyric)
 	end
+	-- 若切换Space则隐藏
+	-- if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
+	-- 	spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+	-- 	hideall()
+	-- end
 end
 -- 生成菜单栏
 if not MusicBar then
