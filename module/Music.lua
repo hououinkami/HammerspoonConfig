@@ -642,7 +642,11 @@ function musicBarUpdate()
 	end
 	-- 若更换了播放状态则触发更新
 	if Music.state() ~= musicstate then
-		stateChange = true
+		if stateChange then
+			stateChange = false
+		else
+			stateChange = true
+		end
 		musicstate = Music.state()
 		setTitle()
 	end
