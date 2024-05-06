@@ -61,7 +61,11 @@ Music.rating = function ()
 	end
 end
 Music.group = function()
-	return Music.tell("grouping of current track")
+	return Music.tell("grouping of current track") or " "
+end
+Music.genre = function ()
+	local genre = Music.tell('genre of current track') or " "
+	return genre
 end
 Music.comment = function()
 	return Music.tell("comment of current track")
@@ -75,7 +79,8 @@ end
 Music.isSong = function()
 	isSong = true
 	local group = Music.group()
-	if group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" then
+	local genre = Music.genre()
+	if group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" or genre == "クラシック" then
 		if Music.comment() ~= "Theme" then
 			isSong = false
 		end
