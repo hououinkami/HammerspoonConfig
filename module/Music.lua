@@ -702,10 +702,10 @@ function musicBarUpdate()
 		hide(c_lyric)
 	end
 	-- 若切换Space则隐藏
-	-- if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
-	-- 	spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-	-- 	hideall()
-	-- end
+	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
+		spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+		hideall()
+	end
 end
 -- 生成菜单栏
 if not MusicBar then
