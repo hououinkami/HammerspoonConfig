@@ -44,7 +44,6 @@ Lyric.main = function()
 	end
 	-- 执行操作
 	if lyricType == "ost" then
-		print("サウンドトラックは歌詞を検索する必要がありません")
 		return
 	elseif lyricType == "error" then
 		print("歌詞をエラーとしてマーク")
