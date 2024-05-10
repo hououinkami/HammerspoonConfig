@@ -136,10 +136,10 @@ function setMainMenu()
 		end
 	end)
 end
--- 设置悬浮主菜单
+-- 设置桌面覆盖层
 function setDesktopLayer()
 	if not c_desktopLayer then
-		c_desktopLayer = c.new(desktopFrame):level(c.windowLevels.popUpMenu)
+		c_desktopLayer = c.new(screenFrame):level(c.windowLevels.popUpMenu)
 		c_desktopLayer:appendElements(
 			{
 				id = "desktop",
@@ -154,6 +154,7 @@ function setDesktopLayer()
 			if id == "desktop" and event == "mouseUp" then
 				hideall()
 				hide(c_desktopLayer)
+				hs.eventtap.leftClick(hs.mouse.absolutePosition(), 1000)
 			end
 		end)
 	end
