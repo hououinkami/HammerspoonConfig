@@ -136,6 +136,29 @@ function setMainMenu()
 		end
 	end)
 end
+-- 设置悬浮主菜单
+function setDesktopLayer()
+	if not c_desktopLayer then
+		c_desktopLayer = c.new(desktopFrame):level(c.windowLevels.popUpMenu)
+		c_desktopLayer:appendElements(
+			{
+				id = "desktop",
+				type = "rectangle",
+				action = "fill",
+				roundedRectRadii = {xRadius = 6, yRadius = 6},
+				fillColor = {alpha = 0, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
+				trackMouseUp = true
+			}
+		)
+		c_desktopLayer:mouseCallback(function(canvas, event, id, x, y)
+			if id == "desktop" and event == "mouseUp" then
+				hideall()
+				hide(c_desktopLayer)
+			end
+		end)
+	end
+	c_desktopLayer:show()
+end
 -- 设置评价悬浮菜单项目
 function setRateMenu()
 	-- 图片设置
@@ -545,6 +568,7 @@ end
 --
 -- 隐藏
 function hideall()
+	hide(c_desktopLayer)
 	hide(c_rateMenu,fadeTime)
 	hide(c_controlMenu,fadeTime)
 	if progressTimer then
@@ -608,13 +632,14 @@ function toggleCanvas()
 					hideall()
 				else
 					showall()
-					watchClick = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(e)
-						local mp = hs.mouse.absolutePosition()
-						if mp.x < c_mainMenu:frame().x or mp.x > c_mainMenu:frame().x + c_mainMenu:frame().w or mp.y < c_mainMenu:frame().y or mp.y > c_mainMenu:frame().y + c_mainMenu:frame().h then
-							hideall()
-							watchClick:stop()
-						end
-					end):start()
+					setDesktopLayer()
+					-- watchClick = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(e)
+					-- 	local mp = hs.mouse.absolutePosition()
+					-- 	if mp.x < c_mainMenu:frame().x or mp.x > c_mainMenu:frame().x + c_mainMenu:frame().w or mp.y < c_mainMenu:frame().y or mp.y > c_mainMenu:frame().y + c_mainMenu:frame().h then
+					-- 		hideall()
+					-- 		watchClick:stop()
+					-- 	end
+					-- end):start()
 				end
 			end
 		else
