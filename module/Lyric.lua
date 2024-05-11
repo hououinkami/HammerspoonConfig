@@ -43,11 +43,8 @@ Lyric.main = function()
 		end
 	end
 	-- 执行操作
-	if lyricType == "ost" then
-		return
-	elseif lyricType == "error" then
+	if lyricType == "error" then
 		print("歌詞をエラーとしてマーク")
-		return
 	elseif lyricType == "online" then
 		lyricTable = lyricOnline
 		lyricOnline = nil
@@ -64,6 +61,9 @@ Lyric.main = function()
 	end
 	-- 渲染菜单项
 	Lyric.menubar()
+	if lyricType == "ost" or lyricType == "error" then
+		return
+	end
 	-- 显示歌词
 	Lyric.show(lyricTable)
 end
@@ -852,7 +852,9 @@ Lyric.menubar = function(songs)
 			end
 		}
 	}
-	if not songs or saveFile then
+	if lyricType == "ost" then
+		menudata = menudata1
+	elseif not songs or saveFile then
 		for i,v in ipairs(menudata2) do
 			menudata = menudata1
 			table.insert(menudata, v)
@@ -864,12 +866,12 @@ Lyric.menubar = function(songs)
 			fn = Lyric.toggleShow,
 		}
 	end
-	menudata[#menudata + 1] = { title = "-" }
 	if songs then
 		source = 0
 		for s = 1, #songs, 1 do 
 			trackList = songs[s].list
 			if songs[s].api ~= source then
+				menudata[#menudata + 1] = { title = "-" }
 				source = songs[s].api
 				table.insert(menudata, { title = lyricString.search[source], disabled = true })
 			end
