@@ -726,10 +726,18 @@ hotkey.bind(hyper_opt, 'right', function()
 	end
 end)
 hotkey.bind(hyper_opt, 'left', function()
-	if hs.spotify.isPlaying() then
-		hs.spotify.previous()
+	if Music.currentPosition() < 5 then
+		if hs.spotify.isPlaying() then
+			hs.spotify.previous()
+		else
+			Music.previous()
+		end
 	else
-		Music.previous()
+		if hs.spotify.isPlaying() then
+			hs.spotify.setPosition(0)
+		else
+			Music.tell('set player position to 0')
+		end
 	end
 end)
 hotkey.bind(hyper_opt, 'up', function() setVolume("up") end, nil, function() setVolume("up") end)
