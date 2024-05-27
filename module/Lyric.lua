@@ -24,9 +24,7 @@ Lyric.main = function()
 	-- 判断类型
 	if Music.kind() == "matched" or Music.kind() == "localmusic" or Music.existInLibrary() then
 		lyricfileExist, lyricfileContent, lyricfileError = Lyric.load(fileName)
-		if not Music.isSong() then
-			lyricType = "ost"
-		elseif lyricfileError then
+		if lyricfileError then
 			lyricType = "error"
 		elseif lyricOnline then
 			lyricType = "online"
@@ -41,6 +39,10 @@ Lyric.main = function()
 		else
 			lyricType = "search"
 		end
+	end
+	-- 歌词搜索黑名单
+	if not Music.isSong() then
+		lyricType = "ost"
 	end
 	-- 执行操作
 	if lyricType == "error" then
