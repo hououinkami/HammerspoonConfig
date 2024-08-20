@@ -29,6 +29,8 @@ lyricStrokeWidth = 0
 lyricStrokeColor = {1, 1, 1}
 -- 描边透明度
 lyricStrokeAlpha = 1
+-- 淡入淡出时间
+lyricFadetime = 0.2
 -- 本地化
 lyricString = {
     enable = "歌詞モジュールの適用",
