@@ -54,7 +54,7 @@ local module_list = {
 	-- "AppKeyMap",	
 	-- "DesktopWidget",
 	-- "test",
-	"ring",
+	-- "ring",
 }
 for _, v in ipairs(module_list) do
 	if v == 'Network' or v == 'Music' then
