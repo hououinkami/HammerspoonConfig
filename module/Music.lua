@@ -1,4 +1,4 @@
-require ('module.base') 
+require ('module.utils') 
 require ('module.apple-music') 
 require ('module.Lyric') 
 require ('config.music')
@@ -570,25 +570,25 @@ end
 -- 隐藏
 function hideall()
 	hide(c_desktopLayer)
-	hide(c_rateMenu,fadeTime)
-	hide(c_controlMenu,fadeTime)
+	hide(c_rateMenu,fadeTime,true)
+	hide(c_controlMenu,fadeTime,true)
 	if progressTimer then
 		progressTimer:stop()
 	end
-	hide(c_progress,fadeTime)
-	hide(c_playlist,fadeTime)
-	hide(c_mainMenu,fadeTime)
+	hide(c_progress,fadeTime,true)
+	hide(c_playlist,fadeTime,true)
+	hide(c_mainMenu,fadeTime,true)
 end
 -- 显示
 function showall()
 	if progressTimer then
 		progressTimer:start()
 	end
-	show(c_mainMenu,fadeTime)
-	show(c_rateMenu,fadeTime)
-	show(c_controlMenu,fadeTime)
+	show(c_mainMenu,fadeTime,true)
+	show(c_rateMenu,fadeTime,true)
+	show(c_controlMenu,fadeTime,true)
 	updateProgress()
-	show(c_progress,fadeTime)
+	show(c_progress,fadeTime,true)
 end
 -- 判断鼠标指针是否处于悬浮菜单内
 function mousePosition()
