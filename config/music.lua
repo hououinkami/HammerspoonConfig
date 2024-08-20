@@ -10,7 +10,7 @@ stopIcon = '◼'
 -- 菜单栏标题的间隔字符
 gapText = "｜"
 -- 淡入淡出时间
-fadeTime = 0
+fadeTime = 0.6
 -- 显示时间
 stayTime = 2
 -- 刷新时间
