@@ -1,4 +1,4 @@
-require ('module.base') 
+require ('module.utils') 
 Music = {}
 -- 调用AppleScript模块
 Music.tell = function (cmd)

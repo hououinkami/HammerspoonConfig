@@ -1,4 +1,4 @@
-require ('module.base') 
+require ('module.utils') 
 require ('module.apple-music') 
 require ('config.lyric')
 
@@ -506,13 +506,13 @@ Lyric.show = function(lyricTable)
 		end
 		-- 仅播放状态下显示
 		if Music.state() == "playing" then
-			show(c_lyric)
+			show(c_lyric,lyricFadetime,true)
 			if not lyricTimer then
 				Lyric.main()
 			end
 			lyricTimer:start()
 		elseif Music.state() == "paused" then
-			hide(c_lyric)
+			hide(c_lyric,lyricFadetime,true)
 			lyricTimer:stop()
 		else
 			delete(c_lyric)
