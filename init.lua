@@ -8,6 +8,7 @@ app = require "hs.application"
 as = require "hs.osascript"
 c = require "hs.canvas"
 img = require "hs.image"
+timer = require "hs.timer"
 -- 常用变量
 screenFrame = hs.screen.mainScreen():fullFrame()
 desktopFrame = hs.screen.mainScreen():frame()
