@@ -208,8 +208,11 @@ function windowsManagement(hyperkey, keyFuncTable, holding)
 		end
 	end
 end
+-- 最大化
 hotkey.bind(hyper_oc, 'return', Resize.maximize)
+-- 全屏
 hotkey.bind(hyper_coc, 'return', Resize.fullscreen)
+-- 半屏、居中、恢复
 windowsManagement(hyper_oc, {
 	left = Resize.halfleft,
 	right = Resize.halfright,
@@ -218,21 +221,15 @@ windowsManagement(hyper_oc, {
 	c = Resize.center,
 	delete = Resize.reset,
 }, false)
+-- 移动
 windowsManagement(hyper_co, {
 	left = Resize.toleft,
 	right = Resize.toright,
 	up = Resize.toup,
 	down = Resize.todown,
 }, false)
+-- 平滑调节大小
 windowsManagement(hyper_coc, {
-	left = Resize.left,
-	right = Resize.right,
-	up = Resize.up,
-	down = Resize.down,
-	c = Resize.center,
-	delete = Resize.reset,
-}, true)
-windowsManagement(hyper_cos, {
 	left = Resize.left,
 	right = Resize.right,
 	up = Resize.up,
@@ -242,7 +239,7 @@ windowsManagement(hyper_cos, {
 }, true)
 
 --------**--------
--- App自动窗口布局
+-- App窗口布局
 --------**--------
 -- 自定义App窗口布局
 local layouts = {
@@ -253,9 +250,15 @@ local layouts = {
 	  	end
 	},
 	{
-		name = {""},
+		name = {"WeChat"},
 		func = function(index, win)
-			win:move({ 0, 140, win:frame().w, win:frame().h })
+			win:move({ desktopFrame.w / 2, (desktopFrame.h - win:frame().h) / 2, desktopFrame.w / 2, win:frame().h })
+		end
+	},
+	{
+		name = {"Telegram"},
+		func = function(index, win)
+			win:move({ 0, (desktopFrame.h - win:frame().h) / 2, desktopFrame.w / 2, win:frame().h })
 		end
 	},
 }
@@ -293,6 +296,13 @@ function applyLayout(layouts, app)
 	  	end
 	end
 end
+--------**--------
+-- App手动窗口布局
+--------**--------
+hotkey.bind(hyper_ctrl, "`", function() applyLayout(layouts, win.focusedWindow():application()) end)
+--------**--------
+-- App自动窗口布局
+--------**--------
 -- 设置触发函数
 windowWatcher = {}
 newWindowWatcher = {}
