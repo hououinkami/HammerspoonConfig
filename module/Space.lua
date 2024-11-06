@@ -192,5 +192,5 @@ function moveWindowOneSpace2(dir,switch)
     flashScreen(screen)
 end
 
-hotkey.bind(hyper_cc, "right", nil, function() moveWindowOneSpace2("right",true) end)
-hotkey.bind(hyper_cc, "left", nil, function() moveWindowOneSpace2("left",true) end)
+hotkey.bind(hyper_cc, "right", nil, function() moveWindowOneSpace("right",true) end)
+hotkey.bind(hyper_cc, "left", nil, function() moveWindowOneSpace("left",true) end)
