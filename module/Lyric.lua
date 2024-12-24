@@ -656,10 +656,14 @@ Lyric.load = function(fileName)
 			-- 以可读写方式打开文件
 			local _lrcfile = io.open(lyricFile, "r+")
 			-- 读取文件所有内容
-			lyricfileContent = _lrcfile:read("*a")
-			lyricfileExist = true
-			_lrcfile:close()
-			print("歌詞ファイルをロードしました")
+			if _lrcfile then
+				lyricfileContent = _lrcfile:read("*a")
+				lyricfileExist = true
+				_lrcfile:close()
+				print("歌詞ファイルをロードしました")
+			else
+				print("歌詞ファイルをロードエラー")
+			end
 			break
 		end
     end
