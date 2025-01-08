@@ -63,6 +63,7 @@ Lyric.main = function()
 	end
 	-- 渲染菜单项
 	Lyric.menubar()
+	-- 特定条件不显示歌词
 	if lyricType == "ost" or lyricType == "error" then
 		return
 	end
@@ -225,6 +226,7 @@ Lyric.api(lyricDefault)
 -- 搜索歌词并保存
 Lyric.search = function()
 	if keywordNO == 1 then
+		-- 标志是否需要保存歌词文件到本地
 		saveFile = Music.existInLibrary() or Music.loved()
 		-- 搜索的关键词
 		searchKeywords = {Music.title() .. " " .. Music.artist(), Music.title()}
@@ -267,10 +269,11 @@ Lyric.search = function()
 			titleSimilarity = 90
 		end
 	end
-	-- 获取歌曲ID
+	-- 防止API初始化失败
 	if not idAPI then
 		Lyric.api(lyricDefault)
 	end
+	-- 获取歌曲ID
 	if apiMethod == "GET" then
 		musicurl = idAPI .. hs.http.encodeForQuery(keyword)
 	else
@@ -321,8 +324,10 @@ Lyric.search = function()
 			end
 			-- 判断是否需要重新搜索
 			if songID then
+				-- 手动选择
 				if isSelected then
 					lyricURL = songlyricURL
+				-- 自动匹配
 				else
 					lyricURL = lyricAPI .. songID
 				end
