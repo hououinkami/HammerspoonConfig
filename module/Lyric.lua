@@ -14,6 +14,7 @@ Lyric.main = function()
     lyricURL = nil
 	lineNO = 1
 	songsResult = {}
+	currentsongsResult = {}
 	fileName = Music.title() .. " - " .. Music.artist()
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
@@ -50,7 +51,7 @@ Lyric.main = function()
 	elseif lyricType == "online" then
 		lyricTable = lyricOnline
 		lyricOnline = nil
-		print("歌詞をロード中")
+		print("歌詞をロードしました")
 	elseif lyricType == "local" then
 		lyricTable = Lyric.edit(lyricfileContent)
 		if not Music.existInLibrary() and not Music.loved() then
@@ -71,17 +72,14 @@ Lyric.main = function()
 	Lyric.show(lyricTable)
 end
 
--- 歌词搜索API选择
-Lyric.api = function(api)
-	idAPI = nil
-	lyricAPI = nil
+-- 歌词搜索API
+Lyric.api = function(default)
 	apiList = {
 		{
 			apiNO = 1,
 			apiTag = "QQ",
 			apiName = "QQ音乐",
 			apiMethod = "POST",
-			-- idAPI = "https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key=",
 			idAPI = "https://u.y.qq.com/cgi-bin/musicu.fcg",
 			lyricAPI = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&nobase64=1&songmid=",
 			musicbodies = hs.json.encode(
@@ -106,38 +104,27 @@ Lyric.api = function(api)
 				["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 - mmbWebBrowse - ios",
 				["Referer"] = "https://lyric.music.qq.com"
 			},
-			gettrackResult = function(musicinfo)
-				if apiMethod == "GET" then
-					return musicinfo.data.song
-				else
-					if musicinfo["music.search.SearchCgiService"] then
-						return musicinfo["music.search.SearchCgiService"].data.body.song
-					end
+			gettrackList = function(musicinfo)		
+				if musicinfo["music.search.SearchCgiService"] then
+					trackData = musicinfo["music.search.SearchCgiService"].data.body.song
 				end
-			end,
-			gettrackList = function(trackResult)
-				if trackResult then
-					if apiMethod == "GET" then
-						return trackResult.itemlist
-					else
-						return trackResult.list
-					end
+				if trackData then
+					trackItem = trackData.list
 				end
-			end,
-			trackID = function(index)
-				return trackList[index].mid
-			end,
-			trackName = function(index)
-				return trackList[index].name
-			end,
-			trackArtist = function(index)
-				return trackList[index].singer[1].name
+				local trackList = {}
+				for t = 1, #trackItem do
+					table.insert(trackList, {
+						trackID = trackItem[t].mid,
+						trackName = trackItem[t].name,
+						trackArtist = trackItem[t].singer[1].name
+					})
+				end
+				return trackList
 			end,
 			getLyric = function(lyricRaw)
-				return lyricRaw
-			end,
-			trackLyric = function(lyricRaw)
-				return lyricRaw.lyric
+				if lyricRaw then
+					return lyricRaw.lyric
+				end
 			end
 		},
 		{
@@ -153,78 +140,39 @@ Lyric.api = function(api)
 			},
 			musicbodies = nil,
 			lyricheaders = nil,
-			gettrackResult = function(musicinfo)
-				return musicinfo.result
-			end,
-			gettrackList = function(trackResult)
-				if trackResult then
-					return trackResult.songs
+			gettrackList = function(musicinfo)		
+				if musicinfo.result then
+					trackData = musicinfo.result
 				end
-			end,
-			trackID = function(index)
-				return trackList[index].id
-			end,
-			trackName = function(index)
-				return trackList[index].name
-			end,
-			trackArtist = function(index)
-				return trackList[index].artists[1].name
+				if trackData then
+					trackItem = trackData.songs
+				end
+				local trackList = {}
+				if trackItem then
+					for t = 1, #trackItem do
+						table.insert(trackList, {
+							trackID = trackItem[t].id,
+							trackName = trackItem[t].name,
+							trackArtist = trackItem[t].artists[1].name
+						})
+					end
+				end
+				return trackList
 			end,
 			getLyric = function(lyricRaw)
-				return lyricRaw.lrc
-			end,
-			trackLyric = function(lyricRaw)
-				return lyricRaw.lrc.lyric
+				if lyricRaw and lyricRaw.lrc then
+					return lyricRaw.lrc.lyric
+				end
 			end
 		}
 	}
-	for a = 1, #apiList, 1 do
-		if api == apiList[a].apiTag then
-			apiNO = apiList[a].apiNO
-			apiTag = apiList[a].apiTag
-			apiName = apiList[a].apiName
-			apiMethod = apiList[a].apiMethod
-			idAPI = apiList[a].idAPI
-			lyricAPI = apiList[a].lyricAPI
-			musicheaders = apiList[a].musicheaders
-			musicbodies = apiList[a].musicbodies
-			lyricheaders = apiList[a].lyricheaders
-			gettrackResult = apiList[a].gettrackResult
-			gettrackList = apiList[a].gettrackList
-			trackID = apiList[a].trackID
-			trackName = apiList[a].trackName
-			trackArtist = apiList[a].trackArtist
-			getLyric = apiList[a].getLyric
-			trackLyric = apiList[a].trackLyric
-			break
-		end
-		if api == "Self" then
-			Lyric.api("163")
-			apiNO = 99
-			apiTag = "Self"
-			apiName = "自建API"
-			apiMethod = "GET"
-			if not secret then
-				secret = io.open(HOME .. "/.hammerspoon/module/secret.lua", "r")
-			end
-			if secret then
-				require ('module.secret')
-				io.close(secret)
-				idAPI = lyricAPI .. "search?limit=10&offset=0&type=1&keywords="
-				lyricAPI = lyricAPI .. "lyric?id="
-				musicheaders = nil
-				lyricheaders = nil
-			else
-				Lyric.api(lyricDefault)
-			end
-			break
-		end
-	end
+	-- 根据指定index优先排序
+	reOrder(apiList, "apiNO", default)
 end
-Lyric.api(lyricDefault)
 
 -- 搜索歌词并保存
 Lyric.search = function()
+	-- 搜索初始化
 	if keywordNO == 1 then
 		-- 标志是否需要保存歌词文件到本地
 		saveFile = Music.existInLibrary() or Music.loved()
@@ -234,7 +182,7 @@ Lyric.search = function()
 		searchArtist = {Music.artist(), Music.artist()}
 		-- 处理特殊格式的歌曲名称
 		titleFormated = Music.title()
-		local specialStringinTitle = {"%(.*%)$", "（.*）$", "「.*」$", "「.*」$", "OP$", "ED$", "feat%..*"} 
+		local specialStringinTitle = {"%(.*%)", "（.*）$", "「.*」$", "「.*」$", "OP$", "ED$", "feat%..*"}
 		for i,v in ipairs(specialStringinTitle) do
 			titleFormated = titleFormated:gsub(v,"")
 		end
@@ -269,118 +217,144 @@ Lyric.search = function()
 			titleSimilarity = 90
 		end
 	end
-	-- 防止API初始化失败
-	if not idAPI then
-		Lyric.api(lyricDefault)
-	end
-	-- 获取歌曲ID
-	if apiMethod == "GET" then
-		musicurl = idAPI .. hs.http.encodeForQuery(keyword)
-	else
-		musicurl = idAPI
-		musicbodies = musicbodies:gsub("\"query\":\".*\",\"search_type\"", "\"query\":\"" .. keyword .. "\",\"search_type\"")
-	end
-	if not songID then
-		print(apiName .. " で " .. keyword .. " の歌詞を検索中...")
-	end
-	httpGetID = function(musicStatus,musicBody,musicHeader)
-		if musicStatus == 200 then
-			-- 若无手动选择需要下载的歌词则自动匹配
-			if not songID then
-				musicinfo = hs.json.decode(musicBody)
-				trackResult = gettrackResult(musicinfo)
-				trackList = gettrackList(trackResult)
-				similarity = 0
-				if not trackResult then
+	-- 执行HttpGet函数
+	local function performHttpGet(api, musicurl, musicbodies)
+		-- 回调函数
+		local function httpGetID(musicStatus, musicBody, musicHeader)
+			completed = completed + 1
+			if musicStatus == 200 then
+				local musicinfo = hs.json.decode(musicBody)
+				local trackList = apiList[api].gettrackList(musicinfo)
+				if not trackList then
 					return
 				end
 				if trackList and #trackList > 0 then
-					trackData = {
+					local trackData = {
 						["list"] = trackList,
-						["api"] = apiNO
+						["api"] = apiList[api].apiNO,
+						["keyword"] = keywordNO
 					}
+					table.insert(currentsongsResult, trackData)
 					table.insert(songsResult, trackData)
-					for i = 1, #trackList, 1 do
-						if compareString(trackName(i), searchTitle[keywordNO]) > titleSimilarity then
-							for a = 1, #searchArtist, 1 do
-								tempS = compareString(trackArtist(i), searchArtist[a])
-								if tempS == 100 then
-									similarity = tempS
-									songID = trackID(i)
-									break
-								else
-									if tempS > similarity then
-										similarity = tempS
-										songID = trackID(i)
-									end
-								end
-							end
-						end
-						if similarity == 100 then
+				end
+				--[[ 
+				-- 优先从默认搜索API匹配并获取歌词
+				if apiList[api].apiNO == lyricDefaultNO then
+					Lyric.fetchLyric(Lyric.matchLyric(trackList, api), api)
+				end
+				-- 若默认搜索API无结果，直接更改搜索关键词
+				Lyric.noLyric()
+				]]
+				-- 判断是否全部完成
+				if completed == #apiList then
+					-- 按默认优先的顺序重新排序
+					reOrder(currentsongsResult, "api", lyricDefaultNO)
+					-- 按默认优先的顺序遍历匹配
+					for r = 1, #currentsongsResult do
+						Lyric.matchLyric(currentsongsResult[r].list, r)
+						if lyricURL then
+							Lyric.fetchLyric(lyricURL, r)
 							break
 						end
 					end
-				end
-			end
-			-- 判断是否需要重新搜索
-			if songID then
-				-- 手动选择
-				if isSelected then
-					lyricURL = songlyricURL
-				-- 自动匹配
-				else
-					lyricURL = lyricAPI .. songID
-				end
-				songID = nil
-			else
-				if keywordNO < #searchKeywords then
-					keywordNO = keywordNO + 1
-					Lyric.search()
-				else
-					-- 更换搜索引擎之前重置关键词索引
-					keywordNO = 1
+					currentsongsResult = {}
+					-- 若无匹配结果则更改搜索关键词
+					if not lyricURL then
+						Lyric.noLyric()
+					end
+					-- 渲染菜单
+					reOrder(songsResult, "api", lyricDefaultNO)
+					-- reOrder(songsResult, "keyword", 1)
 					Lyric.menubar(songsResult)
-					Lyric.noLyric()
 				end
-				return
 			end
 		end
-		-- 在菜单栏显示每次搜索的候选结果
-		if not isSelected then
-			Lyric.menubar(songsResult)
+		-- 发起请求
+		httpRequest(apiList[api].apiMethod, musicurl, apiList[api].musicheaders, musicbodies, httpGetID)
+	end
+	-- Search函数本体
+	-- 搜索提示
+	if not isSelected then
+		completed = 0
+		print(keyword .. " の歌詞を検索中...")
+		-- 发起所有请求
+		for api = 1, #apiList do
+			-- 获取歌曲ID
+			if apiList[api].apiMethod == "GET" then
+				musicurl = apiList[api].idAPI .. hs.http.encodeForQuery(keyword)
+			else
+				musicurl = apiList[api].idAPI
+				musicbodies = apiList[api].musicbodies:gsub("\"query\":\".*\",\"search_type\"", "\"query\":\"" .. keyword .. "\",\"search_type\"")
+			end
+			performHttpGet(api, musicurl, musicbodies)
 		end
-		if lyricURL then
-			print("歌詞を取得中...")
-			httpGetLyric = function(status,body,headers)
-				if status == 200 then
-					local lyricRaw = hs.json.decode(body)
-					if getLyric(lyricRaw) then
-						local lyric = trackLyric(lyricRaw)
-						if not lyric or string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
-							Lyric.noLyric()
-							if lyricURL then
-								return
-							end
+	else
+		Lyric.fetchLyric(songlyricURL, songAPI)
+		isSelected = false
+	end
+end
+
+-- 自动匹配歌词函数
+Lyric.matchLyric = function(trackList, api)
+	if not songID then
+		local similarity = 0
+		if trackList and #trackList > 0 then
+			for i = 1, #trackList, 1 do
+				if compareString(trackList[i].trackName, searchTitle[keywordNO]) > titleSimilarity then
+					for a = 1, #searchArtist, 1 do
+						tempS = compareString(trackList[i].trackArtist, searchArtist[a])
+						if tempS == 100 then
+							similarity = tempS
+							songID = trackList[i].trackID
+							break
 						else
-							if currentAPI and apiNO ~= currentAPI then
-								Lyric.api(apiList[currentAPI])
-								currentAPI = nil
+							if tempS > similarity then
+								similarity = tempS
+								songID = trackList[i].trackID
 							end
 						end
-						-- 特殊字符处理
-						local lyric = lyric:gsub("%&apos;","'")
-						lyricOnline = Lyric.edit(lyric)
-						if saveFile then
-							Lyric.save(lyric,fileName)
-						end
-						Lyric.main()
 					end
 				end
+				if similarity == 100 then
+					break
+				end
 			end
-			httpRequest("GET", lyricURL, lyricheaders, nil, httpGetLyric)
+		end
+		-- 判断是否需要重新搜索
+		if songID then
+			lyricURL = apiList[api].lyricAPI .. songID
+			songID = nil
+			return lyricURL
 		end
 	end
-	httpRequest(apiMethod, musicurl, musicheaders, musicbodies, httpGetID)
+end
+
+-- 获取歌词函数
+Lyric.fetchLyric = function(lyricURL, api)
+	if lyricURL then
+		print(apiList[api].apiName .. "から歌詞を取得中...")
+		httpGetLyric = function(status,body,headers)
+			if status == 200 then
+				local lyricRaw = hs.json.decode(body)
+				local lyric = apiList[api].getLyric(lyricRaw)
+				if not lyric or string.find(lyric,'-1%]') or lyric == ""  or string.find(lyric,'^%[99.*') then
+					Lyric.noLyric()
+					return
+				end
+				-- 特殊字符处理
+				local lyric = lyric:gsub("%&apos;","'")
+				-- 获取在线歌词
+				lyricOnline = Lyric.edit(lyric)
+				-- 保存歌词文件
+				if saveFile then
+					Lyric.save(lyric,fileName)
+				end
+				-- 加载歌词
+				Lyric.main()
+			end
+		end
+		httpRequest("GET", lyricURL, apiList[api].lyricheaders, nil, httpGetLyric)
+	end
 end
 
 -- 将歌词从json转变成table
@@ -459,26 +433,18 @@ end
 
 -- 无歌词时执行的函数
 Lyric.noLyric = function()
-	print("該当する歌詞はません")
-	if songlyricURL then
-		songlyricURL = nil
-		return
-	end
-	if not currentAPI then
-		currentAPI = apiNO
-	end
-	if apiNO < #apiList then
-		newAPI = apiNO + 1
+	if not lyricURL then
+		if keywordNO < #searchKeywords then
+			keywordNO = keywordNO + 1
+			Lyric.search()
+		else
+			-- 重置关键词索引
+			keywordNO = 1
+			print("該当する歌詞はありません、メニューから選択してください")
+		end
 	else
-		newAPI = apiNO - #apiList + 1
-	end
-	if newAPI == currentAPI then
-		Lyric.api(apiList[currentAPI].apiTag)
-		currentAPI = nil
-	else
-		Lyric.api(apiList[newAPI].apiTag)
-		Lyric.search()
-		return
+		lyricURL = nil
+		print("歌詞データはありません、メニューから選択してください")
 	end
 end
 
@@ -740,19 +706,6 @@ Lyric.error = function()
 end
 
 -- 歌词功能菜单
-lyricShow = true
-lyricEnable = true
-lyricAPIs = {
-	API163 = false,
-	APIQQ = false,
-	APISelf = false,
-}
-for i,v in pairs(lyricAPIs) do
-	if i:find(lyricDefault) then
-		lyricAPIs[i] = true
-		break
-	end
-end
 Lyric.menubar = function(songs)
 	if lyricType == "online" then
 		return
@@ -811,9 +764,9 @@ Lyric.menubar = function(songs)
 								lyricAPIs[i] = false
 							end
 							lyricAPIs.APIQQ = true
-							Lyric.api("QQ")
+							lyricDefaultNO = 1
+							Lyric.api(lyricDefaultNO)
 							updateMenu("QQ音乐", lyricAPIs.APIQQ)
-							Lyric.search()
 						end
 					end,
 				},
@@ -826,24 +779,9 @@ Lyric.menubar = function(songs)
 								lyricAPIs[i] = false
 							end
 							lyricAPIs.API163 = true
-							Lyric.api("163")
+							lyricDefaultNO = 2
+							Lyric.api(lyricDefaultNO)
 							updateMenu("网易云音乐", lyricAPIs.API163)
-							Lyric.search()
-						end
-					end,
-				},
-				{
-					title = "自部署",
-					checked = lyricAPIs.APISelf,
-					fn = function()
-						if not lyricAPIs.APISelf then
-							for i,v in pairs(lyricAPIs) do
-								lyricAPIs[i] = false
-							end
-							lyricAPIs.APISelf = true
-							Lyric.api("Self")
-							updateMenu("自部署", lyricAPIs.APISelf)
-							Lyric.search()
 						end
 					end,
 				}
@@ -888,13 +826,15 @@ Lyric.menubar = function(songs)
 			end
 			for i = 1, #trackList, 1 do
 				item = {
-					title = apiList[songs[s].api].trackName(i) .. " - " .. apiList[songs[s].api].trackArtist(i), 
-					id = apiList[songs[s].api].trackID(i),
-					url = apiList[songs[s].api].lyricAPI .. apiList[songs[s].api].trackID(i),
+					title = trackList[i].trackName .. " - " .. trackList[i].trackArtist, 
+					id = trackList[i].trackID,
+					url = apiList[songs[s].api].lyricAPI .. trackList[i].trackID,
+					api = apiList[songs[s].api].apiNO,
 					fn = function(modifier,item)
 						isSelected = true
 						songID = item.id
 						songlyricURL = item.url
+						songAPI = item.api
 						lyricTable = Lyric.search()
 						update = true
 						Lyric.show(lyricTable)
@@ -907,6 +847,20 @@ Lyric.menubar = function(songs)
 	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
 	lyricBar:setIcon(icon)
 	lyricBar:setMenu(menudata)
+end
+-- 初始化
+Lyric.api(lyricDefaultNO)
+lyricShow = true
+lyricEnable = true
+lyricAPIs = {
+	API163 = false,
+	APIQQ = false,
+}
+for i,v in pairs(lyricAPIs) do
+	if i:find(apiList[lyricDefaultNO].apiTag) then
+		lyricAPIs[i] = true
+		break
+	end
 end
 Lyric.menubar()
 

@@ -41,7 +41,7 @@ lyricString = {
     },
     error = "歌詞をエラーとしてマーク",
     delete = "歌詞ファイルを削除して再検索",
-    api = "歌詞検索のAPIを選択"
+    api = "歌詞検索のデフォルトAPI"
 }
 -- 粉色歌词
 if not string.find(owner,"Kami") then
@@ -55,7 +55,7 @@ if not string.find(owner,"Kami") then
         },
         error = "标记错误歌词",
         delete = "删除歌词文件并重新搜索",
-        api = "选择歌词搜索API"
+        api = "歌词搜索默认API"
     }
 end
 -- 歌词黑名单
@@ -76,5 +76,5 @@ blackList = {
 }
 -- 本地歌词文件存储路径
 lyricPath = HOME .. "/Music/Lyrics/"
--- 默认歌词搜索引擎
-lyricDefault = "QQ"
+-- 默认歌词搜索引擎（1: QQ音乐；2: 网易云音乐）
+lyricDefaultNO = 1
