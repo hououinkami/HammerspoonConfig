@@ -182,6 +182,15 @@ function compareString(strA, strB)
 	return (1- tempTb[#strA + 1][#strB + 1]/math.max(#strA, #strB))*100
 end
 
+-- 从数组某个指定index开始重新排序
+function reOrder(list, indexField, startIndex)
+	table.sort(list, function(a, b)
+		local aRelative = (a[indexField] - startIndex + #list) % #list
+		local bRelative = (b[indexField] - startIndex + #list) % #list
+		return aRelative < bRelative
+	end)
+end
+
 -- 获取App菜单栏文字菜单项目
 function getmenubarItemLeft(app)
 	local appElement = ax.applicationElement(app)
