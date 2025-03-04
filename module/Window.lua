@@ -33,6 +33,7 @@ function windowMeta.new()
 		})
 	if self ~= nil then
 		self.window = win.focusedWindow()
+		self.id = self.window:id()
 		self.screen = self.window:screen()
 		self.resolution = self.screen:fullFrame()
 		self.windowFrame = self.window:frame()
@@ -49,24 +50,88 @@ function pushCurrent(x, y, w, h)
 	local this = windowMeta.new()
 	windowStash(this.window)
 	if type(x) == "number" then
-		local frame = this.windowFrame
-		frame.x = this.screenFrame.x + (this.screenFrame.w * x)
-		frame.y = this.screenFrame.y + (this.screenFrame.h * y)
-		frame.w = this.screenFrame.w * w
-		frame.h = this.screenFrame.h * h
-		this.window:setFrame(frame)
+		this.window:move({
+			this.screenFrame.x + (this.screenFrame.w * x), 
+			this.screenFrame.y + (this.screenFrame.h * y), 
+			this.screenFrame.w * w, 
+			this.screenFrame.h * h
+		})
+	elseif x == "center" then
+		-- this.window:centerOnScreen()
+		this.window:move({
+			(this.screenFrame.w - this.windowFrame.w) / 2, 
+			(this.screenFrame.h - this.windowFrame.h) / 2, 
+			this.windowFrame.w, 
+			this.windowFrame.h
+		})
 	elseif x == "fullscreen" then
 		this.window:toggleFullScreen()
-	elseif x == "center" then
-		this.window:centerOnScreen()
+	elseif x == "reset" then
+		for idx,val in ipairs(winhistory) do
+			if val[1] == this.id then
+				this.window:setFrame(val[2])
+			end
+		end
+	-- 平移至贴近屏幕边缘
+	elseif x == "toleft" then
+		if this.windowFrame.x > 0 then
+			this.window:move({
+				0,
+				(this.screenFrame.h - this.windowFrame.h) / 2,
+				this.windowFrame.w,
+				this.windowFrame.h
+			})
+		else
+			this.window:moveOneScreenWest()
+		end
+	elseif x == "toright" then
+		if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
+			this.window:move({
+				this.screenFrame.w - this.windowFrame.w,
+				(this.screenFrame.h - this.windowFrame.h) / 2,
+				this.windowFrame.w,
+				this.windowFrame.h
+			})
+		else
+			this.window:moveOneScreenEast()
+		end
+	elseif x == "toup" then
+		if this.windowFrame.y > 0 then
+			this.window:move({
+				this.windowFrame.x,
+				0,
+				this.windowFrame.w,
+				this.windowFrame.h
+			})
+		else
+			this.window:moveOneScreenNorth()
+		end
+	elseif x == "todown" then
+		if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
+			this.window:move({
+				this.windowFrame.x,
+				this.screenFrame.h + 22.5 - this.windowFrame.h,
+				this.windowFrame.w,
+				this.windowFrame.h
+			})
+		else
+			this.window:moveOneScreenSouth()
+		end
+	-- 平滑调节窗口大小
+	elseif x == "reLeft" then
+		resizeWindow(this.window, "left", resizeStep)
+	elseif x == "reRight" then
+		resizeWindow(this.window, "right", resizeStep)
+	elseif x == "reUp" then
+		resizeWindow(this.window, "up", resizeStep)
+	elseif x == "reDown" then
+		resizeWindow(this.window, "down", resizeStep)
 	end
 end
 -- 平滑调节窗口大小
 function resizeWindow(window, dir, step)
-	local this = windowMeta.new()
-	windowStash(this.window)
-	local frame = this.windowFrame
-    local max = this.screenFrame
+	local frame = window:frame()
+    local max = window:screen():frame()
 	if dir == "right" then
 		frame.w = frame.w + step
 	elseif dir == "left" then
@@ -88,7 +153,7 @@ function resizeWindow(window, dir, step)
     if frame.h > max.h then
         frame.h = max.h
     end
-    this.window:move(frame)
+    window:move(frame)
 end
 -- 撤销最近一次动作
 function Undo()
@@ -100,99 +165,6 @@ function Undo()
 			cwin:setFrame(val[2])
 		end
 	end
-end
-
---------**--------
--- 窗口动作函数
---------**--------
-local Resize = {}
--- 半屏
-Resize.halfleft = function ()
-	pushCurrent(0, 0, 1/2, 1)
-end
-Resize.halfright = function ()
-	pushCurrent(1/2, 0, 1/2, 1)
-end
-Resize.halfup = function ()
-	pushCurrent(0, 0, 1, 1/2)
-end
-Resize.halfdown = function ()
-	pushCurrent(0, 1/2, 1, 1/2)
-end
-Resize.maximize = function ()
-	pushCurrent(0, 0, 1, 1)
-end
-Resize.fullscreen = function ()
-	pushCurrent("fullscreen")
-end
-Resize.center = function ()
-	pushCurrent("center")
-end
-Resize.reset = function ()
-	local currentWindow = win.focusedWindow()
-	local currentid = currentWindow:id()
-	for idx,val in ipairs(winhistory) do
-		if val[1] == currentid then
-			currentWindow:setFrame(val[2])
-		end
-	end
-end
--- 平移至贴近屏幕边缘
-Resize.toleft = function ()
-	local this = windowMeta.new()
-	if this.windowFrame.x > 0 then
-		windowStash(this.window)
-		this.window:move({ 0, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
-	else
-		this.window:moveOneScreenWest()
-	end
-end
-Resize.toright = function ()
-	local this = windowMeta.new()
-	if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
-		windowStash(this.window)
-		this.window:move({ this.screenFrame.w - this.windowFrame.w, (this.screenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h })
-	else
-		this.window:moveOneScreenEast()
-	end
-end
-Resize.toup = function ()
-	local this = windowMeta.new()
-	if this.windowFrame.y > 0 then
-		windowStash(this.window)
-		this.window:move({ this.windowFrame.x, 0, this.windowFrame.w, this.windowFrame.h })
-	else
-		this.window:moveOneScreenNorth()
-	end
-end
-Resize.todown = function ()
-	local this = windowMeta.new()
-	if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
-		windowStash(this.window)
-		this.window:move({ this.windowFrame.x, this.screenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h })
-	else
-		this.window:moveOneScreenSouth()
-	end
-end
-Resize.right = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	resizeWindow(this.window, "right", resizeStep)
-end
-Resize.left = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	resizeWindow(this.window, "left", resizeStep)
-end
-Resize.up = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	resizeWindow(this.window, "up", resizeStep)
-end
-Resize.down = function ()
-	local this = windowMeta.new()
-	windowStash(this.window)
-	resizeWindow(this.window, "down", resizeStep)
 end
 
 --------**--------
@@ -208,35 +180,33 @@ function windowsManagement(hyperkey, keyFuncTable, holding)
 		end
 	end
 end
--- 最大化
-hotkey.bind(hyper_oc, 'return', Resize.maximize)
--- 全屏
-hotkey.bind(hyper_coc, 'return', Resize.fullscreen)
 -- 半屏、居中、恢复
 windowsManagement(hyper_oc, {
-	left = Resize.halfleft,
-	right = Resize.halfright,
-	up = Resize.halfup,
-	down = Resize.halfdown,
-	c = Resize.center,
-	delete = Resize.reset,
+	left = function() pushCurrent(0, 0, 1/2, 1) end,
+	right = function() pushCurrent(1/2, 0, 1/2, 1) end,
+	up = function() pushCurrent(0, 0, 1, 1/2) end,
+	down = function() pushCurrent(0, 1/2, 1, 1/2) end, 
+	c = function() pushCurrent("center") end,
+	["return"] = function() pushCurrent(0, 0, 1, 1) end,
+	["delete"] = function() pushCurrent("reset") end,
 }, false)
 -- 移动
 windowsManagement(hyper_co, {
-	left = Resize.toleft,
-	right = Resize.toright,
-	up = Resize.toup,
-	down = Resize.todown,
+	left = function() pushCurrent("toleft") end,
+	right = function() pushCurrent("toright") end,
+	up = function() pushCurrent("toup") end,
+	down = function() pushCurrent("todown") end,
+	c = function() pushCurrent("center") end,
+	["return"] = function() pushCurrent(0, 0, 1, 1) end,
+	["delete"] = function() pushCurrent("reset") end,
 }, false)
 -- 平滑调节大小
-windowsManagement(hyper_coc, {
-	left = Resize.left,
-	right = Resize.right,
-	up = Resize.up,
-	down = Resize.down,
-	c = Resize.center,
-	delete = Resize.reset,
-}, true)
+-- windowsManagement(hyper_coc, {
+-- 	left = function() pushCurrent("reLeft") end,
+-- 	right = function() pushCurrent("reRight") end,
+-- 	up = function() pushCurrent("reUp") end,
+-- 	down = function() pushCurrent("reDown") end,
+-- }, true)
 
 --------**--------
 -- App窗口布局
