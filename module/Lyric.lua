@@ -799,6 +799,12 @@ Lyric.menubar = function(songs)
 				Lyric.delete()
 				Lyric.main()
 			end
+		},
+		{
+			title = lyricString.reload,
+			fn = function()
+				Lyric.main()
+			end
 		}
 	}
 	if lyricType == "ost" then
