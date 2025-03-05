@@ -37,7 +37,7 @@ function windowMeta.new()
 		self.screen = self.window:screen()
 		self.resolution = self.screen:fullFrame()
 		self.windowFrame = self.window:frame()
-		self.screenFrame = self.screen:frame()
+		self.screenFrame2 = self.screen:frame()
 	end
 	return self
 end
@@ -51,16 +51,16 @@ function pushCurrent(x, y, w, h)
 	windowStash(this.window)
 	if type(x) == "number" then
 		this.window:move({
-			this.screenFrame.x + (this.screenFrame.w * x), 
-			this.screenFrame.y + (this.screenFrame.h * y), 
-			this.screenFrame.w * w, 
-			this.screenFrame.h * h
+			this.screenFrame2.x + (this.screenFrame2.w * x), 
+			this.screenFrame2.y + (this.screenFrame2.h * y), 
+			this.screenFrame2.w * w, 
+			this.screenFrame2.h * h
 		})
 	elseif x == "center" then
 		-- this.window:centerOnScreen()
 		this.window:move({
-			(this.screenFrame.w - this.windowFrame.w) / 2, 
-			(this.screenFrame.h - this.windowFrame.h) / 2, 
+			(this.screenFrame2.w - this.windowFrame.w) / 2, 
+			(this.screenFrame2.h - this.windowFrame.h) / 2, 
 			this.windowFrame.w, 
 			this.windowFrame.h
 		})
@@ -77,7 +77,7 @@ function pushCurrent(x, y, w, h)
 		if this.windowFrame.x > 0 then
 			this.window:move({
 				0,
-				(this.screenFrame.h - this.windowFrame.h) / 2,
+				(this.screenFrame2.h - this.windowFrame.h) / 2,
 				this.windowFrame.w,
 				this.windowFrame.h
 			})
@@ -85,10 +85,10 @@ function pushCurrent(x, y, w, h)
 			this.window:moveOneScreenWest()
 		end
 	elseif x == "toright" then
-		if this.windowFrame.x + this.windowFrame.w < this.screenFrame.w then
+		if this.windowFrame.x + this.windowFrame.w < this.screenFrame2.w then
 			this.window:move({
-				this.screenFrame.w - this.windowFrame.w,
-				(this.screenFrame.h - this.windowFrame.h) / 2,
+				this.screenFrame2.w - this.windowFrame.w,
+				(this.screenFrame2.h - this.windowFrame.h) / 2,
 				this.windowFrame.w,
 				this.windowFrame.h
 			})
@@ -107,10 +107,10 @@ function pushCurrent(x, y, w, h)
 			this.window:moveOneScreenNorth()
 		end
 	elseif x == "todown" then
-		if this.windowFrame.y + this.windowFrame.h < this.screenFrame.h then
+		if this.windowFrame.y + this.windowFrame.h < this.screenFrame2.h then
 			this.window:move({
 				this.windowFrame.x,
-				this.screenFrame.h + 22.5 - this.windowFrame.h,
+				this.screenFrame2.h + 22.5 - this.windowFrame.h,
 				this.windowFrame.w,
 				this.windowFrame.h
 			})
@@ -198,7 +198,6 @@ windowsManagement(hyper_co, {
 	down = function() pushCurrent("todown") end,
 	c = function() pushCurrent("center") end,
 	["return"] = function() pushCurrent(0, 0, 1, 1) end,
-	["delete"] = function() pushCurrent("reset") end,
 }, false)
 -- 平滑调节大小
 -- windowsManagement(hyper_coc, {
