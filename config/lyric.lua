@@ -42,7 +42,7 @@ lyricString = {
     error = "歌詞をエラーとしてマーク",
     delete = "歌詞ファイルを削除して再検索",
     api = "歌詞検索のデフォルトAPI",
-    reload = "リロード"
+    reload = "歌詞モジュールをリロード"
 }
 -- 粉色歌词
 if not string.find(owner,"Kami") then
@@ -57,7 +57,7 @@ if not string.find(owner,"Kami") then
         error = "标记错误歌词",
         delete = "删除歌词文件并重新搜索",
         api = "歌词搜索默认API",
-        reload = "重载"
+        reload = "重载歌词模块"
     }
 end
 -- 歌词黑名单

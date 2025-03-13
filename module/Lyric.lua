@@ -802,9 +802,7 @@ Lyric.menubar = function(songs)
 		},
 		{
 			title = lyricString.reload,
-			fn = function()
-				Lyric.main()
-			end
+			fn = Lyric.main,
 		}
 	}
 	if lyricType == "ost" then
@@ -819,6 +817,10 @@ Lyric.menubar = function(songs)
 		menudata[#menudata + 1] = {
 			title = lyricString.error,
 			fn = Lyric.toggleShow,
+		}
+		menudata[#menudata + 1] = {
+			title = lyricString.reload,
+			fn = Lyric.main,
 		}
 	end
 	if songs then
