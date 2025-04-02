@@ -1,14 +1,7 @@
 .DS_Store
 /*.jpg
 /*.png
-/*.plist
-/*.json
-/module/Achieve
-/module/secret.lua
-/module/DesktopWidget.lua
-/module/test.lua
-/image/Widget
-/image/Loved（OldStyle）
-/image/Blue
+/module/archive
+/module/test_*.lua
 /Spoons
 /init*.lua
