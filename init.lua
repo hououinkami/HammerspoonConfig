@@ -53,10 +53,11 @@ local module_list = {
 	"Hotkey",
 	-- "Network",
 	-- "AppKeyMap",	
-	-- "DesktopWidget",
-	-- "test",
-	-- "ring",
 }
+
+-- 是否加载测试模块的条件
+local load_test_modules = false
+
 for _, v in ipairs(module_list) do
 	if v == 'Network' or v == 'Music' then
 		if not string.find(owner,"mini") then
@@ -68,6 +69,19 @@ for _, v in ipairs(module_list) do
 end
 if not string.find(owner,"Kami") then
 	require ('module.autoupdate')
+end
+
+-- 条件加载所有以test_开头的模块
+if load_test_modules then
+    local module_dir = hs.configdir .. "/module"
+    for file in hs.fs.dir(module_dir) do
+        -- 检查是否是以test_开头的Lua文件
+        if string.match(file, "^test_.*%.lua$") then
+            local module_name = string.gsub(file, "%.lua$", "")  -- 移除.lua后缀
+			print(module_name)
+            require('module.' .. module_name)
+        end
+    end
 end
 
 -- 当Music和歌词的配置文件文件更新时热更新
