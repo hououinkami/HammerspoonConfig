@@ -189,7 +189,7 @@ windowsManagement(hyper_oc, {
 	c = function() pushCurrent("center") end,
 	["return"] = function() pushCurrent(0, 0, 1, 1) end,
 	["delete"] = function() pushCurrent("reset") end,
-}, false)
+}, true)
 -- 移动
 windowsManagement(hyper_co, {
 	left = function() pushCurrent("toleft") end,
@@ -215,7 +215,7 @@ local layouts = {
 	{
 		name = {"Safari"},
 	  	func = function(index, win)
-			Resize.fullscreen()
+			pushCurrent("fullscreen")
 	  	end
 	},
 	{
