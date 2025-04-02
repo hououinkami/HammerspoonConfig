@@ -15,12 +15,11 @@ require ('module.utils')
 
 -- 菜单项配置
 local APPLICATIONS = {
-  { name = 'WeChat', icon = '/Applications/WeChat.app/Contents/Resources/AppIcon.icns' },
   { name = 'Telegram', icon = '/Applications/Telegram.app/Contents/Resources/AppIcon.icns' },
-  { name = '企业微信', icon = '/Applications/企业微信.app/Contents/Resources/AppIcon.icns' },
+  { name = 'Monica', icon = '/Applications/Monica.app/Contents/Resources/icon.icns' },
   { name = 'Safari', icon = '/Applications/Safari.app/Contents/Resources/AppIcon.icns' },
+  { name = 'Music', icon = '/System/Applications/Music.app/Contents/Resources/AppIcon.icns' },
   { name = 'ダウンロード', icon = '/Applications/Visual Studio Code.app/Contents/Resources/Code.icns', onActive = function() as.applescript([[tell application "Finder" to set frontmost to true and open folder (path to downloads folder)]]) end },
-  { name = 'WebStorm', icon = '/Applications/WebStorm.app/Contents/Resources/webstorm.icns' },
 }
 -- 菜单圆环大小
 local RING_SIZE = 280
