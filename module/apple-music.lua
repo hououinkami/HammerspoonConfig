@@ -133,6 +133,28 @@ Music.previous = function ()
 end
 -- 歌曲种类
 Music.kind = function()
+	local kind = Music.tell('kind of container of current track as string')
+	local class = Music.tell('class of container of current track as string')
+	local cloudstatus = Music.tell('cloud status of current track as string')
+	if class == "user playlist" then
+		if cloudstatus == "matched" then
+			musictype = "matched"
+		else
+			musictype = "localmusic"
+		end
+	elseif class == "source" then
+		if kind == "iTunes Store" then
+			musictype = "applemusic"
+		elseif kind == "radio tuner" then
+			musictype = "radio"
+		end
+	else
+		musictype = "applemusic"
+	end
+	return musictype
+end
+
+Music.kind2 = function()
 	local kind = Music.tell('kind of current track')
 	local cloudstatus = Music.tell('cloud status of current track as string')
 	local class = Music.tell('class of current track as string')
@@ -181,20 +203,24 @@ Music.locate = function ()
 end
 -- 切换随机模式
 Music.toggleShuffle = function ()
-	if Music.shuffle() == false then
-		Music.tell("set shuffle enabled to true")
-	else
-		Music.tell("set shuffle enabled to false")
+	if Music.kind() ~= "radio" then
+		if Music.shuffle() == false then
+			Music.tell("set shuffle enabled to true")
+		else
+			Music.tell("set shuffle enabled to false")
+		end
 	end
 end
 -- 切换重复模式
 Music.toggleLoop = function ()
-	if Music.loop() == "all" then
-		Music.tell('set song repeat to one')
-	elseif Music.loop() == "one" then
-		Music.tell('set song repeat to off')
-	elseif Music.loop() == "off" then
-		Music.tell('set song repeat to all')
+	if Music.kind() ~= "radio" then
+		if Music.loop() == "all" then
+			Music.tell('set song repeat to one')
+		elseif Music.loop() == "one" then
+			Music.tell('set song repeat to off')
+		elseif Music.loop() == "off" then
+			Music.tell('set song repeat to all')
+		end
 	end
 end
 -- 判断Apple Music曲目是否存在于本地曲库中
@@ -214,13 +240,13 @@ Music.addToLibrary = function()
 	local addtolibraryScript = [[
 		tell application "Music"
 			try
-				duplicate current track to first source
-			on error
 				duplicate current track to library playlist "Library"
+			on error
+				duplicate current track to first source
 			end try
 		end tell
 	]]
-	if Music.kind() == "applemusic" then
+	if Music.kind() == "applemusic" and Music.kind() == "radio" then
 		as.applescript(addtolibraryScript:gsub("Library",MusicLibrary))
 	end
 end

@@ -170,7 +170,7 @@ function setRateMenu()
 		return img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imageSize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
-	if Music.kind() == "applemusic" then
+	if Music.kind() == "applemusic" or Music.kind() == "radio" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h + gapSize.y, w = imageSize.w * 3}
 		c_rateMenu_elements = {
 			{-- 喜爱
@@ -310,10 +310,10 @@ function setControlMenu()
 		return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. Music.loop() .. ".png"):setSize(imageSize, absolute == true)
 	end
 	local addedImage = function()
-		if Music.kind() == "applemusic" then
+		if Music.kind() == "applemusic" or Music.kind() == "radio" then
 			isExist = tostring(Music.existInLibrary())
 		elseif Music.kind() == "localmusic" or Music.kind() == "matched" then
-			isExist = "false"
+			isExist = "true"
 		end
 		return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
 	end
@@ -361,9 +361,10 @@ function setControlMenu()
 			end
 			if not c_playlist then
 				setPlaylistMenu()
+				show(c_playlist)
 			elseif c_playlist then
 				if not c_playlist:isShowing() then
-					setPlaylistMenu()
+					show(c_playlist)
 				else
 					hide(c_playlist)
 				end
@@ -493,7 +494,7 @@ function setPlaylistMenu()
 					Music.addToPlaylist(playlistName[i])
 					hide(c_playlist)
 					-- 判断是否添加成功
-					if Music.kind() == "applemusic" then
+					if Music.kind() == "applemusic" or Music.kind() == "radio" then
 						if not Music.existInLibrary() then
 							hs.alert.show("曲の追加が失敗しているようです")
 						end
