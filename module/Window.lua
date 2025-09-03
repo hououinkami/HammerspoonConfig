@@ -46,16 +46,19 @@ end
 -- 窗口调节函数
 --------**--------
 -- 按比例缩放当前窗口
-function pushCurrent(x, y, w, h)
+function pushCurrent(x, y, w, h)	
 	local this = windowMeta.new()
 	windowStash(this.window)
+
 	if type(x) == "number" then
-		this.window:move({
-			this.screenFrame2.x + (this.screenFrame2.w * x), 
-			this.screenFrame2.y + (this.screenFrame2.h * y), 
-			this.screenFrame2.w * w, 
-			this.screenFrame2.h * h
-		})
+		changeFocusedWindowDimensions(function(window)
+			window:move({
+				this.screenFrame2.x + (this.screenFrame2.w * x), 
+				this.screenFrame2.y + (this.screenFrame2.h * y), 
+				this.screenFrame2.w * w, 
+				this.screenFrame2.h * h
+			})
+		end)
 	elseif x == "center" then
 		-- this.window:centerOnScreen()
 		this.window:move({
@@ -69,7 +72,9 @@ function pushCurrent(x, y, w, h)
 	elseif x == "reset" then
 		for idx,val in ipairs(winhistory) do
 			if val[1] == this.id then
-				this.window:setFrame(val[2])
+				changeFocusedWindowDimensions(function(window)
+					window:setFrame(val[2])
+				end)
 			end
 		end
 	-- 平移至贴近屏幕边缘
@@ -164,6 +169,33 @@ function Undo()
 		if val[1] == cwinid then
 			cwin:setFrame(val[2])
 		end
+	end
+end
+
+-- 处理有问题的App窗口
+function changeFocusedWindowDimensions(action)
+	local window = hs.window.focusedWindow()
+
+	if not window then return end
+
+	local app = window:application()
+	local ax_app = hs.axuielement.applicationElement(app)
+
+	-- original settings
+	local was_enhanced = ax_app.AXEnhancedUserInterface
+	local original_animation_duration = hs.window.animationDuration
+
+	if was_enhanced then
+		-- set & run action
+		ax_app.AXEnhancedUserInterface = false
+		hs.window.animationDuration = 0
+		action(window)
+
+		-- restore original settings
+		hs.window.animationDuration = original_animation_duration
+		ax_app.AXEnhancedUserInterface = was_enhanced
+	else
+		action(window)
 	end
 end
 
