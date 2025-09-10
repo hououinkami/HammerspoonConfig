@@ -36,7 +36,7 @@ Lyric.processLyricType = function(callback)
 	-- 判断类型
 	if Music.kind() == "matched" or Music.kind() == "localmusic" or Music.existInLibrary() then
 		-- 异步加载本地歌词
-		Lyric.loadAsync(fileName, function(lyricfileExist, lyricfileContent, lyricfileError)
+		Lyric.load(fileName, function(lyricfileExist, lyricfileContent, lyricfileError)
 			local lyricType
 			if lyricfileError then
 				lyricType = "error"
@@ -88,7 +88,7 @@ Lyric.handleLyricType = function(lyricType, lyricfileContent, callback)
 			Lyric.finalizeLyricLoading(callback)
 		elseif lyricType == "local" then
 			-- 异步编辑歌词
-			Lyric.editAsync(lyricfileContent, function(processedLyricTable)
+			Lyric.edit(lyricfileContent, function(processedLyricTable)
 				_G.lyricTable = processedLyricTable
 				if not Music.existInLibrary() and not Music.loved() then
 					Lyric.delete()
@@ -288,8 +288,8 @@ Lyric.performSearch = function()
 			end)
 		end
 	else
+		-- 用户手动选择的情况，直接获取歌词
 		Lyric.fetchLyric(songlyricURL, songAPI)
-		isSelected = false
 	end
 end
 
@@ -434,16 +434,25 @@ Lyric.handleLyricResult = function(status, body, api)
 		-- 特殊字符处理
 		local lyric = lyric:gsub("%&apos;","'")
 		-- 异步编辑歌词
-		Lyric.editAsync(lyric, function(processedLyricTable)
+		Lyric.edit(lyric, function(processedLyricTable)
 			lyricOnline = processedLyricTable
 			-- 异步保存歌词文件
 			if saveFile then
 				Lyric.save(lyric, fileName)
 			end
-			-- 重新加载歌词
-			hs.timer.doAfter(0.1, function()
-				Lyric.main()
-			end)
+			-- 如果是用户手动选择的歌词，直接显示，不要重新搜索
+			if isSelected then
+				_G.lyricTable = processedLyricTable
+				_G.lyricType = "online"
+				Lyric.menubar()
+				Lyric.show(_G.lyricTable)
+				isSelected = false  -- 重置标志
+			else
+				-- 重新加载歌词
+				hs.timer.doAfter(0.1, function()
+					Lyric.main()
+				end)
+			end
 		end)
 	else
 		Lyric.noLyric()
@@ -451,7 +460,7 @@ Lyric.handleLyricResult = function(status, body, api)
 end
 
 -- 将歌词从json转变成table（异步处理）
-Lyric.editAsync = function(lyric, callback)
+Lyric.edit = function(lyric, callback)
 	hs.timer.doAfter(0, function()
 		local lyricData = stringSplit(lyric,"\n")
 		local allLine = #lyricData
@@ -459,7 +468,7 @@ Lyric.editAsync = function(lyric, callback)
 		
 		if #lyricData > 2 then
 			-- 分批异步处理歌词行
-			Lyric.processLyricLinesAsync(lyricData, allLine, lyricTable, 1, callback)
+			Lyric.processLyricLines(lyricData, allLine, lyricTable, 1, callback)
 		else
 			-- 在最后插入空行方便处理
 			table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
@@ -469,7 +478,7 @@ Lyric.editAsync = function(lyric, callback)
 end
 
 -- 异步处理歌词行
-Lyric.processLyricLinesAsync = function(lyricData, allLine, lyricTable, startIndex, callback)
+Lyric.processLyricLines = function(lyricData, allLine, lyricTable, startIndex, callback)
 	local batchSize = 20 -- 每批处理20行
 	local endIndex = math.min(startIndex + batchSize - 1, #lyricData)
 	
@@ -515,18 +524,18 @@ Lyric.processLyricLinesAsync = function(lyricData, allLine, lyricTable, startInd
 	-- 如果还有未处理的行，继续异步处理
 	if endIndex < #lyricData then
 		hs.timer.doAfter(0.01, function()
-			Lyric.processLyricLinesAsync(lyricData, allLine, lyricTable, endIndex + 1, callback)
+			Lyric.processLyricLines(lyricData, allLine, lyricTable, endIndex + 1, callback)
 		end)
 	else
 		-- 处理完成，继续后续步骤
 		hs.timer.doAfter(0, function()
-			Lyric.finalizeLyricProcessingAsync(lyricTable, callback)
+			Lyric.finalizeLyricProcessing(lyricTable, callback)
 		end)
 	end
 end
 
 -- 完成歌词处理
-Lyric.finalizeLyricProcessingAsync = function(lyricTable, callback)
+Lyric.finalizeLyricProcessing = function(lyricTable, callback)
 	-- 将时间戳转换成秒
 	for i,v in ipairs(lyricTable) do
 		hour = 0
@@ -561,7 +570,7 @@ end
 -- 无歌词时执行的函数（异步处理）
 Lyric.noLyric = function()
 	hs.timer.doAfter(0, function()
-		if not lyricURL then
+		if not lyricURL and not isSelected then
 			if keywordNO < #searchKeywords then
 				keywordNO = keywordNO + 1
 				Lyric.search()
@@ -577,6 +586,10 @@ Lyric.noLyric = function()
 		else
 			lyricURL = nil
 			print("歌詞データはありません、メニューから選択してください")
+
+			delete(c_lyric)
+			deleteTimer(lyricTimer)
+			
 			-- 异步渲染菜单
 			hs.timer.doAfter(0, function()
 				Lyric.menubar(songsResult)
@@ -590,10 +603,10 @@ Lyric.show = function(lyricTable, callback)
 	if lyricTable then
 		-- 异步初始化歌词图层
 		hs.timer.doAfter(0, function()
-			Lyric.setCanvasAsync(function()
+			Lyric.setCanvas(function()
 				-- 异步设定计时器
 				hs.timer.doAfter(0.1, function()
-					Lyric.setupLyricTimerAsync(lyricTable, callback)
+					Lyric.setupLyricTimer(lyricTable, callback)
 				end)
 			end)
 		end)
@@ -603,18 +616,18 @@ Lyric.show = function(lyricTable, callback)
 end
 
 -- 设置歌词计时器
-Lyric.setupLyricTimerAsync = function(lyricTable, callback)
+Lyric.setupLyricTimer = function(lyricTable, callback)
 	lyricTimer = hs.timer.new(1, function()
 		-- 异步显示歌词
 		hs.timer.doAfter(0, function()
-			Lyric.showLyricStepAsync(lineNO, lyricTable)
+			Lyric.showLyricStep(lineNO, lyricTable)
 		end)
 	end):start()
 	if callback then callback() end
 end
 
 -- 异步歌词显示函数
-Lyric.showLyricStepAsync = function(startline, lyricTable)
+Lyric.showLyricStep = function(startline, lyricTable)
 	if not lyricTable then
 		return
 	end
@@ -661,7 +674,7 @@ Lyric.showLyricStepAsync = function(startline, lyricTable)
 	-- 异步歌词刷新
 	if currentLyric ~= lyrictext then
 		hs.timer.doAfter(0, function()
-			Lyric.updateLyricDisplayAsync(currentLyric, stayTime)
+			Lyric.updateLyricDisplay(currentLyric, stayTime)
 		end)
 	else
 		-- 设置下次触发时间
@@ -674,13 +687,13 @@ Lyric.showLyricStepAsync = function(startline, lyricTable)
 end
 
 -- 异步更新歌词显示
-Lyric.updateLyricDisplayAsync = function(currentLyric, stayTime)
+Lyric.updateLyricDisplay = function(currentLyric, stayTime)
 	if lyricTimer and not lyricTimer:running() then
 		lyricTimer:start()
 	end
 	
 	-- 异步处理歌词样式
-	Lyric.handleLyricAsync(currentLyric, function(styledLyric)
+	Lyric.handleLyric(currentLyric, function(styledLyric)
 		hs.timer.doAfter(0, function()
 			if c_lyric and c_lyric["lyric"] then
 				c_lyric["lyric"].text = styledLyric
@@ -707,7 +720,7 @@ Lyric.updateLyricDisplayAsync = function(currentLyric, stayTime)
 end
 
 -- 异步将歌词按照中英数分割方便设置不同字体
-Lyric.handleLyricAsync = function(lyric, callback)
+Lyric.handleLyric = function(lyric, callback)
 	if not lyric or #lyric == 0 then
 		callback(nil)
 		return
@@ -718,12 +731,12 @@ Lyric.handleLyricAsync = function(lyric, callback)
 		local s_list = stringSplit2(lyric)
 		
 		-- 分批处理样式
-		Lyric.processStyleBatchAsync(s_list, lyricObjTable, 1, callback)
+		Lyric.processStyleBatch(s_list, lyricObjTable, 1, callback)
 	end)
 end
 
 -- 异步分批处理样式
-Lyric.processStyleBatchAsync = function(s_list, lyricObjTable, startIndex, callback)
+Lyric.processStyleBatch = function(s_list, lyricObjTable, startIndex, callback)
 	local batchSize = 10 -- 每批处理10个字符
 	local endIndex = math.min(startIndex + batchSize - 1, #s_list)
 	
@@ -778,7 +791,7 @@ Lyric.processStyleBatchAsync = function(s_list, lyricObjTable, startIndex, callb
 	-- 如果还有未处理的字符，继续异步处理
 	if endIndex < #s_list then
 		hs.timer.doAfter(0.001, function()
-			Lyric.processStyleBatchAsync(s_list, lyricObjTable, endIndex + 1, callback)
+			Lyric.processStyleBatch(s_list, lyricObjTable, endIndex + 1, callback)
 		end)
 	else
 		-- 处理完成，合并结果
@@ -816,7 +829,7 @@ Lyric.combineLyricObjects = function(lyricObjTable)
 end
 
 -- 异步建立歌词图层
-Lyric.setCanvasAsync = function(callback) 
+Lyric.setCanvas = function(callback) 
 	hs.timer.doAfter(0, function()
 		if not c_lyric then
 			c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
@@ -834,7 +847,7 @@ Lyric.setCanvasAsync = function(callback)
 end
 
 -- 异步加载本地歌词文件
-Lyric.loadAsync = function(fileName, callback)
+Lyric.load = function(fileName, callback)
 	-- 文件名有'/'时替换成":"
 	fileName = fileName:gsub("/",":")
 	
@@ -978,7 +991,7 @@ Lyric.toggleEnable = function(callback)
 			delete(c_lyric)
 			lyricTimer:stop()
 		else
-			Lyric.setCanvasAsync(function()
+			Lyric.setCanvas(function()
 				hs.timer.doAfter(0.1, function()
 					Lyric.main(callback)
 				end)
@@ -1033,13 +1046,13 @@ Lyric.menubar = function(songs, callback)
 		
 		-- 异步构建菜单
 		hs.timer.doAfter(0, function()
-			Lyric.buildMenuAsync(songs, callback)
+			Lyric.buildMenu(songs, callback)
 		end)
 	end)
 end
 
 -- 构建菜单
-Lyric.buildMenuAsync = function(songs, callback)
+Lyric.buildMenu = function(songs, callback)
 	local updateMenu = function(menuTitle, menuChecked)
 		for i,v in pairs(menudata) do
 			if not v["menu"] then
@@ -1190,8 +1203,8 @@ Lyric.buildMenuAsync = function(songs, callback)
 						songID = item.id
 						songlyricURL = item.url
 						songAPI = item.api
-						Lyric.search()
 						update = true
+						Lyric.fetchLyric(songlyricURL, songAPI)
 					end
 				}
 				table.insert(menudata, item)
