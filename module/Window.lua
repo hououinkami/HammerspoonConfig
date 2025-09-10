@@ -5,24 +5,22 @@ win.animationDuration = 0
 resizeStep = 20
 local winhistory = {}
 local windowMeta = {}
+local winhistoryMap = {}
 -- 记录窗口初始位置
 function windowStash(window)
-	local winid = window:id()
-	local winf = window:frame()
-	if #winhistory > 50 then
-		table.remove(winhistory)
-	end
-	local winstru = {winid, winf}
-	-- table.insert(winhistory, winstru) 注释掉本栏后面几行取消注释该行则为记录窗口历史
-	local exist = false
-	for idx,val in ipairs(winhistory) do
-		if val[1] == winid then
-			exist = true
-		end
-	end
-	if exist == false then
-		table.insert(winhistory, winstru)
-	end
+    local winid = window:id()
+    local winf = window:frame()
+    if #winhistory > 50 then
+        local removed = table.remove(winhistory, 1)
+        winhistoryMap[removed[1]] = nil
+    end
+	-- local winstru = {winid, winf}
+    -- table.insert(winhistory, winstru) 注释掉本栏后面几行取消注释该行和前一行，则为记录窗口历史
+    if not winhistoryMap[winid] then
+        local winstru = {winid, winf}
+        table.insert(winhistory, winstru)
+        winhistoryMap[winid] = #winhistory
+    end
 end
 -- 窗口定义
 function windowMeta.new()
@@ -265,37 +263,28 @@ local layouts = {
 }
 -- 应用窗口布局
 function applyLayout(layouts, app)
-	if (app) then
-		local appName = app:title()
-	  	for i, layout in ipairs(layouts) do
-			if (type(layout.name) == "table") then
-				for i, layAppName in ipairs(layout.name) do
-					if (layAppName == appName) then
-			  		-- hs.alert.show(appName)
-			  			local wins = app:allWindows()
-			  			local counter = 1
-			  			for j, win in ipairs(wins) do
-							if (win:isVisible() and layout.func) then
-				  				layout.func(counter, win)
-				  				counter = counter + 1
-							end
-			  			end
-					end
-		  		end
-			elseif (type(layout.name) == "string") then
-		  		if (layout.name == appName) then
-					local wins = app:allWindows()
-					local counter = 1
-					for j, win in ipairs(wins) do
-			  			if (win:isVisible() and layout.func) then
-							layout.func(counter, win)
-							counter = counter + 1
-			  			end
-					end
-		  		end
-			end
-	  	end
-	end
+    if not app then return end
+    
+    local appName = app:title()
+    
+    for i, layout in ipairs(layouts) do
+        local names = type(layout.name) == "table" and layout.name or {layout.name}
+        
+        for _, layAppName in ipairs(names) do
+            if layAppName == appName and layout.func then
+                local wins = app:allWindows()
+                local counter = 1
+                
+                for j, win in ipairs(wins) do
+                    if win:isVisible() then
+                        layout.func(counter, win)
+                        counter = counter + 1
+                    end
+                end
+                return  -- 找到匹配后直接返回
+            end
+        end
+    end
 end
 --------**--------
 -- App手动窗口布局
@@ -339,8 +328,9 @@ function applicationWatcher(appName, eventType, appObject)
   	end
   	-- 启动App
   	if (eventType == app.watcher.launched) then
-    	os.execute("sleep " .. tonumber(1))
-    	applyLayout(layouts, appObject)
+    	hs.timer.doAfter(0.5, function()
+			applyLayout(layouts, appObject)
+		end)
     	for i, aname in ipairs(newWindowWatcher) do
       		if (appName == aname) then      
         		if (not windowWatcher[aname]) then
