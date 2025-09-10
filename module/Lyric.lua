@@ -26,9 +26,7 @@ Lyric.main = function(callback)
 	end
 	
 	-- 异步处理歌词类型判断
-	hs.timer.doAfter(0, function()
-		Lyric.processLyricType(callback)
-	end)
+	Lyric.processLyricType(callback)
 end
 
 -- 异步处理歌词类型
@@ -48,9 +46,7 @@ Lyric.processLyricType = function(callback)
 				lyricType = "search"
 			end
 			
-			hs.timer.doAfter(0, function()
-				Lyric.handleLyricType(lyricType, lyricfileContent, callback)
-			end)
+			Lyric.handleLyricType(lyricType, lyricfileContent, callback)
 		end)
 	else
 		local lyricType
@@ -59,9 +55,7 @@ Lyric.processLyricType = function(callback)
 		else
 			lyricType = "search"
 		end
-		hs.timer.doAfter(0, function()
-			Lyric.handleLyricType(lyricType, nil, callback)
-		end)
+		Lyric.handleLyricType(lyricType, nil, callback)
 	end
 end
 
@@ -76,34 +70,32 @@ Lyric.handleLyricType = function(lyricType, lyricfileContent, callback)
 	_G.lyricType = lyricType
 	
 	-- 异步执行操作
-	hs.timer.doAfter(0, function()
-		if lyricType == "error" then
-			print("歌詞をエラーとしてマーク")
-			Lyric.menubar()
-			if callback then callback() end
-		elseif lyricType == "online" then
-			_G.lyricTable = lyricOnline
-			lyricOnline = nil
-			print("歌詞をロードしました")
+	if lyricType == "error" then
+		print("歌詞をエラーとしてマーク")
+		Lyric.menubar()
+		if callback then callback() end
+	elseif lyricType == "online" then
+		_G.lyricTable = lyricOnline
+		lyricOnline = nil
+		print("歌詞をロードしました")
+		Lyric.finalizeLyricLoading(callback)
+	elseif lyricType == "local" then
+		-- 异步编辑歌词
+		Lyric.edit(lyricfileContent, function(processedLyricTable)
+			_G.lyricTable = processedLyricTable
+			if not Music.existInLibrary() and not Music.loved() then
+				Lyric.delete()
+			end
 			Lyric.finalizeLyricLoading(callback)
-		elseif lyricType == "local" then
-			-- 异步编辑歌词
-			Lyric.edit(lyricfileContent, function(processedLyricTable)
-				_G.lyricTable = processedLyricTable
-				if not Music.existInLibrary() and not Music.loved() then
-					Lyric.delete()
-				end
-				Lyric.finalizeLyricLoading(callback)
-			end)
-		elseif lyricType == "search" then
-			keywordNO = 1
-			Lyric.search()
-			return
-		else
-			Lyric.menubar()
-			if callback then callback() end
-		end
-	end)
+		end)
+	elseif lyricType == "search" then
+		keywordNO = 1
+		Lyric.search()
+		return
+	else
+		Lyric.menubar()
+		if callback then callback() end
+	end
 end
 
 -- 完成歌词加载
@@ -225,9 +217,7 @@ Lyric.search = function()
 	end
 	
 	-- 异步执行遍历搜索
-	hs.timer.doAfter(0, function()
-		Lyric.performSearch()
-	end)
+	Lyric.performSearch()
 end
 
 -- 初始化搜索参数
@@ -306,9 +296,7 @@ Lyric.performHttpGet = function(api, keyword)
 	
 	-- 异步回调函数
 	local function httpGetID(musicStatus, musicBody, musicHeader)
-		hs.timer.doAfter(0, function() -- 确保在主线程中处理结果
-			Lyric.handleSearchResult(musicStatus, musicBody, api)
-		end)
+		Lyric.handleSearchResult(musicStatus, musicBody, api)
 	end
 	
 	-- 发起请求
@@ -338,9 +326,7 @@ Lyric.handleSearchResult = function(musicStatus, musicBody, api)
 	
 	-- 判断是否全部完成
 	if completed == #apiList then
-		hs.timer.doAfter(0, function()
-			Lyric.processSearchResults()
-		end)
+		Lyric.processSearchResults()
 	end
 end
 
@@ -365,10 +351,8 @@ Lyric.processSearchResults = function()
 		Lyric.noLyric()
 	end
 	-- 异步渲染菜单
-	hs.timer.doAfter(0, function()
-		reOrder(songsResult, "api", lyricDefaultNO)
-		Lyric.menubar(songsResult)
-	end)
+	reOrder(songsResult, "api", lyricDefaultNO)
+	Lyric.menubar(songsResult)
 end
 
 -- 自动匹配歌词函数
@@ -413,9 +397,7 @@ Lyric.fetchLyric = function(lyricURL, api)
 		
 		-- 异步回调函数
 		local function httpGetLyric(status, body, headers)
-			hs.timer.doAfter(0, function() -- 确保在主线程中处理结果
-				Lyric.handleLyricResult(status, body, api)
-			end)
+			Lyric.handleLyricResult(status, body, api)
 		end
 		
 		httpRequest("GET", lyricURL, apiList[api].lyricheaders, nil, httpGetLyric)
@@ -449,9 +431,7 @@ Lyric.handleLyricResult = function(status, body, api)
 				isSelected = false  -- 重置标志
 			else
 				-- 重新加载歌词
-				hs.timer.doAfter(0.1, function()
-					Lyric.main()
-				end)
+				Lyric.main()
 			end
 		end)
 	else
@@ -461,20 +441,18 @@ end
 
 -- 将歌词从json转变成table（异步处理）
 Lyric.edit = function(lyric, callback)
-	hs.timer.doAfter(0, function()
-		local lyricData = stringSplit(lyric,"\n")
-		local allLine = #lyricData
-		local lyricTable = {}
-		
-		if #lyricData > 2 then
-			-- 分批异步处理歌词行
-			Lyric.processLyricLines(lyricData, allLine, lyricTable, 1, callback)
-		else
-			-- 在最后插入空行方便处理
-			table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
-			callback(lyricTable)
-		end
-	end)
+	local lyricData = stringSplit(lyric,"\n")
+	local allLine = #lyricData
+	local lyricTable = {}
+	
+	if #lyricData > 2 then
+		-- 分批异步处理歌词行
+		Lyric.processLyricLines(lyricData, allLine, lyricTable, 1, callback)
+	else
+		-- 在最后插入空行方便处理
+		table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
+		callback(lyricTable)
+	end
 end
 
 -- 异步处理歌词行
@@ -528,9 +506,7 @@ Lyric.processLyricLines = function(lyricData, allLine, lyricTable, startIndex, c
 		end)
 	else
 		-- 处理完成，继续后续步骤
-		hs.timer.doAfter(0, function()
-			Lyric.finalizeLyricProcessing(lyricTable, callback)
-		end)
+		Lyric.finalizeLyricProcessing(lyricTable, callback)
 	end
 end
 
@@ -569,45 +545,37 @@ end
 
 -- 无歌词时执行的函数（异步处理）
 Lyric.noLyric = function()
-	hs.timer.doAfter(0, function()
-		if not lyricURL and not isSelected then
-			if keywordNO < #searchKeywords then
-				keywordNO = keywordNO + 1
-				Lyric.search()
-			else
-				-- 重置关键词索引
-				keywordNO = 1
-				print("該当する歌詞はありません、メニューから選択してください")
-				-- 异步渲染菜单
-				hs.timer.doAfter(0, function()
-					Lyric.menubar(songsResult)
-				end)
-			end
+	if not lyricURL and not isSelected then
+		if keywordNO < #searchKeywords then
+			keywordNO = keywordNO + 1
+			Lyric.search()
 		else
-			lyricURL = nil
-			print("歌詞データはありません、メニューから選択してください")
-
-			delete(c_lyric)
-			deleteTimer(lyricTimer)
-			
+			-- 重置关键词索引
+			keywordNO = 1
+			print("該当する歌詞はありません、メニューから選択してください")
 			-- 异步渲染菜单
-			hs.timer.doAfter(0, function()
-				Lyric.menubar(songsResult)
-			end)
+			Lyric.menubar(songsResult)
 		end
-	end)
+	else
+		lyricURL = nil
+		print("歌詞データはありません、メニューから選択してください")
+
+		delete(c_lyric)
+		deleteTimer(lyricTimer)
+
+		-- 异步渲染菜单
+		Lyric.menubar(songsResult)
+	end
 end
 
 -- 异步显示歌词
 Lyric.show = function(lyricTable, callback)
 	if lyricTable then
 		-- 异步初始化歌词图层
-		hs.timer.doAfter(0, function()
-			Lyric.setCanvas(function()
-				-- 异步设定计时器
-				hs.timer.doAfter(0.1, function()
-					Lyric.setupLyricTimer(lyricTable, callback)
-				end)
+		Lyric.setCanvas(function()
+			-- 异步设定计时器
+			hs.timer.doAfter(0.1, function()
+				Lyric.setupLyricTimer(lyricTable, callback)
 			end)
 		end)
 	else
@@ -619,9 +587,7 @@ end
 Lyric.setupLyricTimer = function(lyricTable, callback)
 	lyricTimer = hs.timer.new(1, function()
 		-- 异步显示歌词
-		hs.timer.doAfter(0, function()
-			Lyric.showLyricStep(lineNO, lyricTable)
-		end)
+		Lyric.showLyricStep(lineNO, lyricTable)
 	end):start()
 	if callback then callback() end
 end
@@ -673,9 +639,7 @@ Lyric.showLyricStep = function(startline, lyricTable)
 	
 	-- 异步歌词刷新
 	if currentLyric ~= lyrictext then
-		hs.timer.doAfter(0, function()
-			Lyric.updateLyricDisplay(currentLyric, stayTime)
-		end)
+		Lyric.updateLyricDisplay(currentLyric, stayTime)
 	else
 		-- 设置下次触发时间
 		stayTime = stayTime or 0
@@ -694,28 +658,26 @@ Lyric.updateLyricDisplay = function(currentLyric, stayTime)
 	
 	-- 异步处理歌词样式
 	Lyric.handleLyric(currentLyric, function(styledLyric)
-		hs.timer.doAfter(0, function()
-			if c_lyric and c_lyric["lyric"] then
-				c_lyric["lyric"].text = styledLyric
-				lyrictext = currentLyric
-				
-				-- 设置歌词图层自适应宽度
-				if styledLyric then
-					lyricSize = c_lyric:minimumTextSize(1, styledLyric)
-					c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
-					c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
-					c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
-					c_lyric["lyric"].frame.h = lyricSize.h
-				end
-				
-				-- 设置下次触发时间
-				stayTime = stayTime or 0
-				local nextTrigger = stayTime + lyricTimeOffset
-				if lyricTimer and nextTrigger > 0 then
-					lyricTimer:setNextTrigger(nextTrigger)
-				end
+		if c_lyric and c_lyric["lyric"] then
+			c_lyric["lyric"].text = styledLyric
+			lyrictext = currentLyric
+			
+			-- 设置歌词图层自适应宽度
+			if styledLyric then
+				lyricSize = c_lyric:minimumTextSize(1, styledLyric)
+				c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
+				c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
+				c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
+				c_lyric["lyric"].frame.h = lyricSize.h
 			end
-		end)
+			
+			-- 设置下次触发时间
+			stayTime = stayTime or 0
+			local nextTrigger = stayTime + lyricTimeOffset
+			if lyricTimer and nextTrigger > 0 then
+				lyricTimer:setNextTrigger(nextTrigger)
+			end
+		end
 	end)
 end
 
@@ -726,13 +688,11 @@ Lyric.handleLyric = function(lyric, callback)
 		return
 	end
 	
-	hs.timer.doAfter(0, function()
-		local lyricObjTable = {}
-		local s_list = stringSplit2(lyric)
-		
-		-- 分批处理样式
-		Lyric.processStyleBatch(s_list, lyricObjTable, 1, callback)
-	end)
+	local lyricObjTable = {}
+	local s_list = stringSplit2(lyric)
+	
+	-- 分批处理样式
+	Lyric.processStyleBatch(s_list, lyricObjTable, 1, callback)
 end
 
 -- 异步分批处理样式
@@ -795,17 +755,15 @@ Lyric.processStyleBatch = function(s_list, lyricObjTable, startIndex, callback)
 		end)
 	else
 		-- 处理完成，合并结果
-		hs.timer.doAfter(0, function()
-			local lyricObj = nil
-			for i,v in ipairs(lyricObjTable) do
-				if not lyricObj then
-					lyricObj = v
-				else
-					lyricObj = lyricObj .. v
-				end
+		local lyricObj = nil
+		for i,v in ipairs(lyricObjTable) do
+			if not lyricObj then
+				lyricObj = v
+			else
+				lyricObj = lyricObj .. v
 			end
-			callback(lyricObj)
-		end)
+		end
+		callback(lyricObj)
 	end
 end
 
@@ -821,82 +779,72 @@ Lyric.combineLyricObjects = function(lyricObjTable)
 	end
 	
 	-- 异步更新显示
-	hs.timer.doAfter(0, function()
-		if c_lyric and c_lyric["lyric"] then
-			c_lyric["lyric"].text = lyricObj
-		end
-	end)
+	if c_lyric and c_lyric["lyric"] then
+		c_lyric["lyric"].text = lyricObj
+	end
 end
 
 -- 异步建立歌词图层
 Lyric.setCanvas = function(callback) 
-	hs.timer.doAfter(0, function()
-		if not c_lyric then
-			c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
-			c_lyric:appendElements(
-				{ -- 歌词
-					id = "lyric",
-					frame = {x = 0, y = 0, h = c_lyric:frame().h, w = c_lyric:frame().w},
-					type = "text",
-					text = "",
-				}
-			):behavior(c.windowBehaviors[1])
-		end
-		if callback then callback() end
-	end)
+	if not c_lyric then
+		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
+		c_lyric:appendElements(
+			{ -- 歌词
+				id = "lyric",
+				frame = {x = 0, y = 0, h = c_lyric:frame().h, w = c_lyric:frame().w},
+				type = "text",
+				text = "",
+			}
+		):behavior(c.windowBehaviors[1])
+	end
+	if callback then callback() end
 end
 
 -- 异步加载本地歌词文件
 Lyric.load = function(fileName, callback)
 	-- 文件名有'/'时替换成":"
 	fileName = fileName:gsub("/",":")
+
+	local lyricfileContent = nil
+	local lyricfileExist = false
+	local lyricfileError = false
+	local alllyricFile = getAllFiles(lyricPath)
 	
-	hs.timer.doAfter(0, function()
-		local lyricfileContent = nil
-		local lyricfileExist = false
-		local lyricfileError = false
-		local alllyricFile = getAllFiles(lyricPath)
-		
-		-- 格式化正则检索词
-		local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
-		local _fileName = fileName
-		for i,v in ipairs(specialString) do
-			_fileName = _fileName:gsub("%" .. v,"%%" .. v)
+	-- 格式化正则检索词
+	local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
+	local _fileName = fileName
+	for i,v in ipairs(specialString) do
+		_fileName = _fileName:gsub("%" .. v,"%%" .. v)
+	end
+	_fileName = _fileName:gsub("/",":")
+	
+	-- 异步搜寻本地歌词文件夹
+	for _,file in pairs(alllyricFile) do
+		-- 不加载错误歌词
+		if file:find(_fileName .. "_ERROR.lrc") then
+			print("歌詞が曲と合っていません")
+			lyricfileError = true
+			break
 		end
-		_fileName = _fileName:gsub("/",":")
-		
-		-- 异步搜寻本地歌词文件夹
-		hs.timer.doAfter(0, function()
-			for _,file in pairs(alllyricFile) do
-				-- 不加载错误歌词
-				if file:find(_fileName .. "_ERROR.lrc") then
-					print("歌詞が曲と合っていません")
-					lyricfileError = true
-					break
-				end
-				lyricfileError = false
-				-- 加载本地歌词文件
-				local lyricFile = lyricPath .. fileName .. ".lrc"
-				if file:find(_fileName) then
-					-- 异步读取文件
-					hs.timer.doAfter(0, function()
-						local _lrcfile = io.open(lyricFile, "r+")
-						if _lrcfile then
-							lyricfileContent = _lrcfile:read("*a")
-							lyricfileExist = true
-							_lrcfile:close()
-							print("歌詞ファイルをロードしました")
-						else
-							print("歌詞ファイルをロードエラー")
-						end
-						callback(lyricfileExist, lyricfileContent, lyricfileError)
-					end)
-					return
-				end
+		lyricfileError = false
+		-- 加载本地歌词文件
+		local lyricFile = lyricPath .. fileName .. ".lrc"
+		if file:find(_fileName) then
+			-- 异步读取文件
+			local _lrcfile = io.open(lyricFile, "r+")
+			if _lrcfile then
+				lyricfileContent = _lrcfile:read("*a")
+				lyricfileExist = true
+				_lrcfile:close()
+				print("歌詞ファイルをロードしました")
+			else
+				print("歌詞ファイルをロードエラー")
 			end
 			callback(lyricfileExist, lyricfileContent, lyricfileError)
-		end)
-	end)
+			return
+		end
+	end
+	callback(lyricfileExist, lyricfileContent, lyricfileError)
 end
 
 -- 异步处理文件加载
@@ -911,26 +859,22 @@ Lyric.processFileLoad = function(fileName)
 	_fileName = _fileName:gsub("/",":")
 	
 	-- 异步搜寻本地歌词文件夹
-	hs.timer.doAfter(0, function()
-		for _,file in pairs(alllyricFile) do
-			-- 不加载错误歌词
-			if file:find(_fileName .. "_ERROR.lrc") then
-				print("歌詞が曲と合っていません")
-				lyricfileError = true
-				break
-			end
-			lyricfileError = false
-			-- 加载本地歌词文件
-			local lyricFile = lyricPath .. fileName .. ".lrc"
-			if file:find(_fileName) then
-				-- 异步读取文件
-				hs.timer.doAfter(0, function()
-					Lyric.readLyricFile(lyricFile)
-				end)
-				break
-			end
+	for _,file in pairs(alllyricFile) do
+		-- 不加载错误歌词
+		if file:find(_fileName .. "_ERROR.lrc") then
+			print("歌詞が曲と合っていません")
+			lyricfileError = true
+			break
 		end
-	end)
+		lyricfileError = false
+		-- 加载本地歌词文件
+		local lyricFile = lyricPath .. fileName .. ".lrc"
+		if file:find(_fileName) then
+			-- 异步读取文件
+			Lyric.readLyricFile(lyricFile)
+			break
+		end
+	end
 end
 
 -- 异步读取歌词文件
@@ -950,105 +894,87 @@ end
 
 -- 异步保存歌词至本地文件
 Lyric.save = function(lyric, fileName, callback)
-	hs.timer.doAfter(0, function()
-		local _savename = string.gsub(fileName,"/",":")
-		local lyricFile = lyricPath .. _savename .. ".lrc"
-		local lyricExt = io.open(lyricFile, "r")
-		-- 判断储存本地歌词的文件夹是否存在
-		local lyricFolder = io.open(lyricPath,"rb")
-		if not lyricFolder then
-			os.execute("mkdir ".. lyricPath)
-		end
-		-- 若歌词文件不存在则保存
-		if not lyricExt or update then
-			file = io.open(lyricFile, "w+")
-			file:write(lyric)
-			file:close()
-			update = false
-			print("歌詞ファイルをダウンロードしました")
-		end
-		if callback then callback() end
-	end)
+	local _savename = string.gsub(fileName,"/",":")
+	local lyricFile = lyricPath .. _savename .. ".lrc"
+	local lyricExt = io.open(lyricFile, "r")
+	-- 判断储存本地歌词的文件夹是否存在
+	local lyricFolder = io.open(lyricPath,"rb")
+	if not lyricFolder then
+		os.execute("mkdir ".. lyricPath)
+	end
+	-- 若歌词文件不存在则保存
+	if not lyricExt or update then
+		file = io.open(lyricFile, "w+")
+		file:write(lyric)
+		file:close()
+		update = false
+		print("歌詞ファイルをダウンロードしました")
+	end
+	if callback then callback() end
 end
 
 -- 异步删除当前曲目的本地歌词文件
 Lyric.delete = function(callback)
-	hs.timer.doAfter(0, function()
-		local _deletename = string.gsub(Music.title() ..  " - " .. Music.artist(),"/",":")
-		local filepath = lyricPath .. _deletename .. ".lrc"
-		os.remove(filepath)
-		local filepath_error = lyricPath .. _deletename .. "_ERROR.lrc"
-		os.remove(filepath_error)
-		print("歌詞ファイルを削除しました")
-		if callback then callback() end
-	end)
+	local _deletename = string.gsub(Music.title() ..  " - " .. Music.artist(),"/",":")
+	local filepath = lyricPath .. _deletename .. ".lrc"
+	os.remove(filepath)
+	local filepath_error = lyricPath .. _deletename .. "_ERROR.lrc"
+	os.remove(filepath_error)
+	print("歌詞ファイルを削除しました")
+	if callback then callback() end
 end
 
 -- 异步歌词模块应用开关
 Lyric.toggleEnable = function(callback)
-	hs.timer.doAfter(0, function()
-		if lyricTimer and lyricTimer:running() then
-			delete(c_lyric)
-			lyricTimer:stop()
-		else
-			Lyric.setCanvas(function()
-				hs.timer.doAfter(0.1, function()
-					Lyric.main(callback)
-				end)
-			end)
-		end
-	end)
+	if lyricTimer and lyricTimer:running() then
+		delete(c_lyric)
+		lyricTimer:stop()
+	else
+		Lyric.setCanvas(function()
+			Lyric.main(callback)
+		end)
+	end
 end
 
 -- 异步歌词显示开关
 Lyric.toggleshow = function(callback)
-	hs.timer.doAfter(0, function()
-		if c_lyric then
-			if not c_lyric:isShowing() then
-				lyricTimer:start()
-			else
-				hide(c_lyric)
-				lyricTimer:stop()
-			end
+	if c_lyric then
+		if not c_lyric:isShowing() then
+			lyricTimer:start()
+		else
+			hide(c_lyric)
+			lyricTimer:stop()
 		end
-		if callback then callback() end
-	end)
+	end
+	if callback then callback() end
 end
 
 -- 异步标记错误歌词预防加载或重新搜索
 Lyric.error = function(callback)
-	hs.timer.doAfter(0, function()
-		local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
-		local lyricExt = io.open(lyricFile, "r")
-		if lyricExt then
-			lyricExt:close()
-			os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
-			print("歌詞をエラーとしてマーク")
-			hs.timer.doAfter(0.1, function()
-				Lyric.main(callback)
-			end)
-		else
-			if callback then callback() end
-		end
-	end)
+	local lyricFile = lyricPath .. Music.title() ..  " - " .. Music.artist() .. ".lrc"
+	local lyricExt = io.open(lyricFile, "r")
+	if lyricExt then
+		lyricExt:close()
+		os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
+		print("歌詞をエラーとしてマーク")
+		Lyric.main(callback)
+	else
+		if callback then callback() end
+	end
 end
 
 -- 异步歌词功能菜单
 Lyric.menubar = function(songs, callback)
-	hs.timer.doAfter(0, function()
-		if _G.lyricType == "online" then
-			if callback then callback() end
-			return
-		end
-		if not lyricBar then
-			lyricBar = hs.menubar.new(true):autosaveName("Lyric")
-		end
-		
-		-- 异步构建菜单
-		hs.timer.doAfter(0, function()
-			Lyric.buildMenu(songs, callback)
-		end)
-	end)
+	if _G.lyricType == "online" then
+		if callback then callback() end
+		return
+	end
+	if not lyricBar then
+		lyricBar = hs.menubar.new(true):autosaveName("Lyric")
+	end
+	
+	-- 异步构建菜单
+	Lyric.buildMenu(songs, callback)
 end
 
 -- 构建菜单
@@ -1141,9 +1067,7 @@ Lyric.buildMenu = function(songs, callback)
 			title = lyricString.delete,
 			fn = function()
 				Lyric.delete(function()
-					hs.timer.doAfter(0.5, function()
-						Lyric.main()
-					end)
+					Lyric.main()
 				end)
 			end
 		},
@@ -1220,22 +1144,20 @@ Lyric.buildMenu = function(songs, callback)
 end
 
 -- 异步初始化
-hs.timer.doAfter(0, function()
-	Lyric.api(lyricDefaultNO)
-	lyricShow = true
-	lyricEnable = true
-	lyricAPIs = {
-		API163 = false,
-		APIQQ = false,
-	}
-	for i,v in pairs(lyricAPIs) do
-		if i:find(apiList[lyricDefaultNO].apiTag) then
-			lyricAPIs[i] = true
-			break
-		end
+Lyric.api(lyricDefaultNO)
+lyricShow = true
+lyricEnable = true
+lyricAPIs = {
+	API163 = false,
+	APIQQ = false,
+}
+for i,v in pairs(lyricAPIs) do
+	if i:find(apiList[lyricDefaultNO].apiTag) then
+		lyricAPIs[i] = true
+		break
 	end
-	Lyric.menubar()
-end)
+end
+Lyric.menubar()
 
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
