@@ -47,7 +47,7 @@ local owner = hs.host.localizedName()
 local module_list = {
 	"Music",
 	"Window",
-	-- "Space",
+	"Space",
 	"Spotlightlike",
 	"IME",
 	"Hotkey",
