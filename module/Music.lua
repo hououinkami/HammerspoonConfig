@@ -2,6 +2,9 @@ require ('module.utils')
 require ('module.apple-music') 
 require ('module.Lyric') 
 require ('config.music')
+
+local cachedMusicInfo = {}
+
 --
 -- MenuBar函数集 --
 --
@@ -21,11 +24,17 @@ function setTitle(quitMark)
 		if Music.title() == connectingFile then
 			menubarTitle = connectingFile
 		else
-			menubarTitle = Music.title() .. gapText .. Music.artist()
+			-- menubarTitle = Music.title() .. gapText .. Music.artist()
+			local title = cachedMusicInfo.title or Music.title()
+            local artist = cachedMusicInfo.artist or Music.artist()
+            menubarTitle = title .. gapText .. artist
 		end
 	elseif Music.state() == "paused" or Music.title() ~= " " then
 		menubarIcon = pauseIcon
-		menubarTitle = Music.title() .. gapText .. Music.artist()
+		-- menubarTitle = Music.title() .. gapText .. Music.artist()
+		local title = cachedMusicInfo.title or Music.title()
+        local artist = cachedMusicInfo.artist or Music.artist()
+        menubarTitle = title .. gapText .. artist
 	elseif Music.state() == "stopped" then
 		menubarIcon = stopIcon
 		menubarTitle = Stopped
@@ -53,12 +62,43 @@ end
 -- 设置悬浮主菜单
 function setMainMenu()
 	barFrame = MusicBar:frame()
-	barFrame.x = initialX - 36 - barFrame.w
+    
+    -- 初始化时给barFrame.x赋值
+    if not barFrame.x or barFrame.x <= 0 then
+        barFrame.x = 1000
+    end
+
+	-- 修复：正确计算菜单位置，确保不超出屏幕
+	local screenFrame = hs.screen.mainScreen():frame()
+	local menuWidth = smallSize
+
+	-- 先尝试在菜单栏图标下方显示
+	local menuX = barFrame.x
+
+	-- 如果会超出屏幕右侧，则向左调整
+	if menuX + menuWidth > screenFrame.x + screenFrame.w then
+		menuX = screenFrame.x + screenFrame.w - menuWidth - 10
+	end
+
+	-- 如果会超出屏幕左侧，则向右调整
+	if menuX < screenFrame.x then
+		menuX = screenFrame.x + 10
+	end
+
 	-- 框架尺寸
 	if not c_mainMenu then
-		c_mainMenu = c.new({x = barFrame.x, y = barFrame.h + 5, h = artworkSize.h + borderSize.y * 2, w = smallSize}):level(c.windowLevels.cursor)
+		c_mainMenu = c.new({
+			x = menuX, 
+			y = barFrame.y + barFrame.h + 5, 
+			h = artworkSize.h + borderSize.y * 2, 
+			w = menuWidth
+		}):level(c.windowLevels.cursor)
 	end
+
 	-- 菜单项目
+	local title = cachedMusicInfo.title or Music.title()
+	local artist = cachedMusicInfo.artist or Music.artist()
+	local album = cachedMusicInfo.album or Music.album()
 	c_mainMenu:replaceElements(
 		{-- 背景
 			id = "background",
@@ -79,7 +119,8 @@ function setMainMenu()
 			id = "info",
 			frame = {x = borderSize.x + artworkSize.w + gapSize.x, y = borderSize.y, h = artworkSize.h, w = 100},
 			type = "text",
-			text = Music.title() .. "\n\n" .. Music.artist()  .. "\n\n" .. Music.album()  .. "\n",
+			-- text = Music.title() .. "\n\n" .. Music.artist()  .. "\n\n" .. Music.album()  .. "\n",
+			text = title .. "\n\n" .. artist .. "\n\n" .. album .. "\n",
 			textSize = textSize,
 			textLineBreak = "wordWrap",
 			trackMouseEnterExit = true,
@@ -511,11 +552,11 @@ function setPlaylistMenu()
 		end
 	end)
 end
--- 设置进度条悬浮菜单
+
+-- 进度条更新函数
 function setProgressCanvas()
-	-- 进度条更新函数
 	updateProgress = function()
-		if c_progress:frame().w and Music.currentPosition() and Music.duration() then
+		if c_progress and c_progress:frame().w and Music.currentPosition() and Music.duration() then
 			progressElement[1].frame.w = c_progress:frame().w * Music.currentPosition() / Music.duration()
 			c_progress:replaceElements(progressElement)
 		end
@@ -524,7 +565,8 @@ function setProgressCanvas()
 	if not c_progress then
 		per = 60 / 100
 		if Music.duration() > 0 then
-			musicDuration = Music.duration()
+			-- musicDuration = Music.duration()
+			musicDuration = cachedMusicInfo.duration or Music.duration()
 		else
 			musicDuration = math.huge
 		end
@@ -553,16 +595,15 @@ function setProgressCanvas()
 	end
 	c_progress:mouseCallback(function(canvas, event, id, x, y)
 		if id == "background" and (x >= 0 and x <= c_progress:frame().w and y >= 0 and y <= c_progress:frame().h) then
-    		if event == "mouseUp" then
-    			local mousePoint = hs.mouse.absolutePosition()
-    			local currentPosition = (mousePoint.x - c_progress:frame().x) / c_progress:frame().w * Music.duration()
-    			c_progress:replaceElements(progressElement):show()
+  		if event == "mouseUp" then
+  			local mousePoint = hs.mouse.absolutePosition()
+  			local currentPosition = (mousePoint.x - c_progress:frame().x) / c_progress:frame().w * Music.duration()
+  			c_progress:replaceElements(progressElement):show()
 				Music.tell('set player position to "' .. currentPosition .. '"')
-    		end
+  		end
 		end
 	end)
-	progressTimer = hs.timer.doWhile(function() return c_progress:isShowing() end, updateProgress, updateTime)
-	progressTimer:stop()
+	-- 注意：不在这里设置 progressTimer，而是在事件驱动系统中管理
 end
 
 --
@@ -573,24 +614,30 @@ function hideall()
 	hide(c_desktopLayer)
 	hide(c_rateMenu,fadeTime,true)
 	hide(c_controlMenu,fadeTime,true)
-	if progressTimer then
-		progressTimer:stop()
+	if eventListeners.progressTimer then
+		eventListeners.progressTimer:stop()
 	end
 	hide(c_progress,fadeTime,true)
 	hide(c_playlist,fadeTime,true)
 	hide(c_mainMenu,fadeTime,true)
 end
+
 -- 显示
 function showall()
-	if progressTimer then
-		progressTimer:start()
+	-- 确保进度条定时器启动
+	if eventListeners.progressTimer then
+		if not eventListeners.progressTimer:running() then
+			eventListeners.progressTimer:start()
+		end
 	end
+	
 	show(c_mainMenu,fadeTime,true)
 	show(c_rateMenu,fadeTime,true)
 	show(c_controlMenu,fadeTime,true)
-	updateProgress()
+	updateProgress() -- 立即更新一次进度
 	show(c_progress,fadeTime,true)
 end
+
 -- 判断鼠标指针是否处于悬浮菜单内
 function mousePosition()
 	local mousePoint = hs.mouse.absolutePosition()
@@ -605,49 +652,39 @@ function mousePosition()
 	end
 	return mp
 end
--- 建立悬浮菜单元素
-function setMenu()
+
+-- 修复的菜单构建函数
+function buildMenus()
+	-- 确保按正确顺序构建所有菜单组件
 	setMainMenu()
-	if c_mainMenu then
-		if c_mainMenu:isShowing() then
-			hideall()
-			if progressTimer then
-				progressTimer:stop()
-			end
-		else
-			setRateMenu()
-			setControlMenu()
-			setProgressCanvas()
-			if progressTimer then
-				progressTimer:start()
-			end
-		end
-	end
+	setRateMenu()
+	setControlMenu()
+	setProgressCanvas()
 end
--- 鼠标点击时的行为
+
+-- 修复的 toggleCanvas 函数
 function toggleCanvas()
 	local spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	local toggleFunction = function ()
 		if Music.state() == "playing" or Music.state() == "paused" then
-			if c_mainMenu then
-				if c_mainMenu:isShowing() then
-					hideall()
-				else
-					showall()
-					setDesktopLayer()
-					-- watchClick = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(e)
-					-- 	local mp = hs.mouse.absolutePosition()
-					-- 	if mp.x < c_mainMenu:frame().x or mp.x > c_mainMenu:frame().x + c_mainMenu:frame().w or mp.y < c_mainMenu:frame().y or mp.y > c_mainMenu:frame().y + c_mainMenu:frame().h then
-					-- 		hideall()
-					-- 		watchClick:stop()
-					-- 	end
-					-- end):start()
-				end
+			-- 确保菜单已构建
+			if not c_mainMenu then
+				buildMenus()
+			end
+			
+			if c_mainMenu:isShowing() then
+				hideall()
+			else
+				-- 重新构建菜单以确保数据是最新的
+				-- buildMenus()
+				showall()
+				setDesktopLayer()
 			end
 		else
 			Music.tell('activate')
 		end
 	end
+	
 	-- 判断渐入渐出是否已经完成，未完成则忽略点击
 	if fadeTime > 0 then
 		if isFading then
@@ -660,64 +697,359 @@ function toggleCanvas()
 		toggleFunction()
 	end
 end
--- 实时更新函数
-function musicBarUpdate()
-	-- 若退出App则不执行任何动作
-	if quit or not Music.checkRunning() then
+
+--
+-- 事件驱动版本的音乐播放器模块
+--
+
+-- 状态缓存，避免重复更新
+local musicState = {
+	isRunning = false,
+	playState = "stopped",
+	currentTitle = "",
+	currentArtist = "",
+	currentAlbum = "",
+	currentPosition = 0,
+	duration = 0,
+	spaceID = nil,
+	lastUpdate = 0
+}
+
+-- 事件监听器集合
+eventListeners = {}
+
+-- 初始化事件驱动系统
+function initEventDrivenSystem()
+	setupMusicNotifications()
+	setupApplicationWatcher()
+	setupSpaceWatcher()
+	setupVolumeWatcher()
+	setupProgressTimer()
+	
+	print("✅ 事件驱动系统初始化完成")
+end
+
+-- 1. 音乐应用通知监听
+function setupMusicNotifications()
+	eventListeners.musicNotification = hs.distributednotifications.new(function(name, object, userInfo)
+		handleMusicNotification(name, object, userInfo)
+	end, "com.apple.Music.playerInfo")
+	
+	if eventListeners.musicNotification then
+		eventListeners.musicNotification:start()
+		print("✅ Apple Music 通知监听已启动")
+	end
+	
+	-- Spotify 支持
+	eventListeners.spotifyNotification = hs.distributednotifications.new(function(name, object, userInfo)
+		handleSpotifyNotification(name, object, userInfo)
+	end, "com.spotify.client.PlaybackStateChanged")
+	
+	if eventListeners.spotifyNotification then
+		eventListeners.spotifyNotification:start()
+		print("✅ Spotify 通知监听已启动")
+	end
+end
+
+-- 处理音乐通知
+function handleMusicNotification(name, object, userInfo)
+	if not userInfo then return end
+	
+	local currentTime = hs.timer.secondsSinceEpoch()
+	-- 防抖：避免过于频繁的更新
+	if currentTime - musicState.lastUpdate < 0.3 then
+		return
+	end
+	
+	local hasChanges = false
+	
+	-- 检查播放状态变化
+	if userInfo["Player State"] and userInfo["Player State"] ~= musicState.playState then
+		musicState.playState = userInfo["Player State"]
+		hasChanges = true
+	end
+	
+	-- 检查曲目信息变化
+	if userInfo["Name"] and userInfo["Name"] ~= musicState.currentTitle then
+		musicState.currentTitle = userInfo["Name"]
+		hasChanges = true
+	end
+	
+	if userInfo["Artist"] and userInfo["Artist"] ~= musicState.currentArtist then
+		musicState.currentArtist = userInfo["Artist"]
+		hasChanges = true
+	end
+	
+	if userInfo["Album"] and userInfo["Album"] ~= musicState.currentAlbum then
+		musicState.currentAlbum = userInfo["Album"]
+		hasChanges = true
+	end
+	
+	-- 只在有变化时更新UI
+	if hasChanges then
+		musicState.lastUpdate = currentTime
+		musicBarUpdate()
+	end
+end
+
+-- 处理 Spotify 通知
+function handleSpotifyNotification(name, object, userInfo)
+	local currentTime = hs.timer.secondsSinceEpoch()
+	if currentTime - musicState.lastUpdate < 0.3 then
+		return
+	end
+	
+	local hasChanges = false
+	
+	-- 检查 Spotify 状态
+	local isPlaying = hs.spotify.isPlaying()
+	local newPlayState = isPlaying and "playing" or "paused"
+	
+	if newPlayState ~= musicState.playState then
+		musicState.playState = newPlayState
+		hasChanges = true
+	end
+	
+	local currentTrack = hs.spotify.getCurrentTrack()
+	if currentTrack and currentTrack ~= musicState.currentTitle then
+		musicState.currentTitle = currentTrack
+		hasChanges = true
+	end
+	
+	local currentArtist = hs.spotify.getCurrentArtist()
+	if currentArtist and currentArtist ~= musicState.currentArtist then
+		musicState.currentArtist = currentArtist
+		hasChanges = true
+	end
+	
+	if hasChanges then
+		musicState.lastUpdate = currentTime
+		musicBarUpdate()
+	end
+end
+
+-- 2. 应用启动/退出监听
+function setupApplicationWatcher()
+	eventListeners.appWatcher = hs.application.watcher.new(function(appName, eventType, appObject)
+		if appName == "Music" or appName == "Spotify" then
+			if eventType == hs.application.watcher.launched then
+				print("🎵 音乐应用启动: " .. appName)
+				musicState.isRunning = true
+				-- 延迟获取初始状态
+				hs.timer.doAfter(1, function()
+					forceUpdateMusicState()
+				end)
+			elseif eventType == hs.application.watcher.terminated then
+				print("⏹️ 音乐应用退出: " .. appName)
+				musicState.isRunning = false
+				setTitle("quit")
+				hideall()
+				hide(c_lyric)
+			end
+		end
+	end)
+	
+	if eventListeners.appWatcher then
+		eventListeners.appWatcher:start()
+		print("✅ 应用监听器已启动")
+	end
+end
+
+-- 3. 空间切换监听
+function setupSpaceWatcher()
+	eventListeners.spaceWatcher = hs.spaces.watcher.new(function()
+		local currentSpaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+		if currentSpaceID ~= musicState.spaceID then
+			musicState.spaceID = currentSpaceID
+			hideall()
+		end
+	end)
+	
+	if eventListeners.spaceWatcher then
+		eventListeners.spaceWatcher:start()
+		print("✅ 空间监听器已启动")
+	end
+end
+
+-- 4. 系统音量监听
+function setupVolumeWatcher()
+	eventListeners.volumeWatcher = hs.audiodevice.watcher.setCallback(function(event)
+		if event == 'volm' then
+			print("🔊 系统音量变化")
+		end
+	end)
+	
+	if eventListeners.volumeWatcher then
+		eventListeners.volumeWatcher:start()
+		print("✅ 音量监听器已启动")
+	end
+end
+
+-- 5. 进度条更新定时器
+function setupProgressTimer()
+	eventListeners.progressTimer = hs.timer.new(1, function()
+		if musicState.playState == "playing" and c_progress and c_progress:isShowing() then
+			updateProgressOnly()
+		end
+	end)
+	
+	print("✅ 进度条定时器已设置")
+end
+
+-- 强制更新音乐状态
+function forceUpdateMusicState()
+	if not Music.checkRunning() then
+		musicState.isRunning = false
 		setTitle("quit")
 		return
 	end
-	-- 若更换了播放状态则触发更新
-	if Music.state() ~= musicstate then
-		if stateChange then
-			stateChange = false
-		else
-			stateChange = true
+	
+	musicState.isRunning = true
+	musicState.playState = Music.state()
+	musicState.currentTitle = Music.title()
+	musicState.currentArtist = Music.artist()
+	musicState.currentAlbum = Music.album()
+	
+	musicBarUpdate()
+end
+
+-- 仅更新进度条
+function updateProgressOnly()
+	if c_progress and c_progress:isShowing() then
+		local currentPos = Music.currentPosition()
+		local duration = cachedMusicInfo.duration or Music.duration()
+		
+		if currentPos and duration and duration > 0 then
+			local progressWidth = c_progress:frame().w * currentPos / duration
+			if progressElement and progressElement[1] then
+				progressElement[1].frame.w = progressWidth
+				c_progress:replaceElements(progressElement)
+			end
 		end
-		musicstate = Music.state()
-		setTitle()
 	end
-	-- 正常情况下的更新
-	if Music.state() == "playing" or Music.state() == "paused" then
-		-- 若更换了曲目
-		if Music.title() ~= songtitle then
-			--若切换歌曲时悬浮菜单正在显示则刷新
-			if c_mainMenu and c_mainMenu:isShowing() then
-				hideall()
-			end
-			Music.saveArtwork()
-			songtitle = Music.title()
-			if not stateChange then
-				setTitle()
-			else
-				stateChange = false
-			end
+end
+
+-- 修复后的 musicBarUpdate 函数
+function musicBarUpdate()
+	-- 检查应用是否运行
+	if not Music.checkRunning() then
+		musicState.isRunning = false
+		setTitle("quit")
+		hideall()
+		if c_lyric then
+			hide(c_lyric)
+		end
+		return
+	end
+	
+	musicState.isRunning = true
+	
+	-- 缓存音乐信息，避免菜单构建时重复调用
+	cachedMusicInfo = {
+		title = Music.title(),
+		artist = Music.artist(), 
+		album = Music.album(),
+		loved = Music.loved(),
+		rating = Music.rating(),
+		duration = Music.duration()
+	}
+
+	-- 更新菜单栏标题
+	setTitle()
+	
+	-- 处理播放状态
+	local currentState = Music.state()
+	if currentState == "playing" or currentState == "paused" then
+		-- 保存专辑封面
+		Music.saveArtwork()
+
+		-- 调用歌词模块
+		if Lyric and Lyric.main then
 			Lyric.main()
-			setMenu()
+		end
+
+		buildMenus()
+		-- 如果菜单正在显示，需要重新构建以更新内容
+		-- if c_mainMenu and c_mainMenu:isShowing() then
+		-- 	buildMenus()
+		-- end
+		
+		-- 启动进度条定时器
+		if eventListeners.progressTimer and not eventListeners.progressTimer:running() then
+			eventListeners.progressTimer:start()
 		end
 	else
-		progressTimer = nil
+		-- 停止状态
 		hideall()
+		if c_lyric then
+			hide(c_lyric)
+		end
+		if eventListeners.progressTimer then
+			eventListeners.progressTimer:stop()
+		end
 	end
-	-- 非播放状态立即隐藏歌词
-	if Music.state() ~= "playing" then
+end
+
+-- 清理事件监听器
+function cleanupEventListeners()
+	for name, listener in pairs(eventListeners) do
+		if listener and listener.stop then
+			listener:stop()
+			print("🧹 已停止监听器: " .. name)
+		end
+	end
+	eventListeners = {}
+end
+
+-- 修改后的初始化函数
+function initMusicBar()
+	-- 生成菜单栏
+	if not MusicBar then
+		MusicBar = hs.menubar.new(true):autosaveName("Music")
+		MusicBar:setClickCallback(toggleCanvas)
+	end
+	
+	-- 初始化事件驱动系统
+	initEventDrivenSystem()
+	
+	-- 获取初始状态
+	musicState.spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+	
+	-- 立即检查音乐状态并更新
+	forceUpdateMusicState()
+	
+	-- 保留低频率备用定时器，但频率更合理
+	if Switch then
+		Switch:stop()
+	end
+	Switch = hs.timer.new(10, function()  -- 10秒检查一次
+		if not musicState.isRunning and Music.checkRunning() then
+			print("⚠️ 容错检查：检测到音乐应用运行")
+			forceUpdateMusicState()
+		end
+	end)
+	Switch:start()
+	
+	print("🚀 事件驱动音乐栏初始化完成")
+end
+
+-- 清理函数
+function cleanup()
+	cleanupEventListeners()
+	if Switch then
+		Switch:stop()
+	end
+	hideall()
+	if c_lyric then
 		hide(c_lyric)
 	end
-	-- 若切换Space则隐藏
-	if hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()] ~= spaceID then
-		spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-		hideall()
-	end
+	print("🧹 音乐栏模块已清理")
 end
--- 生成菜单栏
-if not MusicBar then
-	MusicBar = hs.menubar.new(true):autosaveName("Music")
-	MusicBar:setClickCallback(toggleCanvas)
-end
--- 实时更新菜单栏
-Switch = hs.timer.new(updateTime, musicBarUpdate)
-Switch:start()
--- 快捷键
+
+-- 初始化
+initMusicBar()
+
+-- 保持原有快捷键
 hotkey.bind(hyper_shift, 'return', Music.togglePlay)
 hotkey.bind(hyper_opt, 'right', function()
 	if hs.spotify.isPlaying() then
