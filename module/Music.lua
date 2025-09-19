@@ -5,6 +5,30 @@ require ('config.music')
 
 local cachedMusicInfo = {}
 
+-- 状态缓存，避免重复更新
+local musicState = {
+	isRunning = false,
+	playState = "stopped",
+	currentTitle = "",
+	currentArtist = "",
+	currentAlbum = "",
+	currentPosition = 0,
+	duration = 0,
+	spaceID = nil,
+	lastUpdate = 0
+}
+
+-- 全局进度条状态管理
+local progressState = {
+	isUpdating = false,
+	lastPosition = 0,
+	lastDuration = 0,
+	lastUpdateTime = 0
+}
+
+-- 事件监听器集合
+eventListeners = {}
+
 --
 -- MenuBar函数集 --
 --
@@ -63,6 +87,8 @@ end
 function setMainMenu()
 	barFrame = MusicBar:frame()
     
+	barFrame.x = initialX - 36 - barFrame.w
+
     -- 初始化时给barFrame.x赋值
     if not barFrame.x or barFrame.x <= 0 then
         barFrame.x = 1000
@@ -555,55 +581,99 @@ end
 
 -- 进度条更新函数
 function setProgressCanvas()
-	updateProgress = function()
-		if c_progress and c_progress:frame().w and Music.currentPosition() and Music.duration() then
-			progressElement[1].frame.w = c_progress:frame().w * Music.currentPosition() / Music.duration()
-			c_progress:replaceElements(progressElement)
-		end
+	local per = 60 / 100
+	local musicDuration = cachedMusicInfo.duration or Music.duration() or 0
+	
+	if musicDuration <= 0 then
+		musicDuration = math.huge
 	end
-	-- 生成悬浮进度条
+	
+	-- 计算当前进度
+	local currentPos = Music.currentPosition() or 0
+	local progressWidth = 0
+	if musicDuration > 0 and musicDuration ~= math.huge then
+		progressWidth = currentPos / musicDuration
+	end
+	
+	-- 创建或更新进度条画布
 	if not c_progress then
-		per = 60 / 100
-		if Music.duration() > 0 then
-			-- musicDuration = Music.duration()
-			musicDuration = cachedMusicInfo.duration or Music.duration()
-		else
-			musicDuration = math.huge
-		end
-		c_progress = c.new({x = menuFrame.x + borderSize.x, y = menuFrame.y + borderSize.y + artworkSize.h + borderSize.y * (1 - per) / 2, h = borderSize.y * per, w = menuFrame.w - borderSize.x * 2}):level(c_mainMenu:level() + 2)
-		progressElement = {
-			{
-				id = "progress",
-				type = "rectangle",
-				roundedRectRadii = {xRadius = 2, yRadius = 2},
-				frame = {x = 0, y = 0, h = c_progress:frame().h, w = c_progress:frame().w * Music.currentPosition() / musicDuration},
-				fillColor = {alpha = progressAlpha, red = progressColor[1] / 255, green = progressColor[2] / 255, blue = progressColor[3] / 255},
-				trackMouseUp = true
-			},{
-				id = "background",
-				type = "rectangle",
-				action = "fill",
-				roundedRectRadii = {xRadius = 6, yRadius = 6},
-				fillColor = {alpha = 0, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
-				trackMouseUp = true
-			},
-		}
-		c_progress:appendElements(progressElement)
+		c_progress = c.new({
+			x = menuFrame.x + borderSize.x, 
+			y = menuFrame.y + borderSize.y + artworkSize.h + borderSize.y * (1 - per) / 2, 
+			h = borderSize.y * per, 
+			w = menuFrame.w - borderSize.x * 2
+		}):level(c_mainMenu:level() + 2)
 	else
-		c_progress:frame({x = menuFrame.x + borderSize.x, y = menuFrame.y + borderSize.y + artworkSize.h + borderSize.y * (1 - per) / 2, h = borderSize.y * per, w = menuFrame.w - borderSize.x * 2})
-		updateProgress()
+		-- 更新画布位置和大小
+		c_progress:frame({
+			x = menuFrame.x + borderSize.x, 
+			y = menuFrame.y + borderSize.y + artworkSize.h + borderSize.y * (1 - per) / 2, 
+			h = borderSize.y * per, 
+			w = menuFrame.w - borderSize.x * 2
+		})
 	end
+	
+	-- 重新定义进度条元素（确保每次都是新的引用）
+	progressElement = {
+		{
+			id = "progress",
+			type = "rectangle",
+			roundedRectRadii = {xRadius = 2, yRadius = 2},
+			frame = {
+				x = 0, 
+				y = 0, 
+				h = c_progress:frame().h, 
+				w = c_progress:frame().w * progressWidth
+			},
+			fillColor = {
+				alpha = progressAlpha, 
+				red = progressColor[1] / 255, 
+				green = progressColor[2] / 255, 
+				blue = progressColor[3] / 255
+			},
+			trackMouseUp = true
+		},
+		{
+			id = "background",
+			type = "rectangle",
+			action = "fill",
+			roundedRectRadii = {xRadius = 6, yRadius = 6},
+			fillColor = {
+				alpha = 0, 
+				red = bgColor[1] / 255, 
+				green = bgColor[2] / 255, 
+				blue = bgColor[3] / 255
+			},
+			trackMouseUp = true
+		}
+	}
+	
+	-- 应用元素到画布
+	c_progress:replaceElements(progressElement)
+	
+	-- 设置鼠标回调
 	c_progress:mouseCallback(function(canvas, event, id, x, y)
-		if id == "background" and (x >= 0 and x <= c_progress:frame().w and y >= 0 and y <= c_progress:frame().h) then
-  		if event == "mouseUp" then
-  			local mousePoint = hs.mouse.absolutePosition()
-  			local currentPosition = (mousePoint.x - c_progress:frame().x) / c_progress:frame().w * Music.duration()
-  			c_progress:replaceElements(progressElement):show()
-				Music.tell('set player position to "' .. currentPosition .. '"')
-  		end
+		if event == "mouseUp" and id == "background" and 
+			x >= 0 and x <= c_progress:frame().w and 
+			y >= 0 and y <= c_progress:frame().h then
+			
+			-- 计算新的播放位置
+			local newPosition = (x / c_progress:frame().w) * musicDuration
+			
+			-- 设置新位置
+			Music.tell('set player position to "' .. newPosition .. '"')
+			
+			-- 立即更新进度条显示
+			progressElement[1].frame.w = x
+			c_progress:replaceElements(progressElement)
+			
+			-- 更新状态
+			progressState.lastPosition = newPosition
+			progressState.lastUpdateTime = hs.timer.secondsSinceEpoch()
+			
+			print("🎯 进度调整到: " .. string.format("%.1f", newPosition) .. "秒")
 		end
 	end)
-	-- 注意：不在这里设置 progressTimer，而是在事件驱动系统中管理
 end
 
 --
@@ -611,31 +681,42 @@ end
 --
 -- 隐藏
 function hideall()
-	hide(c_desktopLayer)
-	hide(c_rateMenu,fadeTime,true)
-	hide(c_controlMenu,fadeTime,true)
-	if eventListeners.progressTimer then
-		eventListeners.progressTimer:stop()
-	end
-	hide(c_progress,fadeTime,true)
-	hide(c_playlist,fadeTime,true)
-	hide(c_mainMenu,fadeTime,true)
+    hide(c_desktopLayer)
+    hide(c_rateMenu, fadeTime, true)
+    hide(c_controlMenu, fadeTime, true)
+    hide(c_progress, fadeTime, true)
+    hide(c_playlist, fadeTime, true)
+    hide(c_mainMenu, fadeTime, true)
+    
+    -- 隐藏时停止进度定时器以节省资源
+    if eventListeners.progressTimer and eventListeners.progressTimer:running() then
+        eventListeners.progressTimer:stop()
+    end
 end
 
 -- 显示
 function showall()
-	-- 确保进度条定时器启动
-	if eventListeners.progressTimer then
-		if not eventListeners.progressTimer:running() then
-			eventListeners.progressTimer:start()
-		end
+	show(c_mainMenu, fadeTime, true)
+	show(c_rateMenu, fadeTime, true)
+	show(c_controlMenu, fadeTime, true)
+	
+	-- 确保进度条是最新的
+	if c_progress then
+		-- 立即更新一次进度
+		hs.timer.doAfter(0.1, function()
+			updateProgressOnly()
+		end)
+		show(c_progress, fadeTime, true)
 	end
 	
-	show(c_mainMenu,fadeTime,true)
-	show(c_rateMenu,fadeTime,true)
-	show(c_controlMenu,fadeTime,true)
-	updateProgress() -- 立即更新一次进度
-	show(c_progress,fadeTime,true)
+	-- 确保进度条定时器在播放时运行 - 使用实际状态检查
+	local actualState = Music.state()
+	if actualState == "playing" and eventListeners.progressTimer then
+		if not eventListeners.progressTimer:running() then
+			eventListeners.progressTimer:start()
+			print("▶️ 显示菜单时启动进度条定时器")
+		end
+	end
 end
 
 -- 判断鼠标指针是否处于悬浮菜单内
@@ -701,32 +782,12 @@ end
 --
 -- 事件驱动版本的音乐播放器模块
 --
-
--- 状态缓存，避免重复更新
-local musicState = {
-	isRunning = false,
-	playState = "stopped",
-	currentTitle = "",
-	currentArtist = "",
-	currentAlbum = "",
-	currentPosition = 0,
-	duration = 0,
-	spaceID = nil,
-	lastUpdate = 0
-}
-
--- 事件监听器集合
-eventListeners = {}
-
 -- 初始化事件驱动系统
 function initEventDrivenSystem()
 	setupMusicNotifications()
 	setupApplicationWatcher()
 	setupSpaceWatcher()
-	setupVolumeWatcher()
 	setupProgressTimer()
-	
-	print("✅ 事件驱动系统初始化完成")
 end
 
 -- 1. 音乐应用通知监听
@@ -737,7 +798,6 @@ function setupMusicNotifications()
 	
 	if eventListeners.musicNotification then
 		eventListeners.musicNotification:start()
-		print("✅ Apple Music 通知监听已启动")
 	end
 	
 	-- Spotify 支持
@@ -747,7 +807,6 @@ function setupMusicNotifications()
 	
 	if eventListeners.spotifyNotification then
 		eventListeners.spotifyNotification:start()
-		print("✅ Spotify 通知监听已启动")
 	end
 end
 
@@ -773,6 +832,10 @@ function handleMusicNotification(name, object, userInfo)
 	if userInfo["Name"] and userInfo["Name"] ~= musicState.currentTitle then
 		musicState.currentTitle = userInfo["Name"]
 		hasChanges = true
+		-- 歌曲变化时重置进度状态
+		progressState.lastPosition = 0
+		progressState.lastDuration = 0
+		progressState.lastUpdateTime = 0
 	end
 	
 	if userInfo["Artist"] and userInfo["Artist"] ~= musicState.currentArtist then
@@ -828,7 +891,7 @@ function handleSpotifyNotification(name, object, userInfo)
 	end
 end
 
--- 2. 应用启动/退出监听
+-- 应用启动/退出监听
 function setupApplicationWatcher()
 	eventListeners.appWatcher = hs.application.watcher.new(function(appName, eventType, appObject)
 		if appName == "Music" or appName == "Spotify" then
@@ -849,13 +912,13 @@ function setupApplicationWatcher()
 		end
 	end)
 	
+	-- 启动应用监听器
 	if eventListeners.appWatcher then
 		eventListeners.appWatcher:start()
-		print("✅ 应用监听器已启动")
 	end
 end
 
--- 3. 空间切换监听
+-- 空间切换监听
 function setupSpaceWatcher()
 	eventListeners.spaceWatcher = hs.spaces.watcher.new(function()
 		local currentSpaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
@@ -865,79 +928,112 @@ function setupSpaceWatcher()
 		end
 	end)
 	
+	-- 启动空间监听器
 	if eventListeners.spaceWatcher then
 		eventListeners.spaceWatcher:start()
-		print("✅ 空间监听器已启动")
 	end
 end
 
--- 4. 系统音量监听
-function setupVolumeWatcher()
-	eventListeners.volumeWatcher = hs.audiodevice.watcher.setCallback(function(event)
-		if event == 'volm' then
-			print("🔊 系统音量变化")
-		end
-	end)
-	
-	if eventListeners.volumeWatcher then
-		eventListeners.volumeWatcher:start()
-		print("✅ 音量监听器已启动")
-	end
-end
-
--- 5. 进度条更新定时器
+-- 进度条更新定时器
 function setupProgressTimer()
-	eventListeners.progressTimer = hs.timer.new(1, function()
-		if musicState.playState == "playing" and c_progress and c_progress:isShowing() then
-			updateProgressOnly()
-		end
-	end)
-	
-	print("✅ 进度条定时器已设置")
+    -- 停止旧的定时器
+    if eventListeners.progressTimer then
+        eventListeners.progressTimer:stop()
+        eventListeners.progressTimer = nil
+    end
+    
+    eventListeners.progressTimer = hs.timer.new(1.0, function()
+        -- 直接检查实际的播放状态，而不依赖缓存
+        local actualState = Music.state()
+        if actualState == "playing" and c_progress and c_progress:isShowing() then
+            updateProgressOnly()
+        end
+    end)
 end
 
 -- 强制更新音乐状态
 function forceUpdateMusicState()
-	if not Music.checkRunning() then
-		musicState.isRunning = false
-		setTitle("quit")
+    if not Music.checkRunning() then
+        musicState.isRunning = false
+        setTitle("quit")
+        return
+    end
+    
+    musicState.isRunning = true
+    musicState.playState = Music.state()  -- 确保状态同步
+    musicState.currentTitle = Music.title()
+    musicState.currentArtist = Music.artist()
+    musicState.currentAlbum = Music.album()
+    
+    musicBarUpdate()
+end
+
+-- 进度更新函数
+function updateProgressOnly()
+	if not c_progress or not c_progress:isShowing() then
 		return
 	end
 	
-	musicState.isRunning = true
-	musicState.playState = Music.state()
-	musicState.currentTitle = Music.title()
-	musicState.currentArtist = Music.artist()
-	musicState.currentAlbum = Music.album()
+	-- 防止重复更新
+	if progressState.isUpdating then
+		return
+	end
 	
-	musicBarUpdate()
-end
-
--- 仅更新进度条
-function updateProgressOnly()
-	if c_progress and c_progress:isShowing() then
-		local currentPos = Music.currentPosition()
-		local duration = cachedMusicInfo.duration or Music.duration()
+	local currentTime = hs.timer.secondsSinceEpoch()
+	
+	-- 如果刚刚手动调整过进度，给一点缓冲时间
+	if currentTime - progressState.lastUpdateTime < 1.0 then
+		return
+	end
+	
+	progressState.isUpdating = true
+	
+	local currentPos = Music.currentPosition()
+	local duration = cachedMusicInfo.duration or Music.duration()
+	
+	-- 验证数据有效性
+	if not currentPos or not duration or duration <= 0 then
+		progressState.isUpdating = false
+		return
+	end
+	
+	-- 防止进度超出范围
+	if currentPos > duration then
+		currentPos = duration
+	elseif currentPos < 0 then
+		currentPos = 0
+	end
+	
+	-- 计算进度条宽度
+	local progressWidth = (currentPos / duration) * c_progress:frame().w
+	
+	-- 确保宽度在有效范围内
+	if progressWidth > c_progress:frame().w then
+		progressWidth = c_progress:frame().w
+	elseif progressWidth < 0 then
+		progressWidth = 0
+	end
+	
+	-- 只有在进度确实发生变化时才更新
+	if math.abs(currentPos - progressState.lastPosition) > 0.8 then
 		
-		if currentPos and duration and duration > 0 and currentPos <= duration then
-			local progressWidth = c_progress:frame().w * currentPos / duration
+		-- 更新进度条元素
+		if progressElement and progressElement[1] then
+			progressElement[1].frame.w = progressWidth
+			c_progress:replaceElements(progressElement)
 			
-			-- 确保进度条宽度不超出边界
-			if progressWidth > c_progress:frame().w then
-				progressWidth = c_progress:frame().w
-			elseif progressWidth < 0 then
-				progressWidth = 0
-			end
+			-- 更新状态
+			progressState.lastPosition = currentPos
+			progressState.lastDuration = duration
 			
-			if progressElement and progressElement[1] then
-				progressElement[1].frame.w = progressWidth
-				c_progress:replaceElements(progressElement)
-			end
+			-- print("🔄 进度更新: " .. string.format("%.1f/%.1f", currentPos, duration))
 		end
 	end
+	
+	progressState.isUpdating = false
 end
 
--- 修复后的 musicBarUpdate 函数
+-- musicBarUpdate 函数
 function musicBarUpdate()
 	-- 检查应用是否运行
 	if not Music.checkRunning() then
@@ -947,12 +1043,17 @@ function musicBarUpdate()
 		if c_lyric then
 			hide(c_lyric)
 		end
+		-- 停止进度定时器
+		if eventListeners.progressTimer then
+			eventListeners.progressTimer:stop()
+		end
 		return
 	end
 	
 	musicState.isRunning = true
 	
-	-- 缓存音乐信息，避免菜单构建时重复调用
+	-- 缓存音乐信息
+	local oldCachedInfo = cachedMusicInfo
 	cachedMusicInfo = {
 		title = Music.title(),
 		artist = Music.artist(), 
@@ -967,20 +1068,56 @@ function musicBarUpdate()
 	
 	-- 处理播放状态
 	local currentState = Music.state()
+	musicState.playState = currentState  -- 同步状态
+	
 	if currentState == "playing" or currentState == "paused" then
+		-- 检查是否需要重新构建菜单
+		local needRebuild = not oldCachedInfo or 
+			oldCachedInfo.title ~= cachedMusicInfo.title or
+			oldCachedInfo.artist ~= cachedMusicInfo.artist or
+			oldCachedInfo.album ~= cachedMusicInfo.album or
+			oldCachedInfo.duration ~= cachedMusicInfo.duration
+		
+		-- 检查是否是曲目切换（标题或艺术家变化）
+		local isSongChanged = not oldCachedInfo or 
+			oldCachedInfo.title ~= cachedMusicInfo.title or
+			oldCachedInfo.artist ~= cachedMusicInfo.artist
+		
+		-- 检查是否是曲目切换（标题或艺术家变化）
+		local isAlbumChanged = not oldCachedInfo or 
+			oldCachedInfo.album ~= cachedMusicInfo.album
+
 		-- 保存专辑封面
-		Music.saveArtwork()
+		if isAlbumChanged then
+			Music.saveArtwork()
+		end
 
 		-- 调用歌词模块
-		if Lyric and Lyric.main then
+		if isSongChanged and Lyric and Lyric.main then
 			Lyric.main()
 		end
 
-		buildMenus()
+		if needRebuild or not c_mainMenu then
+			buildMenus()
+			-- 重置进度状态
+			progressState.lastPosition = 0
+			progressState.lastDuration = 0
+			progressState.lastUpdateTime = 0
+		end
 		
-		-- 启动进度条定时器
-		if eventListeners.progressTimer and not eventListeners.progressTimer:running() then
-			eventListeners.progressTimer:start()
+		-- 管理进度条定时器 - 关键修复
+		if eventListeners.progressTimer then
+			if currentState == "playing" then
+				-- 启动进度条定时器
+				if not eventListeners.progressTimer:running() then
+					eventListeners.progressTimer:start()
+				end
+			else
+				-- 停止进度条定时器
+				if eventListeners.progressTimer:running() then
+					eventListeners.progressTimer:stop()
+				end
+			end
 		end
 	else
 		-- 停止状态
@@ -991,6 +1128,10 @@ function musicBarUpdate()
 		if eventListeners.progressTimer then
 			eventListeners.progressTimer:stop()
 		end
+		-- 重置进度状态
+		progressState.lastPosition = 0
+		progressState.lastDuration = 0
+		progressState.lastUpdateTime = 0
 	end
 end
 
@@ -1033,8 +1174,6 @@ function initMusicBar()
 		end
 	end)
 	Switch:start()
-	
-	print("🚀 事件驱动音乐栏初始化完成")
 end
 
 -- 清理函数
