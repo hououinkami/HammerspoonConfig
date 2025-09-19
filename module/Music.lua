@@ -919,8 +919,16 @@ function updateProgressOnly()
 		local currentPos = Music.currentPosition()
 		local duration = cachedMusicInfo.duration or Music.duration()
 		
-		if currentPos and duration and duration > 0 then
+		if currentPos and duration and duration > 0 and currentPos <= duration then
 			local progressWidth = c_progress:frame().w * currentPos / duration
+			
+			-- 确保进度条宽度不超出边界
+			if progressWidth > c_progress:frame().w then
+				progressWidth = c_progress:frame().w
+			elseif progressWidth < 0 then
+				progressWidth = 0
+			end
+			
 			if progressElement and progressElement[1] then
 				progressElement[1].frame.w = progressWidth
 				c_progress:replaceElements(progressElement)
@@ -969,10 +977,6 @@ function musicBarUpdate()
 		end
 
 		buildMenus()
-		-- 如果菜单正在显示，需要重新构建以更新内容
-		-- if c_mainMenu and c_mainMenu:isShowing() then
-		-- 	buildMenus()
-		-- end
 		
 		-- 启动进度条定时器
 		if eventListeners.progressTimer and not eventListeners.progressTimer:running() then
