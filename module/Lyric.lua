@@ -1143,6 +1143,27 @@ Lyric.buildMenu = function(songs, callback)
 	if callback then callback() end
 end
 
+-- 暂停歌词计时器
+Lyric.pauseTimer = function()
+    if lyricTimer and lyricTimer:running() then
+        lyricTimer:stop()
+    end
+end
+
+-- 恢复歌词计时器
+Lyric.resumeTimer = function()
+    if lyricTimer and not lyricTimer:running() then
+        lyricTimer:start()
+    end
+end
+
+-- 停止歌词计时器
+Lyric.stopTimer = function()
+    if lyricTimer then
+        lyricTimer:stop()
+    end
+end
+
 -- 异步初始化
 Lyric.api(lyricDefaultNO)
 lyricShow = true

@@ -880,29 +880,35 @@ end
 
 -- 应用启动/退出监听
 function setupApplicationWatcher()
-	eventListeners.appWatcher = hs.application.watcher.new(function(appName, eventType, appObject)
-		if appName == "Music" or appName == "Spotify" then
-			if eventType == hs.application.watcher.launched then
-				print("🎵 音乐应用启动: " .. appName)
-				musicState.isRunning = true
-				-- 延迟获取初始状态
-				hs.timer.doAfter(1, function()
-					forceUpdateMusicState()
-				end)
-			elseif eventType == hs.application.watcher.terminated then
-				print("⏹️ 音乐应用退出: " .. appName)
-				musicState.isRunning = false
-				setTitle("quit")
-				hideall()
-				hide(c_lyric)
-			end
-		end
-	end)
-	
-	-- 启动应用监听器
-	if eventListeners.appWatcher then
-		eventListeners.appWatcher:start()
-	end
+    eventListeners.appWatcher = hs.application.watcher.new(function(appName, eventType, appObject)
+        if appName == "Music" or appName == "Spotify" then
+            if eventType == hs.application.watcher.launched then
+                print("🎵 音乐应用启动: " .. appName)
+                musicState.isRunning = true
+                -- 延迟获取初始状态
+                hs.timer.doAfter(1, function()
+                    forceUpdateMusicState()
+                end)
+            elseif eventType == hs.application.watcher.terminated then
+                print("⏹️ 音乐应用退出: " .. appName)
+                musicState.isRunning = false
+                setTitle("quit")
+                hideall()
+                -- 隐藏歌词并停止计时器
+                if c_lyric then
+                    hide(c_lyric)
+                end
+                if Lyric and Lyric.stopTimer then
+                    Lyric.stopTimer()
+                end
+            end
+        end
+    end)
+    
+    -- 启动应用监听器
+    if eventListeners.appWatcher then
+        eventListeners.appWatcher:start()
+    end
 end
 
 -- 空间切换监听
@@ -970,7 +976,6 @@ function forceUpdateMusicState()
 end
 
 -- 进度更新函数
--- 修改后的进度更新函数（最终版本）
 function updateProgressOnly()
     if not c_progress or not c_progress:isShowing() then
         return
@@ -1077,6 +1082,10 @@ function musicBarUpdate()
         if c_lyric then
             hide(c_lyric)
         end
+        -- 停止歌词计时器
+        if Lyric and Lyric.stopTimer then
+            Lyric.stopTimer()
+        end
         if eventListeners.progressTimer then
             eventListeners.progressTimer:stop()
         end
@@ -1112,7 +1121,9 @@ function musicBarUpdate()
     -- 处理播放状态
     musicState.playState = newMusicInfo.state
     
-    if newMusicInfo.state == "playing" or newMusicInfo.state == "paused" then
+    if newMusicInfo.state == "playing" then
+        -- 播放状态：显示所有内容
+        
         -- 保存专辑封面（仅在专辑变化时）
         if hasAlbumChanged then
             Music.saveArtwork()
@@ -1121,6 +1132,9 @@ function musicBarUpdate()
         -- 调用歌词模块（仅在曲目变化时）
         if hasTrackChanged and Lyric and Lyric.main then
             Lyric.main()
+        elseif hasStateChanged and Lyric and Lyric.resumeTimer then
+            -- 如果只是状态从暂停变为播放，恢复歌词计时器
+            Lyric.resumeTimer()
         end
         
         -- 重建菜单（仅在必要时）
@@ -1130,27 +1144,47 @@ function musicBarUpdate()
             progressState.lastDuration = 0
             progressState.lastUpdateTime = 0
         elseif hasStateChanged then
-            -- 只更新控制状态，不重建整个菜单
             updateControlStates()
         end
         
-        -- 管理进度条定时器
-        if eventListeners.progressTimer then
-            if newMusicInfo.state == "playing" then
-                if not eventListeners.progressTimer:running() then
-                    eventListeners.progressTimer:start()
-                end
-            else
-                if eventListeners.progressTimer:running() then
-                    eventListeners.progressTimer:stop()
-                end
-            end
-        end
+        -- 启动进度条定时器
+		if eventListeners.progressTimer and not eventListeners.progressTimer:running() then
+			eventListeners.progressTimer:start()
+		end
+		
+	elseif newMusicInfo.state == "paused" then
+		-- 暂停状态：隐藏歌词，保持菜单
+		if not c_lyric then
+			Lyric.main()
+		end
+		-- 隐藏歌词并暂停歌词计时器
+		if c_lyric then
+			hide(c_lyric)
+		end
+		if Lyric and Lyric.pauseTimer then
+			Lyric.pauseTimer()
+		end
+		
+		-- 保持菜单显示，但停止进度条更新
+		if hasTrackChanged or hasAlbumChanged or not c_mainMenu then
+			buildMenus()
+		elseif hasStateChanged then
+			updateControlStates()
+		end
+		
+		-- 停止进度条定时器
+		if eventListeners.progressTimer and eventListeners.progressTimer:running() then
+			eventListeners.progressTimer:stop()
+		end
+        
     else
-        -- 停止状态
+        -- 停止状态：隐藏所有内容
         hideall()
         if c_lyric then
             hide(c_lyric)
+        end
+        if Lyric and Lyric.stopTimer then
+            Lyric.stopTimer()
         end
         if eventListeners.progressTimer then
             eventListeners.progressTimer:stop()
@@ -1211,6 +1245,10 @@ function cleanup()
 	hideall()
 	if c_lyric then
 		hide(c_lyric)
+	end
+	-- 停止歌词计时器
+	if Lyric and Lyric.stopTimer then
+		Lyric.stopTimer()
 	end
 	print("🧹 音乐栏模块已清理")
 end
