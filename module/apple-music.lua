@@ -27,38 +27,195 @@ Music.tell = function (cmd)
 	end
 	return AS(cmd)
 end
--- 曲目信息
-Music.title = function ()
+-- 批量获取音乐信息
+Music.getBatchInfo = function()
+    if not Music.checkRunning() then
+        return nil
+    end
+    
+    local script = [[
+        tell application "Music"
+            if it is running and (exists current track) then
+                try
+                    set trackInfo to {}
+                    set end of trackInfo to (get name of current track)
+                    set end of trackInfo to (get artist of current track)
+                    set end of trackInfo to (get album of current track)
+                    set end of trackInfo to (get finish of current track)
+                    set end of trackInfo to (get player position)
+                    set end of trackInfo to (get player state as string)
+                    set end of trackInfo to (get loved of current track)
+                    set end of trackInfo to (get rating of current track)
+                    set end of trackInfo to (get shuffle enabled)
+                    set end of trackInfo to (get song repeat as string)
+                    
+                    set AppleScript's text item delimiters to "|"
+                    set trackInfoString to trackInfo as string
+                    set AppleScript's text item delimiters to ""
+                    
+                    return trackInfoString
+                on error
+                    return "error"
+                end try
+            else
+                return "no_track"
+            end if
+        end tell
+    ]]
+    
+    local ok, result = as.applescript(script)
+    if ok and result and result ~= "error" and result ~= "no_track" then
+        local parts = {}
+        for part in result:gmatch("([^|]*)") do
+            table.insert(parts, part)
+        end
+        
+        return {
+            title = parts[1] or "",
+            artist = parts[2] or "",
+            album = parts[3] or "",
+            duration = tonumber(parts[4]) or 0,
+            position = tonumber(parts[5]) or 0,
+            state = parts[6] or "stopped",
+            loved = parts[7] == "true",
+            rating = math.floor((tonumber(parts[8]) or 0) / 20),
+            shuffle = parts[9] == "true",
+            loop = parts[10] or "off"
+        }
+    end
+    return nil
+end
+
+-- 缓存机制
+Music._cache = {
+    data = nil,
+    timestamp = 0,
+    ttl = 0.5  -- 缓存500ms
+}
+
+Music.getCachedInfo = function()
+    local now = hs.timer.secondsSinceEpoch()
+    if Music._cache.data and (now - Music._cache.timestamp) < Music._cache.ttl then
+        return Music._cache.data
+    end
+    
+    local info = Music.getBatchInfo()
+    if info then
+        Music._cache.data = info
+        Music._cache.timestamp = now
+    end
+    return info
+end
+
+-- 清理缓存（在歌曲切换时调用）
+Music.clearCache = function()
+    Music._cache.data = nil
+    Music._cache.timestamp = 0
+end
+
+-- 强制刷新缓存
+Music.refreshCache = function()
+    Music.clearCache()
+    return Music.getCachedInfo()
+end
+
+-- 单独获取某个信息
+Music.title = function()
+    local info = Music.getCachedInfo()
+    return info and info.title or Music.tell('name of current track') or " "
+end
+
+Music.artist = function()
+    local info = Music.getCachedInfo()
+    return info and info.artist or Music.tell('artist of current track') or " "
+end
+
+Music.album = function()
+    local info = Music.getCachedInfo()
+    return info and info.album or Music.tell('album of current track') or " "
+end
+
+Music.duration = function()
+    local info = Music.getCachedInfo()
+    return info and info.duration or Music.tell('finish of current track') or 1
+end
+
+Music.currentPosition = function(forceRefresh)
+    -- 如果强制刷新或者缓存过期，直接调用 AppleScript
+    if forceRefresh then
+        return Music.tell('player position') or 0
+    end
+    
+    local info = Music.getCachedInfo()
+    return info and info.position or Music.tell('player position') or 0
+end
+
+Music.state = function()
+    if not Music.checkRunning() then
+        return "norunning"
+    end
+    local info = Music.getCachedInfo()
+    return info and info.state or Music.tell('player state as string')
+end
+
+Music.loved = function()
+    local info = Music.getCachedInfo()
+    return info and info.loved or Music.tell('loved of current track')
+end
+
+Music.rating = function()
+    local info = Music.getCachedInfo()
+    return info and info.rating or (Music.tell('rating of current track') and Music.tell('rating of current track')//20 or 0)
+end
+
+Music.shuffle = function()
+    local info = Music.getCachedInfo()
+    return info and info.shuffle or Music.tell('shuffle enabled')
+end
+
+Music.loop = function()
+    local info = Music.getCachedInfo()
+    return info and info.loop or Music.tell('song repeat as string')
+end
+-- 单独曲目信息
+Music.title2 = function ()
 	local title = Music.tell('name of current track') or " "
 	return title
 end
-Music.artist = function ()
+Music.artist2 = function ()
 	local artist = Music.tell('artist of current track') or " "
 	return artist
 end
-Music.album = function ()
+Music.album2 = function ()
 	local album = Music.tell('album of current track') or " "
 	return album
 end
-Music.duration = function()
+Music.duration2 = function()
 	local duration = Music.tell('finish of current track') or 1
 	return duration
 end
-Music.currentPosition = function()
+Music.currentPositio2 = function()
 	local currentPosition = Music.tell('player position') or 0
 	return currentPosition
 end
-Music.loved = function ()
+Music.loved2 = function ()
 	return Music.tell('loved of current track')
 end
-Music.disliked = function ()
-	return Music.tell('disliked of current track')
-end
-Music.rating = function ()
+Music.rating2 = function ()
 	if Music.tell('rating of current track') then
 		return Music.tell('rating of current track')//20
 	else return 0
 	end
+end
+Music.loop2 = function ()
+	return Music.tell('song repeat as string')
+end
+Music.shuffle2 = function ()
+	return Music.tell('shuffle enabled')
+end
+
+Music.disliked = function ()
+	return Music.tell('disliked of current track')
 end
 Music.group = function()
 	return Music.tell("grouping of current track") or " "
@@ -70,12 +227,15 @@ end
 Music.comment = function()
 	return Music.tell("comment of current track")
 end
-Music.loop = function ()
-	return Music.tell('song repeat as string')
+-- 检测播放状态
+Music.state = function ()
+	if Music.checkRunning() == true then
+		return Music.tell('player state as string')
+	else
+		return "norunning"
+	end
 end
-Music.shuffle = function ()
-	return Music.tell('shuffle enabled')
-end
+-- 判断是否为演唱歌曲
 Music.isSong = function()
 	isSong = true
 	local group = Music.group()
@@ -183,14 +343,6 @@ end
 Music.checkRunning = function()
 	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
 	return isrunning
-end
--- 检测播放状态
-Music.state = function ()
-	if Music.checkRunning() == true then
-		return Music.tell('player state as string')
-	else
-		return "norunning"
-	end
 end
 -- 跳转至当前播放的歌曲
 Music.locate = function ()

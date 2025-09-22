@@ -670,8 +670,7 @@ function setProgressCanvas()
 			-- 更新状态
 			progressState.lastPosition = newPosition
 			progressState.lastUpdateTime = hs.timer.secondsSinceEpoch()
-			
-			print("🎯 进度调整到: " .. string.format("%.1f", newPosition) .. "秒")
+
 		end
 	end)
 end
@@ -714,7 +713,6 @@ function showall()
 	if actualState == "playing" and eventListeners.progressTimer then
 		if not eventListeners.progressTimer:running() then
 			eventListeners.progressTimer:start()
-			print("▶️ 显示菜单时启动进度条定时器")
 		end
 	end
 end
@@ -812,47 +810,36 @@ end
 
 -- 处理音乐通知
 function handleMusicNotification(name, object, userInfo)
-	if not userInfo then return end
-	
-	local currentTime = hs.timer.secondsSinceEpoch()
-	-- 防抖：避免过于频繁的更新
-	if currentTime - musicState.lastUpdate < 0.3 then
-		return
-	end
-	
-	local hasChanges = false
-	
-	-- 检查播放状态变化
-	if userInfo["Player State"] and userInfo["Player State"] ~= musicState.playState then
-		musicState.playState = userInfo["Player State"]
-		hasChanges = true
-	end
-	
-	-- 检查曲目信息变化
-	if userInfo["Name"] and userInfo["Name"] ~= musicState.currentTitle then
-		musicState.currentTitle = userInfo["Name"]
-		hasChanges = true
-		-- 歌曲变化时重置进度状态
-		progressState.lastPosition = 0
-		progressState.lastDuration = 0
-		progressState.lastUpdateTime = 0
-	end
-	
-	if userInfo["Artist"] and userInfo["Artist"] ~= musicState.currentArtist then
-		musicState.currentArtist = userInfo["Artist"]
-		hasChanges = true
-	end
-	
-	if userInfo["Album"] and userInfo["Album"] ~= musicState.currentAlbum then
-		musicState.currentAlbum = userInfo["Album"]
-		hasChanges = true
-	end
-	
-	-- 只在有变化时更新UI
-	if hasChanges then
-		musicState.lastUpdate = currentTime
-		musicBarUpdate()
-	end
+    if not userInfo then return end
+    
+    local currentTime = hs.timer.secondsSinceEpoch()
+    -- 防抖：避免过于频繁的更新
+    if currentTime - musicState.lastUpdate < 0.2 then
+        return
+    end
+    
+    -- 清理缓存以获取最新信息
+    Music.clearCache()
+    
+    -- 延迟更新以合并多个通知
+    debounce("musicUpdate", 0.1, function()
+        musicBarUpdate()
+    end)
+    
+    musicState.lastUpdate = currentTime
+end
+
+-- 防抖函数
+local debounceTimers = {}
+function debounce(key, delay, func)
+    if debounceTimers[key] then
+        debounceTimers[key]:stop()
+    end
+    
+    debounceTimers[key] = hs.timer.doAfter(delay, function()
+        func()
+        debounceTimers[key] = nil
+    end)
 end
 
 -- 处理 Spotify 通知
@@ -934,19 +921,33 @@ function setupSpaceWatcher()
 	end
 end
 
--- 进度条更新定时器
+-- 智能定时器设置
 function setupProgressTimer()
-    -- 停止旧的定时器
     if eventListeners.progressTimer then
         eventListeners.progressTimer:stop()
         eventListeners.progressTimer = nil
     end
     
-    eventListeners.progressTimer = hs.timer.new(1.0, function()
-        -- 直接检查实际的播放状态，而不依赖缓存
+    -- 使用自适应间隔
+    local timerInterval = 1.0
+    
+    eventListeners.progressTimer = hs.timer.new(timerInterval, function()
         local actualState = Music.state()
+        
+        -- 根据状态调整更新频率
         if actualState == "playing" and c_progress and c_progress:isShowing() then
             updateProgressOnly()
+            -- 播放时保持1秒间隔
+            if timerInterval ~= 1.0 then
+                timerInterval = 1.0
+                eventListeners.progressTimer:setNextTrigger(timerInterval)
+            end
+        else
+            -- 非播放状态降低频率
+            if timerInterval < 2.0 then
+                timerInterval = 2.0
+                eventListeners.progressTimer:setNextTrigger(timerInterval)
+            end
         end
     end)
 end
@@ -969,170 +970,195 @@ function forceUpdateMusicState()
 end
 
 -- 进度更新函数
+-- 修改后的进度更新函数（最终版本）
 function updateProgressOnly()
-	if not c_progress or not c_progress:isShowing() then
-		return
-	end
-	
-	-- 防止重复更新
-	if progressState.isUpdating then
-		return
-	end
-	
-	local currentTime = hs.timer.secondsSinceEpoch()
-	
-	-- 如果刚刚手动调整过进度，给一点缓冲时间
-	if currentTime - progressState.lastUpdateTime < 1.0 then
-		return
-	end
-	
-	progressState.isUpdating = true
-	
-	local currentPos = Music.currentPosition()
-	local duration = cachedMusicInfo.duration or Music.duration()
-	
-	-- 验证数据有效性
-	if not currentPos or not duration or duration <= 0 then
-		progressState.isUpdating = false
-		return
-	end
-	
-	-- 防止进度超出范围
-	if currentPos > duration then
-		currentPos = duration
-	elseif currentPos < 0 then
-		currentPos = 0
-	end
-	
-	-- 计算进度条宽度
-	local progressWidth = (currentPos / duration) * c_progress:frame().w
-	
-	-- 确保宽度在有效范围内
-	if progressWidth > c_progress:frame().w then
-		progressWidth = c_progress:frame().w
-	elseif progressWidth < 0 then
-		progressWidth = 0
-	end
-	
-	-- 只有在进度确实发生变化时才更新
-	if math.abs(currentPos - progressState.lastPosition) > 0.8 then
-		
-		-- 更新进度条元素
-		if progressElement and progressElement[1] then
-			progressElement[1].frame.w = progressWidth
-			c_progress:replaceElements(progressElement)
-			
-			-- 更新状态
-			progressState.lastPosition = currentPos
-			progressState.lastDuration = duration
-			
-			-- print("🔄 进度更新: " .. string.format("%.1f/%.1f", currentPos, duration))
-		end
-	end
-	
-	progressState.isUpdating = false
+    if not c_progress or not c_progress:isShowing() then
+        return
+    end
+    
+    -- 防止重复更新
+    if progressState.isUpdating then
+        return
+    end
+    
+    local currentTime = hs.timer.secondsSinceEpoch()
+    
+    -- 如果刚刚手动调整过进度，给一点缓冲时间
+    if currentTime - progressState.lastUpdateTime < 1.0 then
+        return
+    end
+    
+    progressState.isUpdating = true
+    
+    -- 实时获取当前播放位置（强制刷新）
+    local currentPos = Music.currentPosition(true) -- 强制获取最新位置
+    local duration = cachedMusicInfo and cachedMusicInfo.duration or Music.duration() or 0
+    
+    -- 验证数据有效性
+    if duration <= 0 then
+        progressState.isUpdating = false
+        return
+    end
+    
+    -- 防止进度超出范围
+    currentPos = math.max(0, math.min(currentPos, duration))
+    
+    -- 计算进度条宽度
+    local progressWidth = (currentPos / duration) * c_progress:frame().w
+    progressWidth = math.max(0, math.min(progressWidth, c_progress:frame().w))
+    
+    -- 降低更新阈值，让进度条更流畅
+    if math.abs(currentPos - progressState.lastPosition) > 0.3 then
+        if progressElement and progressElement[1] then
+            progressElement[1].frame.w = progressWidth
+            c_progress:replaceElements(progressElement)
+            
+            progressState.lastPosition = currentPos
+            progressState.lastDuration = duration
+        end
+    end
+    
+    progressState.isUpdating = false
 end
 
--- musicBarUpdate 函数
+-- 只更新菜单内容，不重建整个菜单
+function updateMenuContent()
+    if not c_mainMenu or not cachedMusicInfo then
+        return
+    end
+    
+    -- 更新文本信息
+    local title = cachedMusicInfo.title or ""
+    local artist = cachedMusicInfo.artist or ""
+    local album = cachedMusicInfo.album or ""
+    
+    if c_mainMenu["info"] then
+        c_mainMenu["info"].text = title .. "\n\n" .. artist .. "\n\n" .. album .. "\n"
+    end
+    
+    -- 更新专辑封面（如果需要）
+    if c_mainMenu["artwork"] then
+        c_mainMenu["artwork"].image = Music.getArtworkPath()
+    end
+end
+
+-- 只更新控制状态
+function updateControlStates()
+    if not c_controlMenu or not c_rateMenu then
+        return
+    end
+    
+    -- 更新控制按钮状态
+    if c_controlMenu["shuffle"] then
+        c_controlMenu["shuffle"].image = img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(cachedMusicInfo.shuffle) .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    if c_controlMenu["loop"] then
+        c_controlMenu["loop"].image = img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. cachedMusicInfo.loop .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    -- 更新评分显示
+    if c_rateMenu["loved"] then
+        c_rateMenu["loved"].image = img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(cachedMusicInfo.loved) .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    if c_rateMenu["rate"] then
+        c_rateMenu["rate"].image = img.imageFromPath(hs.configdir .. "/image/" .. cachedMusicInfo.rating .. "star.png"):setSize(imageSize, absolute == true)
+    end
+end
+
+-- 音乐状态更新函数
 function musicBarUpdate()
-	-- 检查应用是否运行
-	if not Music.checkRunning() then
-		musicState.isRunning = false
-		setTitle("quit")
-		hideall()
-		if c_lyric then
-			hide(c_lyric)
-		end
-		-- 停止进度定时器
-		if eventListeners.progressTimer then
-			eventListeners.progressTimer:stop()
-		end
-		return
-	end
-	
-	musicState.isRunning = true
-	
-	-- 缓存音乐信息
-	local oldCachedInfo = cachedMusicInfo
-	cachedMusicInfo = {
-		title = Music.title(),
-		artist = Music.artist(), 
-		album = Music.album(),
-		loved = Music.loved(),
-		rating = Music.rating(),
-		duration = Music.duration()
-	}
-
-	-- 更新菜单栏标题
-	setTitle()
-	
-	-- 处理播放状态
-	local currentState = Music.state()
-	musicState.playState = currentState  -- 同步状态
-	
-	if currentState == "playing" or currentState == "paused" then
-		-- 检查是否需要重新构建菜单
-		local needRebuild = not oldCachedInfo or 
-			oldCachedInfo.title ~= cachedMusicInfo.title or
-			oldCachedInfo.artist ~= cachedMusicInfo.artist or
-			oldCachedInfo.album ~= cachedMusicInfo.album or
-			oldCachedInfo.duration ~= cachedMusicInfo.duration
-		
-		-- 检查是否是曲目切换（标题或艺术家变化）
-		local isSongChanged = not oldCachedInfo or 
-			oldCachedInfo.title ~= cachedMusicInfo.title or
-			oldCachedInfo.artist ~= cachedMusicInfo.artist
-		
-		-- 检查是否是曲目切换（标题或艺术家变化）
-		local isAlbumChanged = not oldCachedInfo or 
-			oldCachedInfo.album ~= cachedMusicInfo.album
-
-		-- 保存专辑封面
-		if isAlbumChanged then
-			Music.saveArtwork()
-		end
-
-		-- 调用歌词模块
-		if isSongChanged and Lyric and Lyric.main then
-			Lyric.main()
-		end
-
-		if needRebuild or not c_mainMenu then
-			buildMenus()
-			-- 重置进度状态
-			progressState.lastPosition = 0
-			progressState.lastDuration = 0
-			progressState.lastUpdateTime = 0
-		end
-		
-		-- 管理进度条定时器 - 关键修复
-		if eventListeners.progressTimer then
-			if currentState == "playing" then
-				-- 启动进度条定时器
-				if not eventListeners.progressTimer:running() then
-					eventListeners.progressTimer:start()
-				end
-			else
-				-- 停止进度条定时器
-				if eventListeners.progressTimer:running() then
-					eventListeners.progressTimer:stop()
-				end
-			end
-		end
-	else
-		-- 停止状态
-		hideall()
-		if c_lyric then
-			hide(c_lyric)
-		end
-		if eventListeners.progressTimer then
-			eventListeners.progressTimer:stop()
-		end
-		-- 重置进度状态
-		progressState.lastPosition = 0
-		progressState.lastDuration = 0
-		progressState.lastUpdateTime = 0
-	end
+    -- 检查应用是否运行
+    if not Music.checkRunning() then
+        musicState.isRunning = false
+        setTitle("quit")
+        hideall()
+        if c_lyric then
+            hide(c_lyric)
+        end
+        if eventListeners.progressTimer then
+            eventListeners.progressTimer:stop()
+        end
+        return
+    end
+    
+    musicState.isRunning = true
+    
+    -- 使用批量获取信息
+    local newMusicInfo = Music.getCachedInfo()
+    if not newMusicInfo then
+        return
+    end
+    
+    -- 检查变化
+    local hasTrackChanged = not cachedMusicInfo or 
+        cachedMusicInfo.title ~= newMusicInfo.title or
+        cachedMusicInfo.artist ~= newMusicInfo.artist
+    
+    local hasAlbumChanged = not cachedMusicInfo or 
+        cachedMusicInfo.album ~= newMusicInfo.album
+    
+    local hasStateChanged = not cachedMusicInfo or 
+        cachedMusicInfo.state ~= newMusicInfo.state
+    
+    -- 更新缓存
+    local oldCachedInfo = cachedMusicInfo
+    cachedMusicInfo = newMusicInfo
+    
+    -- 更新菜单栏标题
+    setTitle()
+    
+    -- 处理播放状态
+    musicState.playState = newMusicInfo.state
+    
+    if newMusicInfo.state == "playing" or newMusicInfo.state == "paused" then
+        -- 保存专辑封面（仅在专辑变化时）
+        if hasAlbumChanged then
+            Music.saveArtwork()
+        end
+        
+        -- 调用歌词模块（仅在曲目变化时）
+        if hasTrackChanged and Lyric and Lyric.main then
+            Lyric.main()
+        end
+        
+        -- 重建菜单（仅在必要时）
+        if hasTrackChanged or hasAlbumChanged or not c_mainMenu then
+            buildMenus()
+            progressState.lastPosition = 0
+            progressState.lastDuration = 0
+            progressState.lastUpdateTime = 0
+        elseif hasStateChanged then
+            -- 只更新控制状态，不重建整个菜单
+            updateControlStates()
+        end
+        
+        -- 管理进度条定时器
+        if eventListeners.progressTimer then
+            if newMusicInfo.state == "playing" then
+                if not eventListeners.progressTimer:running() then
+                    eventListeners.progressTimer:start()
+                end
+            else
+                if eventListeners.progressTimer:running() then
+                    eventListeners.progressTimer:stop()
+                end
+            end
+        end
+    else
+        -- 停止状态
+        hideall()
+        if c_lyric then
+            hide(c_lyric)
+        end
+        if eventListeners.progressTimer then
+            eventListeners.progressTimer:stop()
+        end
+        progressState.lastPosition = 0
+        progressState.lastDuration = 0
+        progressState.lastUpdateTime = 0
+    end
 end
 
 -- 清理事件监听器
