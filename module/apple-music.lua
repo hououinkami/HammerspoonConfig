@@ -297,7 +297,7 @@ Music.kind = function()
 	local class = Music.tell('class of container of current track as string')
 	local cloudstatus = Music.tell('cloud status of current track as string')
 	if class == "user playlist" then
-		if cloudstatus == "matched" then
+		if cloudstatus == "matched" or cloudstatus == "subscription" then
 			musictype = "matched"
 		else
 			musictype = "localmusic"
