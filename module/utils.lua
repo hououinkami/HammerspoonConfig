@@ -383,3 +383,12 @@ function setVolume(method, step)
 		as.applescript(setVolumeScript .. currentVolume - step)
 	end
 end
+
+-- hammerspoon配置更新
+function updateHammerspoon()
+    local output, status = hs.execute("cd ~/.hammerspoon && git pull")
+    if status and output and not output:match("Already up to date") then
+        print("配置已更新，正在重载...")
+        hs.reload()
+    end
+end

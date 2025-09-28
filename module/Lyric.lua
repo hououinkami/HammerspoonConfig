@@ -1076,6 +1076,12 @@ Lyric.buildMenu = function(songs, callback)
 			fn = function()
 				Lyric.main()
 			end,
+		},
+		{
+			title = lyricString.updateConfig,
+			fn = function()
+				updateHammerspoon()
+			end,
 		}
 	}
 	
