@@ -386,10 +386,20 @@ end
 
 -- hammerspoon配置更新
 function updateHammerspoon()
-	local task = hs.task.new("/usr/bin/git", function(exitCode, stdOut, stdErr)
-        if exitCode == 0 and stdOut and not stdOut:match("Already up to date") then
-            print("配置已更新, 正在重载...")
-            hs.reload()
+	print("Starting git pull...")
+    local task = hs.task.new("/usr/local/bin/git", function(exitCode, stdOut, stdErr)
+        print("Git pull completed - exitCode:", exitCode)
+        
+        if exitCode == 0 then
+            print("Git output:", stdOut or "no output")
+            if stdOut and not stdOut:match("Already up to date") then
+                print("Config updated, reloading Hammerspoon...")
+                hs.reload()
+            else
+                print("Config already up to date")
+            end
+        else
+            print("Git error:", stdErr or "unknown error")
         end
     end, {"-C", HOME .. "/.hammerspoon", "pull"})
     
