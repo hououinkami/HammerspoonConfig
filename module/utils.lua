@@ -392,16 +392,16 @@ function updateHammerspoon()
         
         if exitCode == 0 then
             print("Git output:", stdOut or "no output")
-            if stdOut and not stdOut:match("Already up to date") then
+            if stdOut and (stdOut:match("已经是最新的") or stdOut:match("Already up to date")) then
+                print("Config already up to date")
+            else
                 print("Config updated, reloading Hammerspoon...")
                 hs.reload()
-            else
-                print("Config already up to date")
             end
         else
             print("Git error:", stdErr or "unknown error")
         end
-    end, {"-C", HOME .. "/.hammerspoon", "pull"})
+    end, {"-C", HOME .. "/.hammerspoon", "pull", "--ff-only"})
     
     task:start()
 end
