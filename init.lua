@@ -104,4 +104,4 @@ function reloadConfig(files)
 		end
     end
 end
-ConfigWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/config", reloadConfig):start()
+ConfigWatcher = hs.pathwatcher.new(HOME .. "/.hammerspoon/config", reloadConfig):start()
