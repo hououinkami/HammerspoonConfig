@@ -386,9 +386,17 @@ end
 
 -- hammerspoon配置更新
 function updateHammerspoon()
-    local output, status = hs.execute("cd ~/.hammerspoon && git pull")
-    if status and output and not output:match("Already up to date") then
-        print("配置已更新，正在重载...")
-        hs.reload()
-    end
+	local cmdArr = {
+		"cd ~/.hammerspoon && git pull",
+	}
+	function shell(cmd)
+		result = as.applescript(string.format('do shell script "%s"', cmd))
+	end
+	function runAutoScripts()
+		for key, cmd in ipairs(cmdArr) do
+			shell(cmd)
+			print(result)
+		end
+		hs.reload()
+	end
 end
