@@ -1209,7 +1209,7 @@ end
 function initMusicBar()
 	-- 生成菜单栏
 	if not MusicBar then
-		MusicBar = hs.menubar.new(true):autosaveName("Music")
+		MusicBar = hs.menubar.new(true)
 		MusicBar:setClickCallback(toggleCanvas)
 	end
 	

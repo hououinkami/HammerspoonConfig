@@ -970,7 +970,7 @@ Lyric.menubar = function(songs, callback)
 		return
 	end
 	if not lyricBar then
-		lyricBar = hs.menubar.new(true):autosaveName("Lyric")
+		lyricBar = hs.menubar.new(true)
 	end
 	
 	-- 异步构建菜单
@@ -1171,20 +1171,24 @@ Lyric.stopTimer = function()
 end
 
 -- 异步初始化
-Lyric.api(lyricDefaultNO)
-lyricShow = true
-lyricEnable = true
-lyricAPIs = {
-	API163 = false,
-	APIQQ = false,
-}
-for i,v in pairs(lyricAPIs) do
-	if i:find(apiList[lyricDefaultNO].apiTag) then
-		lyricAPIs[i] = true
-		break
+Lyric.inital = function()
+	Lyric.api(lyricDefaultNO)
+	lyricShow = true
+	lyricEnable = true
+	lyricAPIs = {
+		API163 = false,
+		APIQQ = false,
+	}
+	for i,v in pairs(lyricAPIs) do
+		if i:find(apiList[lyricDefaultNO].apiTag) then
+			lyricAPIs[i] = true
+			break
+		end
 	end
+	Lyric.menubar()
 end
-Lyric.menubar()
+
+Lyric.inital()
 
 -- 歌词显示与隐藏快捷键
 hotkey.bind(hyper_cs, "l", function()
