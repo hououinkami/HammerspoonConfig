@@ -259,7 +259,7 @@ end
 -- 获取菜单栏图标最左端位置
 function getmenuIcon()
 	local MenuIcon = getmenubarItemRight(app.find("Hammerspoon"))
-	local firstIcon = screenFrame.w
+	local firstIcon = Config.screenFrame.w
 	if MenuIcon then
 		if #MenuIcon > 0 then
 			for _,i in ipairs (MenuIcon) do
@@ -401,7 +401,7 @@ function updateHammerspoon()
         else
             print("Git error:", stdErr or "unknown error")
         end
-    end, {"-C", HOME .. "/.hammerspoon", "pull", "--ff-only"})
+    end, {"-C", Config.HOME .. "/.hammerspoon", "pull", "--ff-only"})
     
     task:start()
 end

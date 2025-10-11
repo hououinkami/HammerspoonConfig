@@ -21,7 +21,7 @@ function data_diff()
     local disp_str = '⥄' .. kbout .. '\n⥂' .. kbin
     local disp_str_no = kbout .. '\n' .. kbin
     -- 适配黑暗模式选择
-    if darkMode then
+    if Config.darkMode then
         disp_str = hs.styledtext.new(disp_str_no, {font = {size=9.0}, color = {hex="#FFFFFF"}})
     else
         disp_str = hs.styledtext.new(disp_str, {font = {size=9.0}, color = {hex="#000000"}})

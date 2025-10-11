@@ -1,5 +1,4 @@
 -- Hammerspoon设置及模块调用
-hs.preferencesDarkMode = true
 hotkey = require "hs.hotkey"
 win = require "hs.window"
 spaces = require "hs.spaces"
@@ -9,12 +8,17 @@ as = require "hs.osascript"
 c = require "hs.canvas"
 img = require "hs.image"
 timer = require "hs.timer"
+
 -- 常用变量
-screenFrame = hs.screen.mainScreen():fullFrame()
-desktopFrame = hs.screen.mainScreen():frame()
-menubarHeight = desktopFrame.y
-owner = hs.host.localizedName()
-HOME = os.getenv("HOME")
+local Config = {
+    screenFrame = hs.screen.mainScreen():fullFrame(),
+    desktopFrame = hs.screen.mainScreen():frame(),
+    owner = hs.host.localizedName(),
+    HOME = os.getenv("HOME"),
+    darkMode = hs.preferencesDarkMode
+}
+_G.Config = Config
+
 -- 定义快捷键修饰键
 hyper_ccs = {'⌘⌃⇧'}
 hyper_cs = {'⌘⇧'}
@@ -32,18 +36,7 @@ hotkey.bind(hyper_ccs, "r", hs.reload)
 hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
 hotkey.bind(hyper_ccs, "p", hs.openPreferences)
 hotkey.bind(hyper_opt, "z", hs.toggleConsole)
--- 判断系统显示模式
-function appearanceIsDark()
-	asSuccess, asObj, asDesc = hs.osascript.applescript("tell application \"System Events\" to tell appearance preferences to return dark mode")
-	return asObj
-end
-if appearanceIsDark() then
-	darkMode = true
-else
-	darkMode = false
-end
 -- 组件加载管理
-local owner = hs.host.localizedName()
 local module_list = {
 	"Music",
 	"Window",
@@ -60,14 +53,14 @@ local load_test_modules = false
 
 for _, v in ipairs(module_list) do
 	if v == 'Network' or v == 'Music' then
-		if not string.find(owner,"mini") then
+		if not string.find(Config.owner,"mini") then
 			require ('module.' .. v)
 		end
 	else
 		require ('module.' .. v)
 	end
 end
-if not string.find(owner,"Kami") then
+if not string.find(Config.owner,"Kami") then
 	require ('module.autoupdate')
 end
 
@@ -104,4 +97,4 @@ function reloadConfig(files)
 		end
     end
 end
-ConfigWatcher = hs.pathwatcher.new(HOME .. "/.hammerspoon/config", reloadConfig):start()
+ConfigWatcher = hs.pathwatcher.new(Config.HOME .. "/.hammerspoon/config", reloadConfig):start()

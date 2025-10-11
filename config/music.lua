@@ -55,7 +55,7 @@ AMBlue = {0, 120, 255}
 -- 进度条透明度
 progressAlpha = 0.6
 -- 浅色模式
-if not darkMode then
+if not Config.darkMode then
 -- 背景颜色（RGB）
 	bgColor = {255, 255, 255}
 -- 菜单背景默认颜色（RGB）
@@ -68,7 +68,7 @@ if not darkMode then
 	progressColor = {35, 37, 34}
 end
 -- 本地化适配
-if string.find(owner,"Kami") or string.find(owner,"カミ") then
+if string.find(Config.owner,"Kami") or string.find(Config.owner,"カミ") then
 	MusicApp = "ミュージック"
 	Stopped = "停止中"
 	ClicktoRun = '起動していない'

@@ -665,7 +665,7 @@ Lyric.updateLyricDisplay = function(currentLyric, stayTime)
 			-- 设置歌词图层自适应宽度
 			if styledLyric then
 				lyricSize = c_lyric:minimumTextSize(1, styledLyric)
-				c_lyric:frame({x = 0, y = desktopFrame.h + menubarHeight - lyricSize.h, h = lyricSize.h, w = screenFrame.w})
+				c_lyric:frame({x = 0, y = Config.desktopFrame.h + Config.desktopFrame.y - lyricSize.h, h = lyricSize.h, w = Config.screenFrame.w})
 				c_lyric["lyric"].frame.x = (c_lyric:frame().w - lyricSize.w) / 2
 				c_lyric["lyric"].frame.y = c_lyric:frame().h - lyricSize.h
 				c_lyric["lyric"].frame.h = lyricSize.h
@@ -787,7 +787,7 @@ end
 -- 异步建立歌词图层
 Lyric.setCanvas = function(callback) 
 	if not c_lyric then
-		c_lyric = c.new({x = 0, y = desktopFrame.h + menubarHeight - 50, h = 50, w = screenFrame.w}):level(c.windowLevels.cursor)
+		c_lyric = c.new({x = 0, y = Config.desktopFrame.h + Config.desktopFrame.y - 50, h = 50, w = Config.screenFrame.w}):level(c.windowLevels.cursor)
 		c_lyric:appendElements(
 			{ -- 歌词
 				id = "lyric",

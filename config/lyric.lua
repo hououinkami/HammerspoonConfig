@@ -46,7 +46,7 @@ lyricString = {
     updateConfig = "Hammerspoonプロフィールを更新"
 }
 -- 粉色歌词
-if not string.find(owner,"Kami") then
+if not string.find(Config.owner,"Kami") then
     lyricTextColor = {189, 138, 189}
     lyricString = {
         enable = "启用歌词模块",
@@ -79,6 +79,6 @@ blackList = {
     "制作人",
 }
 -- 本地歌词文件存储路径
-lyricPath = HOME .. "/Music/Lyrics/"
+lyricPath = Config.HOME .. "/Music/Lyrics/"
 -- 默认歌词搜索引擎（1: QQ音乐；2: 网易云音乐）
 lyricDefaultNO = 1

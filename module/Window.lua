@@ -44,7 +44,7 @@ function windowMeta.new()
     return {
         window = window,
         id = window:id(),
-        screenFrame2 = screen:frame(),
+        currentScreenFrame = screen:frame(),
         windowFrame = window:frame()
     }
 end
@@ -112,8 +112,8 @@ function pushCurrent(x, y, w, h)
     local actions = {
         center = function()
             this.window:move({
-                (this.screenFrame2.w - this.windowFrame.w) / 2, 
-                (this.screenFrame2.h - this.windowFrame.h) / 2, 
+                (this.currentScreenFrame.w - this.windowFrame.w) / 2, 
+                (this.currentScreenFrame.h - this.windowFrame.h) / 2, 
                 this.windowFrame.w, 
                 this.windowFrame.h
             })
@@ -132,14 +132,14 @@ function pushCurrent(x, y, w, h)
         end,
         toleft = function()
             if this.windowFrame.x > 0 then
-                this.window:move({0, (this.screenFrame2.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h})
+                this.window:move({0, (this.currentScreenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h})
             else
                 this.window:moveOneScreenWest()
             end
         end,
         toright = function()
-            if this.windowFrame.x + this.windowFrame.w < this.screenFrame2.w then
-                this.window:move({this.screenFrame2.w - this.windowFrame.w, (this.screenFrame2.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h})
+            if this.windowFrame.x + this.windowFrame.w < this.currentScreenFrame.w then
+                this.window:move({this.currentScreenFrame.w - this.windowFrame.w, (this.currentScreenFrame.h - this.windowFrame.h) / 2, this.windowFrame.w, this.windowFrame.h})
             else
                 this.window:moveOneScreenEast()
             end
@@ -152,8 +152,8 @@ function pushCurrent(x, y, w, h)
             end
         end,
         todown = function()
-            if this.windowFrame.y + this.windowFrame.h < this.screenFrame2.h then
-                this.window:move({this.windowFrame.x, this.screenFrame2.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h})
+            if this.windowFrame.y + this.windowFrame.h < this.currentScreenFrame.h then
+                this.window:move({this.windowFrame.x, this.currentScreenFrame.h + 22.5 - this.windowFrame.h, this.windowFrame.w, this.windowFrame.h})
             else
                 this.window:moveOneScreenSouth()
             end
@@ -167,10 +167,10 @@ function pushCurrent(x, y, w, h)
     if type(x) == "number" then
         changeFocusedWindowDimensions(function(window)
             window:move({
-                this.screenFrame2.x + (this.screenFrame2.w * x), 
-                this.screenFrame2.y + (this.screenFrame2.h * y), 
-                this.screenFrame2.w * w, 
-                this.screenFrame2.h * h
+                this.currentScreenFrame.x + (this.currentScreenFrame.w * x), 
+                this.currentScreenFrame.y + (this.currentScreenFrame.h * y), 
+                this.currentScreenFrame.w * w, 
+                this.currentScreenFrame.h * h
             })
         end)
     elseif actions[x] then

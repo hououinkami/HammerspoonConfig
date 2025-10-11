@@ -95,20 +95,19 @@ function setMainMenu()
     end
 
 	-- 修复：正确计算菜单位置，确保不超出屏幕
-	local screenFrame = hs.screen.mainScreen():frame()
 	local menuWidth = smallSize
 
 	-- 先尝试在菜单栏图标下方显示
 	local menuX = barFrame.x
 
 	-- 如果会超出屏幕右侧，则向左调整
-	if menuX + menuWidth > screenFrame.x + screenFrame.w then
-		menuX = screenFrame.x + screenFrame.w - menuWidth - 10
+	if menuX + menuWidth > Config.screenFrame.x + Config.screenFrame.w then
+		menuX = Config.screenFrame.x + Config.screenFrame.w - menuWidth - 10
 	end
 
 	-- 如果会超出屏幕左侧，则向右调整
-	if menuX < screenFrame.x then
-		menuX = screenFrame.x + 10
+	if menuX < Config.screenFrame.x then
+		menuX = Config.screenFrame.x + 10
 	end
 
 	-- 框架尺寸
@@ -160,11 +159,11 @@ function setMainMenu()
 		defaultSize = smallSize
 	end
 	menuFrame = {x = barFrame.x, y = barFrame.h + gapSize.y / 2, h = artworkSize.h + 2 * borderSize.y, w = defaultSize}
-	if defaultSize > screenFrame.w - barFrame.x - gapSize.x / 2 and defaultSize < screenFrame.w - gapSize.x then
-		menuFrame.x = screenFrame.w - gapSize.x / 2 - defaultSize
-	elseif defaultSize > screenFrame.w - gapSize.x then
-		menuFrame.x = screenFrame.x + gapSize.x / 2
-		menuFrame.w = screenFrame.w - gapSize.x
+	if defaultSize > Config.screenFrame.w - barFrame.x - gapSize.x / 2 and defaultSize < Config.screenFrame.w - gapSize.x then
+		menuFrame.x = Config.screenFrame.w - gapSize.x / 2 - defaultSize
+	elseif defaultSize > Config.screenFrame.w - gapSize.x then
+		menuFrame.x = Config.screenFrame.x + gapSize.x / 2
+		menuFrame.w = Config.screenFrame.w - gapSize.x
 	end
 	c_mainMenu:frame(menuFrame)
 	if infoSize.w < 100 then
@@ -206,7 +205,7 @@ end
 -- 设置桌面覆盖层
 function setDesktopLayer()
 	if not c_desktopLayer then
-		c_desktopLayer = c.new(screenFrame):level(c.windowLevels.popUpMenu)
+		c_desktopLayer = c.new(Config.screenFrame):level(c.windowLevels.popUpMenu)
 		c_desktopLayer:appendElements(
 			{
 				id = "desktop",
