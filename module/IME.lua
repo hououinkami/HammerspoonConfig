@@ -67,7 +67,9 @@ local App2Ime = {
 -- 记录App输入法状态
 function imeStash()
 	local imehistory = {}
-	currentapp = hs.window.frontmostWindow():application():path()
+	if win.frontmostWindow() then
+		currentapp = win.frontmostWindow():application():path()
+	end
 	local currentime = k.currentSourceID()
 	if #imehistory > 50 then
 		table.remove(App2Ime)
@@ -86,9 +88,9 @@ function imeStash()
 end
 -- 自动切换输入法
 function updateFocusAppInputMethod()
-	if hs.window.frontmostWindow() ~= nil then
-		if hs.window.frontmostWindow():application() ~= nil then
-			focusAppPath = hs.window.frontmostWindow():application():path()
+	if win.frontmostWindow() ~= nil then
+		if win.frontmostWindow():application() ~= nil then
+			focusAppPath = win.frontmostWindow():application():path()
 		end
 	end
 	for index, app in pairs(imeStash()) do
