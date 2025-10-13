@@ -198,7 +198,7 @@ function searchcompletionCallback(rowInfo)
 end
 searchBox()
 -- 触发快捷键
-hotkey.bind(hyper_shift, 'space', function()
+hotkey.bind(hyper_oc, 'space', function()
 	if chooser:isVisible() then
 		chooser:hide()
 	else
