@@ -399,79 +399,142 @@ end
 
 -- 设置播放控制悬浮菜单项目
 function setControlMenu()
-	-- 图片设置
-	local shuffleImage = function()
-		return img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(Music.shuffle()) .. ".png"):setSize(imageSize, absolute == true)
-	end
-	local loopImage = function()
-		return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. Music.loop() .. ".png"):setSize(imageSize, absolute == true)
-	end
-	local addedImage = function()
-		if Music.kind() == "applemusic" or Music.kind() == "radio" then
-			isExist = tostring(Music.existInLibrary())
-		elseif Music.kind() == "localmusic" or Music.kind() == "matched" then
-			isExist = "true"
-		end
-		return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
-	end
-	-- 生成菜单框架和菜单项目
-	c_controlMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h + imageSize.h + gapSize.y, h = imageSize.h, w = imageSize.w * (1 + 1.5 * 2)}
-	if not c_controlMenu then
-		c_controlMenu = c.new(c_controlMenu_frame):level(c_mainMenu:level() + 2)
-	else
-		c_controlMenu:frame(c_controlMenu_frame)
-	end
-	c_controlMenu:replaceElements(
-		 {
-			id = "shuffle",
-			frame = {x = 0, y = 0, h = imageSize.h, w = imageSize.w},
-			type = "image",
-			image = shuffleImage(),
-			imageAlignment = "center",
-			trackMouseUp = true
-		}, {
-			id = "loop",
-			frame = {x = imageSize.w * 1.5 , y = 0, h = imageSize.h, w = imageSize.w},
-			type = "image",
-			image = loopImage(),
-			imageAlignment = "center",
-			trackMouseUp = true
-		}, {
-			id = "playlist",
-			frame = {x = imageSize.w * 1.5 * 2 , y = 0, h = imageSize.h, w = imageSize.w},
-			type = "image",
-			image = addedImage(),
-			imageAlignment = "center",
-			trackMouseUp = true
-		}
-	)
-	-- 鼠标行为
-	c_controlMenu:mouseCallback(function(canvas, event, id, x, y)
-		-- x,y为距离整个悬浮菜单边界的坐标
-    	if id == "shuffle" and event == "mouseUp" then
-    		Music.toggleShuffle()
-   		elseif id == "loop" and event == "mouseUp" then
-			Music.toggleLoop()
-		elseif id == "playlist" and event == "mouseUp" then
-			if not Music.existInLibrary() then
-				Music.addToLibrary()
-			end
-			if not c_playlist then
-				setPlaylistMenu()
-				show(c_playlist)
-			elseif c_playlist then
-				if not c_playlist:isShowing() then
-					show(c_playlist)
-				else
-					hide(c_playlist)
-				end
-			end
-   		end
-   		c_controlMenu["shuffle"].image = shuffleImage()
-		c_controlMenu["loop"].image = loopImage()
-		c_controlMenu["playlist"].image = addedImage()
-   	end)
+    -- 图片设置函数（使用缓存数据）
+    local shuffleImage = function()
+        local shuffleState = cachedMusicInfo and cachedMusicInfo.shuffle or Music.shuffle()
+        return img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(shuffleState) .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    local loopImage = function()
+        local loopState = cachedMusicInfo and cachedMusicInfo.loop or Music.loop()
+        return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    local addedImage = function()
+        local isExist = "true"
+        if Music.kind() == "applemusic" or Music.kind() == "radio" then
+            isExist = tostring(cachedMusicInfo and cachedMusicInfo.existInLibrary or Music.existInLibrary())
+        end
+        return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    -- 生成菜单框架和菜单项目
+    c_controlMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h + imageSize.h + gapSize.y, h = imageSize.h, w = imageSize.w * (1 + 1.5 * 2)}
+    if not c_controlMenu then
+        c_controlMenu = c.new(c_controlMenu_frame):level(c_mainMenu:level() + 2)
+    else
+        c_controlMenu:frame(c_controlMenu_frame)
+    end
+    
+    c_controlMenu:replaceElements(
+        {
+            id = "shuffle",
+            frame = {x = 0, y = 0, h = imageSize.h, w = imageSize.w},
+            type = "image",
+            image = shuffleImage(),
+            imageAlignment = "center",
+            trackMouseUp = true
+        }, {
+            id = "loop",
+            frame = {x = imageSize.w * 1.5 , y = 0, h = imageSize.h, w = imageSize.w},
+            type = "image",
+            image = loopImage(),
+            imageAlignment = "center",
+            trackMouseUp = true
+        }, {
+            id = "playlist",
+            frame = {x = imageSize.w * 1.5 * 2 , y = 0, h = imageSize.h, w = imageSize.w},
+            type = "image",
+            image = addedImage(),
+            imageAlignment = "center",
+            trackMouseUp = true
+        }
+    )
+    
+    -- 鼠标行为 - 统一处理所有控制按钮
+    c_controlMenu:mouseCallback(function(canvas, event, id, x, y)
+        if event ~= "mouseUp" then
+            return
+        end
+        
+        local needsRefresh = false
+        
+        if id == "shuffle" then
+            Music.toggleShuffle()
+            needsRefresh = true
+        elseif id == "loop" then
+            Music.toggleLoop()
+            needsRefresh = true
+        elseif id == "playlist" then
+            -- 确保歌曲在库中
+            if not Music.existInLibrary() then
+                Music.addToLibrary()
+            end
+            
+            -- 处理播放列表菜单显示/隐藏
+            if not c_playlist then
+                setPlaylistMenu()
+                show(c_playlist)
+            elseif c_playlist then
+                if not c_playlist:isShowing() then
+                    show(c_playlist)
+                else
+                    hide(c_playlist)
+                end
+            end
+            needsRefresh = true
+        end
+        
+        -- 如果有状态变化，刷新控制按钮显示
+        if needsRefresh then
+            refreshControlDisplay()
+        end
+    end)
 end
+-- 刷新控制按钮显示
+function refreshControlDisplay()
+    if not c_controlMenu then
+        return
+    end
+    
+    -- 清除缓存并获取最新信息
+    Music.clearCache()
+    
+    -- 延迟一点时间让系统处理状态变更
+    hs.timer.doAfter(0.15, function()
+        -- 更新缓存信息
+        cachedMusicInfo = Music.getCachedInfo()
+        
+        if not cachedMusicInfo then
+            return
+        end
+        
+        -- 更新随机播放按钮
+        if c_controlMenu["shuffle"] then
+            local shuffleState = cachedMusicInfo.shuffle
+            local shuffleImage = img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(shuffleState) .. ".png"):setSize(imageSize, absolute == true)
+            c_controlMenu["shuffle"].image = shuffleImage
+        end
+        
+        -- 更新循环播放按钮
+        if c_controlMenu["loop"] then
+            local loopState = cachedMusicInfo.loop
+            local loopImage = img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
+            c_controlMenu["loop"].image = loopImage
+        end
+        
+        -- 更新播放列表按钮
+        if c_controlMenu["playlist"] then
+            local isExist = "true"
+            if Music.kind() == "applemusic" or Music.kind() == "radio" then
+                isExist = tostring(cachedMusicInfo.existInLibrary or false)
+            end
+            local addedImage = img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
+            c_controlMenu["playlist"].image = addedImage
+        end
+    end)
+end
+
 -- 播放列表悬浮菜单
 function setPlaylistMenu()
 	-- 获取播放列表个数
@@ -1079,7 +1142,7 @@ end
 
 -- 只更新控制状态
 function updateControlStates()
-    if not c_controlMenu or not c_rateMenu then
+    if not c_controlMenu or not c_rateMenu or not cachedMusicInfo then
         return
     end
     
@@ -1090,6 +1153,14 @@ function updateControlStates()
     
     if c_controlMenu["loop"] then
         c_controlMenu["loop"].image = img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. cachedMusicInfo.loop .. ".png"):setSize(imageSize, absolute == true)
+    end
+    
+    if c_controlMenu["playlist"] then
+        local isExist = "true"
+        if Music.kind() == "applemusic" or Music.kind() == "radio" then
+            isExist = tostring(cachedMusicInfo.existInLibrary or false)
+        end
+        c_controlMenu["playlist"].image = img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
     end
     
     -- 更新评分显示
