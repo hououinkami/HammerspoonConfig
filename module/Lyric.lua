@@ -21,7 +21,7 @@ Lyric.main = function(callback)
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
 	if v4 == false and v6 == false then
-		print("歌詞の検索ができません、ネットワークの接続を確認してください。")
+		print("❌ 歌詞の検索ができません、ネットワークの接続を確認してください。")
 		return
 	end
 	
@@ -71,13 +71,13 @@ Lyric.handleLyricType = function(lyricType, lyricfileContent, callback)
 	
 	-- 异步执行操作
 	if lyricType == "error" then
-		print("歌詞をエラーとしてマーク")
+		print("🔴 歌詞をエラーとしてマーク")
 		Lyric.menubar()
 		if callback then callback() end
 	elseif lyricType == "online" then
 		_G.lyricTable = lyricOnline
 		lyricOnline = nil
-		print("歌詞をロードしました")
+		print("📥 歌詞をロードしました")
 		Lyric.finalizeLyricLoading(callback)
 	elseif lyricType == "local" then
 		-- 异步编辑歌词
@@ -270,7 +270,7 @@ Lyric.performSearch = function()
 	
 	if not isSelected then
 		completed = 0
-		print(keyword .. " の歌詞を検索中...")
+		print("🔍 " .. keyword .. " の歌詞を検索中...")
 		-- 异步发起所有请求
 		for api = 1, #apiList do
 			hs.timer.doAfter(api * 0.1, function() -- 稍微错开请求时间
@@ -393,7 +393,7 @@ end
 -- 异步获取歌词函数
 Lyric.fetchLyric = function(lyricURL, api)
 	if lyricURL then
-		print(apiList[api].apiName .. "から歌詞を取得中...")
+		print("🔄 " .. apiList[api].apiName .. "から歌詞を取得中...")
 		
 		-- 异步回调函数
 		local function httpGetLyric(status, body, headers)
@@ -552,13 +552,13 @@ Lyric.noLyric = function()
 		else
 			-- 重置关键词索引
 			keywordNO = 1
-			print("該当する歌詞はありません、メニューから選択してください")
+			print("🔴 該当する歌詞はありません、メニューから選択してください")
 			-- 异步渲染菜单
 			Lyric.menubar(songsResult)
 		end
 	else
 		lyricURL = nil
-		print("歌詞データはありません、メニューから選択してください")
+		print("🔴 歌詞データはありません、メニューから選択してください")
 
 		delete(c_lyric)
 		deleteTimer(lyricTimer)
@@ -822,7 +822,7 @@ Lyric.load = function(fileName, callback)
 	for _,file in pairs(alllyricFile) do
 		-- 不加载错误歌词
 		if file:find(_fileName .. "_ERROR.lrc") then
-			print("歌詞が曲と合っていません")
+			print("🔴 歌詞が曲と合っていません")
 			lyricfileError = true
 			break
 		end
@@ -836,60 +836,15 @@ Lyric.load = function(fileName, callback)
 				lyricfileContent = _lrcfile:read("*a")
 				lyricfileExist = true
 				_lrcfile:close()
-				print("歌詞ファイルをロードしました")
+				print("✅ 歌詞ファイルをロードしました")
 			else
-				print("歌詞ファイルをロードエラー")
+				print("🔴 歌詞ファイルをロードエラー")
 			end
 			callback(lyricfileExist, lyricfileContent, lyricfileError)
 			return
 		end
 	end
 	callback(lyricfileExist, lyricfileContent, lyricfileError)
-end
-
--- 异步处理文件加载
-Lyric.processFileLoad = function(fileName)
-	local alllyricFile = getAllFiles(lyricPath)
-	-- 格式化正则检索词
-	local specialString = {"(", ")", ".", "+", "-", "*", "?", "[", "]", "^", "$"} 
-	local _fileName = fileName
-	for i,v in ipairs(specialString) do
-		_fileName = _fileName:gsub("%" .. v,"%%" .. v)
-	end
-	_fileName = _fileName:gsub("/",":")
-	
-	-- 异步搜寻本地歌词文件夹
-	for _,file in pairs(alllyricFile) do
-		-- 不加载错误歌词
-		if file:find(_fileName .. "_ERROR.lrc") then
-			print("歌詞が曲と合っていません")
-			lyricfileError = true
-			break
-		end
-		lyricfileError = false
-		-- 加载本地歌词文件
-		local lyricFile = lyricPath .. fileName .. ".lrc"
-		if file:find(_fileName) then
-			-- 异步读取文件
-			Lyric.readLyricFile(lyricFile)
-			break
-		end
-	end
-end
-
--- 异步读取歌词文件
-Lyric.readLyricFile = function(lyricFile)
-	-- 以可读写方式打开文件
-	local _lrcfile = io.open(lyricFile, "r+")
-	-- 读取文件所有内容
-	if _lrcfile then
-		lyricfileContent = _lrcfile:read("*a")
-		lyricfileExist = true
-		_lrcfile:close()
-		print("歌詞ファイルをロードしました")
-	else
-		print("歌詞ファイルをロードエラー")
-	end
 end
 
 -- 异步保存歌词至本地文件
@@ -908,7 +863,7 @@ Lyric.save = function(lyric, fileName, callback)
 		file:write(lyric)
 		file:close()
 		update = false
-		print("歌詞ファイルをダウンロードしました")
+		print("⬇️ 歌詞ファイルをダウンロードしました")
 	end
 	if callback then callback() end
 end
@@ -920,7 +875,7 @@ Lyric.delete = function(callback)
 	os.remove(filepath)
 	local filepath_error = lyricPath .. _deletename .. "_ERROR.lrc"
 	os.remove(filepath_error)
-	print("歌詞ファイルを削除しました")
+	print("❌ 歌詞ファイルを削除しました")
 	if callback then callback() end
 end
 
@@ -956,7 +911,7 @@ Lyric.error = function(callback)
 	if lyricExt then
 		lyricExt:close()
 		os.rename(lyricFile, lyricPath .. Music.title() ..  " - " .. Music.artist() .. "_ERROR.lrc")
-		print("歌詞をエラーとしてマーク")
+		print("🔴 歌詞をエラーとしてマーク")
 		Lyric.main(callback)
 	else
 		if callback then callback() end
