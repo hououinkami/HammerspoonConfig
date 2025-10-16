@@ -251,12 +251,12 @@ function setRateMenu()
 		}
 		c_rateMenu_fn = function(canvas, event, id, x, y)
 			-- x,y为距离整个悬浮菜单边界的坐标
-			-- 喜爱
+			-- 喜爱按钮处理
 			if id == "loved" and (y > c_rateMenu["loved"].frame.y and y < c_rateMenu["loved"].frame.y + c_rateMenu["loved"].frame.h) and event == "mouseUp" then
 				if x > c_rateMenu["loved"].frame.x and x < c_rateMenu["loved"].frame.x + c_rateMenu["loved"].frame.w then
 					Music.toggleLoved()
-					c_rateMenu["loved"].image = loveImage()
-				   end
+					refreshRatingDisplay()
+				end
 			end
 		end
 	elseif Music.kind() == "localmusic" then
@@ -280,25 +280,29 @@ function setRateMenu()
 		}
 		c_rateMenu_fn = function(canvas, event, id, x, y)
 			-- x,y为距离整个悬浮菜单边界的坐标
-			if id == "background" and event == "mouseUp" and y > imageSize.h and x > imageSize.w * 0.2 and x <  c_rateMenu["rate"].frame.w / 5 * 1 then
+			if id == "background" and event == "mouseUp" and y > imageSize.h and x > imageSize.w * 0.2 and x < c_rateMenu["rate"].frame.w / 5 * 1 then
 				Music.setRating(0)
+				refreshRatingDisplay()
 			end
-			if id == "rate" and event == "mouseUp" then
-				if  y < imageSize.h then
-					if x > imageSize.w * 0.2 and x <  c_rateMenu["rate"].frame.w / 5 * 1 then
-						Music.setRating(1)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 1 and x < c_rateMenu["rate"].frame.w / 5 * 2 then
-						Music.setRating(2)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 2 and x < c_rateMenu["rate"].frame.w / 5 * 3 then
-						Music.setRating(3)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 3 and x < c_rateMenu["rate"].frame.w / 5 * 4 then
-						Music.setRating(4)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 4 and x < c_rateMenu["rate"].frame.w / 5 * 5 then
-						Music.setRating(5)
-					end
+			if id == "rate" and event == "mouseUp" and y < imageSize.h then
+				local newRating = nil
+				if x > imageSize.w * 0.2 and x < c_rateMenu["rate"].frame.w / 5 * 1 then
+					newRating = 1
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 1 and x < c_rateMenu["rate"].frame.w / 5 * 2 then
+					newRating = 2
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 2 and x < c_rateMenu["rate"].frame.w / 5 * 3 then
+					newRating = 3
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 3 and x < c_rateMenu["rate"].frame.w / 5 * 4 then
+					newRating = 4
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 4 and x < c_rateMenu["rate"].frame.w / 5 * 5 then
+					newRating = 5
+				end
+				
+				if newRating then
+					Music.setRating(newRating)
+					refreshRatingDisplay()
 				end
 			end
-			c_rateMenu["rate"].image = rateImage()
 		end
 	elseif Music.kind() == "matched" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h, w = imageSize.w * 7.7}
@@ -332,28 +336,32 @@ function setRateMenu()
 			if id == "loved" and (y > c_rateMenu["loved"].frame.y and y < c_rateMenu["loved"].frame.y + c_rateMenu["loved"].frame.h) and event == "mouseUp" then
 				if x > c_rateMenu["loved"].frame.x and x < c_rateMenu["loved"].frame.x + c_rateMenu["loved"].frame.w then
 					Music.toggleLoved()
-					c_rateMenu["loved"].image = loveImage()
-				   end
-			end
-			if id == "background" and event == "mouseUp" and y > imageSize.h and x > imageSize.w * 1.2 and x <  c_rateMenu["rate"].frame.w / 5 * 1  + imageSize.w then
-				Music.setRating(0)
-			end
-			if id == "rate" and event == "mouseUp" then
-				if  y < imageSize.h then
-					if x > imageSize.w * 1.2 and x <  c_rateMenu["rate"].frame.w / 5 * 1 + imageSize.w then
-						Music.setRating(1)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 1 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 2 + imageSize.w then
-						Music.setRating(2)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 2 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 3 + imageSize.w then
-						Music.setRating(3)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 3 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 4 + imageSize.w then
-						Music.setRating(4)
-					elseif  x > c_rateMenu["rate"].frame.w / 5 * 4 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 5 + imageSize.w then
-						Music.setRating(5)
-					end
+					refreshRatingDisplay()
 				end
 			end
-			c_rateMenu["rate"].image = rateImage()
+			if id == "background" and event == "mouseUp" and y > imageSize.h and x > imageSize.w * 1.2 and x < c_rateMenu["rate"].frame.w / 5 * 1 + imageSize.w then
+				Music.setRating(0)
+				refreshRatingDisplay()
+			end
+			if id == "rate" and event == "mouseUp" and y < imageSize.h then
+				local newRating = nil
+				if x > imageSize.w * 1.2 and x < c_rateMenu["rate"].frame.w / 5 * 1 + imageSize.w then
+					newRating = 1
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 1 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 2 + imageSize.w then
+					newRating = 2
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 2 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 3 + imageSize.w then
+					newRating = 3
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 3 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 4 + imageSize.w then
+					newRating = 4
+				elseif x > c_rateMenu["rate"].frame.w / 5 * 4 + imageSize.w and x < c_rateMenu["rate"].frame.w / 5 * 5 + imageSize.w then
+					newRating = 5
+				end
+				
+				if newRating then
+					Music.setRating(newRating)
+					refreshRatingDisplay()
+				end
+			end
 		end
 	end
 	if not c_rateMenu then
@@ -366,6 +374,29 @@ function setRateMenu()
 	-- 鼠标行为
 	c_rateMenu:mouseCallback(c_rateMenu_fn)
 end
+-- 刷新评价显示
+function refreshRatingDisplay()
+    if not c_rateMenu then
+        return
+    end
+    
+    -- 清除缓存并获取最新信息
+    Music.clearCache()
+    cachedMusicInfo = Music.getCachedInfo()
+    
+    -- 更新喜爱状态图像
+    if c_rateMenu["loved"] then
+        local loveImage = img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(cachedMusicInfo.loved) .. ".png"):setSize(imageSize, absolute == true)
+        c_rateMenu["loved"].image = loveImage
+    end
+    
+    -- 更新星级评价图像
+    if c_rateMenu["rate"] then
+        local rateImage = img.imageFromPath(hs.configdir .. "/image/" .. cachedMusicInfo.rating .. "star.png"):setSize(imageSize, absolute == true)
+        c_rateMenu["rate"].image = rateImage
+    end
+end
+
 -- 设置播放控制悬浮菜单项目
 function setControlMenu()
 	-- 图片设置
