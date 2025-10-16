@@ -449,14 +449,9 @@ Music.saveArtwork = function ()
 			tell application "Music"
 				set theartwork to raw data of current track's artwork 1
 				set theformat to format of current track's artwork 1
-				if theformat is «class PNG » then
-					set ext to ".png"
-				else
-					set ext to ".jpg"
-				end if
 			end tell
 			set homefolder to  path to home folder as string
-			set fileName to (homefolder & ".hammerspoon:" & "currentartwork" & ext)
+			set fileName to (homefolder & ".hammerspoon:" & "currentartwork.jpg")
 			set outFile to open for access file fileName with write permission
 			set eof outFile to 0
 			write theartwork to outFile
@@ -550,12 +545,7 @@ Music.getArtworkPath = function()
 		if format == nil then
 			artwork = img.imageFromPath(hs.configdir .. "/image/NoArtwork.png")
 		else
-			if string.find(format, "PNG") then
-				ext = "png"
-			else
-				ext = "jpg"
-			end
-			artwork = img.imageFromPath(hs.configdir .. "/currentartwork." .. ext):setSize({h = 300, w = 300}, absolute == true)
+			artwork = img.imageFromPath(hs.configdir .. "/currentartwork.jpg"):setSize({h = 300, w = 300}, absolute == true)
 		end
 	-- 若连接中
 	elseif Music.kind() == "connecting"	then
