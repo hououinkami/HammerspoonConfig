@@ -240,7 +240,10 @@ Music.isSong = function()
 	isSong = true
 	local group = Music.group()
 	local genre = Music.genre()
-	if group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" or genre == "サウンドトラック" or genre == "クラシック" then
+	local kind = Music.kind()
+	if kind == "radio" then
+		isSong = false
+	elseif group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" or genre == "サウンドトラック" or genre == "クラシック" then
 		if Music.comment() ~= "Theme" and not Music.loved() then
 			isSong = false
 		end
