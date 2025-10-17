@@ -296,21 +296,25 @@ Music.kind = function()
 	local kind = Music.tell('kind of container of current track as string')
 	local class = Music.tell('class of container of current track as string')
 	local cloudstatus = Music.tell('cloud status of current track as string')
-	if class == "user playlist" then
-		if cloudstatus == "matched" or cloudstatus == "subscription" then
-			musictype = "matched"
-		else
-			musictype = "localmusic"
-		end
-	elseif class == "source" then
+	
+	if class == "source" then
 		if kind == "iTunes Store" then
 			musictype = "applemusic"
 		elseif kind == "radio tuner" then
 			musictype = "radio"
 		end
+	elseif class == "user playlist" then
+		if cloudstatus == "subscription" then
+			musictype = "applemusic"
+		elseif cloudstatus == "matched" then
+			musictype = "matched"
+		elseif cloudstatus == "uploaded" then
+			musictype = "localmusic"
+		end
 	else
 		musictype = "applemusic"
 	end
+
 	return musictype
 end
 
