@@ -14,6 +14,7 @@ local musicState = {
 	currentAlbum = "",
 	currentPosition = 0,
 	duration = 0,
+	currentKind = "applemusic",
 	spaceID = nil,
 	lastUpdate = 0
 }
@@ -48,21 +49,22 @@ function setTitle(quitMark)
 		if Music.title() == connectingFile then
 			menubarTitle = connectingFile
 		else
-			-- menubarTitle = Music.title() .. gapText .. Music.artist()
-			local title = cachedMusicInfo.title or Music.title()
-            local artist = cachedMusicInfo.artist or Music.artist()
-            menubarTitle = title .. gapText .. artist
+			-- 直接使用缓存数据，避免重复调用
+			local title = musicState.currentTitle or Music.title()
+			local artist = musicState.currentArtist or Music.artist()
+			menubarTitle = title .. gapText .. artist
 		end
 	elseif Music.state() == "paused" or Music.title() ~= " " then
 		menubarIcon = pauseIcon
-		-- menubarTitle = Music.title() .. gapText .. Music.artist()
-		local title = cachedMusicInfo.title or Music.title()
-        local artist = cachedMusicInfo.artist or Music.artist()
-        menubarTitle = title .. gapText .. artist
+		-- 直接使用缓存数据
+		local title = musicState.currentTitle or Music.title()
+		local artist = musicState.currentArtist or Music.artist()
+		menubarTitle = title .. gapText .. artist
 	elseif Music.state() == "stopped" then
 		menubarIcon = stopIcon
 		menubarTitle = Stopped
 	end
+
 	titleShown = menubarIcon .. '  ' .. menubarTitle
 	-- Music退出时避免触发打开
 	if quitMark == "quit" then
@@ -71,8 +73,8 @@ function setTitle(quitMark)
 	end
 	-- 根据预设宽度确定显示的文本内容
 	if countWords(titleShown) * 13 > maxLen then
-		if countWords(menubarIcon .. ' ' .. Music.title()) < maxLen then
-			titleShown = menubarIcon .. ' ' .. Music.title()
+		if countWords(menubarIcon .. ' ' .. musicState.currentTitle) < maxLen then
+			titleShown = menubarIcon .. ' ' .. musicState.currentTitle
 		else
 			titleShown = menubarIcon
 		end
@@ -86,7 +88,6 @@ end
 -- 设置悬浮主菜单
 function setMainMenu()
 	barFrame = MusicBar:frame()
-    
 	barFrame.x = initialX - 36 - barFrame.w
 
     -- 初始化时给barFrame.x赋值
@@ -120,10 +121,11 @@ function setMainMenu()
 		}):level(c.windowLevels.cursor)
 	end
 
-	-- 菜单项目
-	local title = cachedMusicInfo.title or Music.title()
-	local artist = cachedMusicInfo.artist or Music.artist()
-	local album = cachedMusicInfo.album or Music.album()
+	-- 直接使用 musicState 中的缓存数据，避免重复调用
+	local title = musicState.currentTitle or Music.title()
+	local artist = musicState.currentArtist or Music.artist()
+	local album = musicState.currentAlbum or Music.album()
+	
 	c_mainMenu:replaceElements(
 		{-- 背景
 			id = "background",
@@ -140,11 +142,10 @@ function setMainMenu()
 			image = Music.getArtworkPath(),
 			trackMouseEnterExit = true,
 			trackMouseUp = true
-		}, 	{-- 专辑信息
+		}, {-- 专辑信息
 			id = "info",
 			frame = {x = borderSize.x + artworkSize.w + gapSize.x, y = borderSize.y, h = artworkSize.h, w = 100},
 			type = "text",
-			-- text = Music.title() .. "\n\n" .. Music.artist()  .. "\n\n" .. Music.album()  .. "\n",
 			text = title .. "\n\n" .. artist .. "\n\n" .. album .. "\n",
 			textSize = textSize,
 			textLineBreak = "wordWrap",
@@ -228,6 +229,8 @@ function setDesktopLayer()
 end
 -- 设置评价悬浮菜单项目
 function setRateMenu()
+	local musicKind = musicState.currentKind or "applemusic"
+
 	-- 图片设置
 	local loveImage = function()
 		return img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(Music.loved()) .. ".png"):setSize(imageSize, absolute == true)
@@ -236,7 +239,7 @@ function setRateMenu()
 		return img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imageSize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
-	if Music.kind() == "applemusic" or Music.kind() == "radio" then
+	if musicKind == "applemusic" or musicKind == "radio" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h + gapSize.y, w = imageSize.w * 3}
 		c_rateMenu_elements = {
 			{-- 喜爱
@@ -259,7 +262,7 @@ function setRateMenu()
 				end
 			end
 		end
-	elseif Music.kind() == "localmusic" then
+	elseif musicKind == "localmusic" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h + gapSize.y, w = imageSize.w * 5.7}
 		rateFrame = {x = 0, y = 0, h = imageSize.h, w = imageSize.w * 5.5}
 		c_rateMenu_elements = {
@@ -304,7 +307,7 @@ function setRateMenu()
 				end
 			end
 		end
-	elseif Music.kind() == "matched" then
+	elseif musicKind == "matched" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h, w = imageSize.w * 7.7}
 		rateFrame = {x = imageSize.w * 1.2, y = 0, h = imageSize.h, w = imageSize.w * 5.5}
 		c_rateMenu_elements = {
@@ -399,6 +402,8 @@ end
 
 -- 设置播放控制悬浮菜单项目
 function setControlMenu()
+	local musicKind = musicState.currentKind or "applemusic"
+
     -- 图片设置函数（使用缓存数据）
     local shuffleImage = function()
         local shuffleState = cachedMusicInfo and cachedMusicInfo.shuffle or Music.shuffle()
@@ -412,7 +417,7 @@ function setControlMenu()
     
     local addedImage = function()
         local isExist = "true"
-        if Music.kind() == "applemusic" or Music.kind() == "radio" then
+        if musicKind == "applemusic" or musicKind == "radio" then
             isExist = tostring(cachedMusicInfo and cachedMusicInfo.existInLibrary or Music.existInLibrary())
         end
         return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
@@ -1060,10 +1065,11 @@ function forceUpdateMusicState()
     end
     
     musicState.isRunning = true
-    musicState.playState = Music.state()  -- 确保状态同步
+    musicState.playState = Music.state()
     musicState.currentTitle = Music.title()
     musicState.currentArtist = Music.artist()
     musicState.currentAlbum = Music.album()
+	musicState.currentKind = Music.kind()
     
     musicBarUpdate()
 end
@@ -1195,7 +1201,7 @@ function musicBarUpdate()
     
     musicState.isRunning = true
     
-    -- 使用批量获取信息
+    -- 只调用一次 getCachedInfo
     local newMusicInfo = Music.getCachedInfo()
     if not newMusicInfo then
         return
@@ -1213,8 +1219,16 @@ function musicBarUpdate()
         cachedMusicInfo.state ~= newMusicInfo.state
     
     -- 更新缓存
-    local oldCachedInfo = cachedMusicInfo
     cachedMusicInfo = newMusicInfo
+
+	-- 更新 musicState（这样其他函数就不需要再调用 getCachedInfo）
+    musicState.currentTitle = newMusicInfo.title or Music.title()
+    musicState.currentArtist = newMusicInfo.artist or Music.artist()
+    musicState.currentAlbum = newMusicInfo.album or Music.album()
+    musicState.currentKind = newMusicInfo.kind or "applemusic"
+    musicState.playState = newMusicInfo.state or "stopped"
+    musicState.currentPosition = newMusicInfo.position or 0
+    musicState.duration = newMusicInfo.duration or 0
     
     -- 更新菜单栏标题
     setTitle()
