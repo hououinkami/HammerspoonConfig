@@ -6,6 +6,8 @@ Lyric = {}
 
 -- 异步获取并显示歌词
 Lyric.main = function(callback)
+	local title = _G.cachedMusicInfo.title or Music.title()
+	local artist = _G.cachedMusicInfo.artist or Music.artist()
 	-- 初始化
 	hide(c_lyric,0)
 	if c_lyric then
@@ -16,7 +18,7 @@ Lyric.main = function(callback)
 	lineNO = 1
 	songsResult = {}
 	currentsongsResult = {}
-	fileName = Music.title() .. " - " .. Music.artist()
+	fileName = title .. " - " .. artist
 	
 	-- 若没有联网则不搜寻歌词
 	local v4,v6 = hs.network.primaryInterfaces()
@@ -273,9 +275,7 @@ Lyric.performSearch = function()
 		print("🔍 " .. keyword .. " の歌詞を検索中...")
 		-- 异步发起所有请求
 		for api = 1, #apiList do
-			hs.timer.doAfter(api * 0.1, function() -- 稍微错开请求时间
-				Lyric.performHttpGet(api, keyword)
-			end)
+			Lyric.performHttpGet(api, keyword)
 		end
 	else
 		-- 用户手动选择的情况，直接获取歌词

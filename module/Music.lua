@@ -3,20 +3,25 @@ require ('module.apple-music')
 require ('module.Lyric') 
 require ('config.music')
 
-local cachedMusicInfo = {}
-
--- 状态缓存，避免重复更新
-local musicState = {
-	isRunning = false,
-	playState = "stopped",
-	currentTitle = "",
-	currentArtist = "",
-	currentAlbum = "",
-	currentPosition = 0,
-	duration = 0,
-	currentKind = "applemusic",
-	spaceID = nil,
-	lastUpdate = 0
+_G.cachedMusicInfo = {
+    -- 音乐信息
+    title = "",
+    artist = "",
+    album = "",
+    state = "stopped",
+    position = 0,
+    duration = 0,
+    kind = "applemusic",
+    loved = false,
+    rating = 0,
+    shuffle = false,
+    loop = "none",
+    existInLibrary = false,
+    
+    -- 应用状态管理
+    isRunning = false,
+    spaceID = nil,
+    lastUpdate = 0
 }
 
 -- 全局进度条状态管理
@@ -44,23 +49,22 @@ function setTitle(quitMark)
 	if quitMark == "quit" then
 		menubarIcon = playIcon
 		menubarTitle = ClicktoRun
-	elseif Music.state() == "playing" then
+	elseif cachedMusicInfo.state == "playing" then
 		menubarIcon = playIcon
-		if Music.title() == connectingFile then
+		-- 使用缓存数据检查连接状态
+		if cachedMusicInfo.title == connectingFile then
 			menubarTitle = connectingFile
 		else
-			-- 直接使用缓存数据，避免重复调用
-			local title = musicState.currentTitle or Music.title()
-			local artist = musicState.currentArtist or Music.artist()
+			local title = cachedMusicInfo.title or ""
+			local artist = cachedMusicInfo.artist or ""
 			menubarTitle = title .. gapText .. artist
 		end
-	elseif Music.state() == "paused" or Music.title() ~= " " then
+	elseif cachedMusicInfo.state == "paused" or cachedMusicInfo.title ~= " " then
 		menubarIcon = pauseIcon
-		-- 直接使用缓存数据
-		local title = musicState.currentTitle or Music.title()
-		local artist = musicState.currentArtist or Music.artist()
+		local title = cachedMusicInfo.title or ""
+		local artist = cachedMusicInfo.artist or ""
 		menubarTitle = title .. gapText .. artist
-	elseif Music.state() == "stopped" then
+	elseif cachedMusicInfo.state == "stopped" then
 		menubarIcon = stopIcon
 		menubarTitle = Stopped
 	end
@@ -73,8 +77,8 @@ function setTitle(quitMark)
 	end
 	-- 根据预设宽度确定显示的文本内容
 	if countWords(titleShown) * 13 > maxLen then
-		if countWords(menubarIcon .. ' ' .. musicState.currentTitle) < maxLen then
-			titleShown = menubarIcon .. ' ' .. musicState.currentTitle
+		if countWords(menubarIcon .. ' ' .. cachedMusicInfo.title) < maxLen then
+			titleShown = menubarIcon .. ' ' .. cachedMusicInfo.title
 		else
 			titleShown = menubarIcon
 		end
@@ -121,10 +125,10 @@ function setMainMenu()
 		}):level(c.windowLevels.cursor)
 	end
 
-	-- 直接使用 musicState 中的缓存数据，避免重复调用
-	local title = musicState.currentTitle or Music.title()
-	local artist = musicState.currentArtist or Music.artist()
-	local album = musicState.currentAlbum or Music.album()
+	-- 直接使用缓存数据，避免重复调用
+	local title = cachedMusicInfo.title or Music.title()
+	local artist = cachedMusicInfo.artist or Music.artist()
+	local album = cachedMusicInfo.album or Music.album()
 	
 	c_mainMenu:replaceElements(
 		{-- 背景
@@ -229,14 +233,17 @@ function setDesktopLayer()
 end
 -- 设置评价悬浮菜单项目
 function setRateMenu()
-	local musicKind = musicState.currentKind or "applemusic"
+	local musicKind = cachedMusicInfo.kind or "applemusic"
 
-	-- 图片设置
+	-- 图片设置函数 - 使用缓存数据
 	local loveImage = function()
-		return img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(Music.loved()) .. ".png"):setSize(imageSize, absolute == true)
+		local lovedState = cachedMusicInfo and cachedMusicInfo.loved or false
+		return img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(lovedState) .. ".png"):setSize(imageSize, absolute == true)
 	end
+	
 	local rateImage = function()
-		return img.imageFromPath(hs.configdir .. "/image/" .. Music.rating() .. "star.png"):setSize(imageSize, absolute == true)
+		local rating = cachedMusicInfo and cachedMusicInfo.rating or 0
+		return img.imageFromPath(hs.configdir .. "/image/" .. rating .. "star.png"):setSize(imageSize, absolute == true)
 	end
 	-- 生成菜单框架和菜单项目
 	if musicKind == "applemusic" or musicKind == "radio" then
@@ -385,7 +392,17 @@ function refreshRatingDisplay()
     
     -- 清除缓存并获取最新信息
     Music.clearCache()
-    cachedMusicInfo = Music.getCachedInfo()
+    local newMusicInfo = Music.getCachedInfo()
+    
+    -- 保留应用状态字段
+    local oldIsRunning = cachedMusicInfo.isRunning
+    local oldSpaceID = cachedMusicInfo.spaceID
+    local oldLastUpdate = cachedMusicInfo.lastUpdate
+    
+    cachedMusicInfo = newMusicInfo
+    cachedMusicInfo.isRunning = oldIsRunning
+    cachedMusicInfo.spaceID = oldSpaceID
+    cachedMusicInfo.lastUpdate = oldLastUpdate
     
     -- 更新喜爱状态图像
     if c_rateMenu["loved"] then
@@ -402,23 +419,23 @@ end
 
 -- 设置播放控制悬浮菜单项目
 function setControlMenu()
-	local musicKind = musicState.currentKind or "applemusic"
+    local musicKind = cachedMusicInfo.kind or "applemusic"
 
-    -- 图片设置函数（使用缓存数据）
+    -- 图片设置函数 - 使用缓存数据
     local shuffleImage = function()
-        local shuffleState = cachedMusicInfo and cachedMusicInfo.shuffle or Music.shuffle()
+        local shuffleState = cachedMusicInfo and cachedMusicInfo.shuffle or false
         return img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(shuffleState) .. ".png"):setSize(imageSize, absolute == true)
     end
     
     local loopImage = function()
-        local loopState = cachedMusicInfo and cachedMusicInfo.loop or Music.loop()
+        local loopState = cachedMusicInfo and cachedMusicInfo.loop or "none"
         return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
     end
     
     local addedImage = function()
         local isExist = "true"
         if musicKind == "applemusic" or musicKind == "radio" then
-            isExist = tostring(cachedMusicInfo and cachedMusicInfo.existInLibrary or Music.existInLibrary())
+            isExist = tostring(cachedMusicInfo and cachedMusicInfo.existInLibrary or false)
         end
         return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
     end
@@ -508,11 +525,21 @@ function refreshControlDisplay()
     -- 延迟一点时间让系统处理状态变更
     hs.timer.doAfter(0.15, function()
         -- 更新缓存信息
-        cachedMusicInfo = Music.getCachedInfo()
+        local newMusicInfo = Music.getCachedInfo()
         
-        if not cachedMusicInfo then
+        if not newMusicInfo then
             return
         end
+
+		-- 保留应用状态字段
+        local oldIsRunning = cachedMusicInfo.isRunning
+        local oldSpaceID = cachedMusicInfo.spaceID
+        local oldLastUpdate = cachedMusicInfo.lastUpdate
+        
+        cachedMusicInfo = newMusicInfo
+        cachedMusicInfo.isRunning = oldIsRunning
+        cachedMusicInfo.spaceID = oldSpaceID
+        cachedMusicInfo.lastUpdate = oldLastUpdate
         
         -- 更新随机播放按钮
         if c_controlMenu["shuffle"] then
@@ -680,14 +707,14 @@ end
 -- 进度条更新函数
 function setProgressCanvas()
 	local per = 60 / 100
-	local musicDuration = cachedMusicInfo.duration or Music.duration() or 0
+	local musicDuration = cachedMusicInfo and cachedMusicInfo.duration or 0
 	
 	if musicDuration <= 0 then
 		musicDuration = math.huge
 	end
 	
-	-- 计算当前进度
-	local currentPos = Music.currentPosition() or 0
+	-- 使用缓存的当前位置
+	local currentPos = cachedMusicInfo and cachedMusicInfo.position or 0
 	local progressWidth = 0
 	if musicDuration > 0 and musicDuration ~= math.huge then
 		progressWidth = currentPos / musicDuration
@@ -912,7 +939,7 @@ function handleMusicNotification(name, object, userInfo)
     
     local currentTime = hs.timer.secondsSinceEpoch()
     -- 防抖：避免过于频繁的更新
-    if currentTime - musicState.lastUpdate < 0.2 then
+    if currentTime - cachedMusicInfo.lastUpdate < 0.2 then
         return
     end
     
@@ -924,7 +951,7 @@ function handleMusicNotification(name, object, userInfo)
         musicBarUpdate()
     end)
     
-    musicState.lastUpdate = currentTime
+    cachedMusicInfo.lastUpdate = currentTime
 end
 
 -- 防抖函数
@@ -943,7 +970,7 @@ end
 -- 处理 Spotify 通知
 function handleSpotifyNotification(name, object, userInfo)
 	local currentTime = hs.timer.secondsSinceEpoch()
-	if currentTime - musicState.lastUpdate < 0.3 then
+	if currentTime - cachedMusicInfo.lastUpdate < 0.3 then
 		return
 	end
 	
@@ -953,25 +980,25 @@ function handleSpotifyNotification(name, object, userInfo)
 	local isPlaying = hs.spotify.isPlaying()
 	local newPlayState = isPlaying and "playing" or "paused"
 	
-	if newPlayState ~= musicState.playState then
-		musicState.playState = newPlayState
+	if newPlayState ~= cachedMusicInfo.state then
+		cachedMusicInfo.state = newPlayState
 		hasChanges = true
 	end
 	
 	local currentTrack = hs.spotify.getCurrentTrack()
-	if currentTrack and currentTrack ~= musicState.currentTitle then
-		musicState.currentTitle = currentTrack
+	if currentTrack and currentTrack ~= cachedMusicInfo.title then
+		cachedMusicInfo.title = currentTrack
 		hasChanges = true
 	end
 	
 	local currentArtist = hs.spotify.getCurrentArtist()
-	if currentArtist and currentArtist ~= musicState.currentArtist then
-		musicState.currentArtist = currentArtist
+	if currentArtist and currentArtist ~= cachedMusicInfo.artist then
+		cachedMusicInfo.artist = currentArtist
 		hasChanges = true
 	end
 	
 	if hasChanges then
-		musicState.lastUpdate = currentTime
+		cachedMusicInfo.lastUpdate = currentTime
 		musicBarUpdate()
 	end
 end
@@ -982,14 +1009,14 @@ function setupApplicationWatcher()
         if appName == "Music" or appName == "Spotify" then
             if eventType == hs.application.watcher.launched then
                 print("🎵 音乐应用启动: " .. appName)
-                musicState.isRunning = true
+                cachedMusicInfo.isRunning = true
                 -- 延迟获取初始状态
                 hs.timer.doAfter(1, function()
-                    forceUpdateMusicState()
+                    musicBarUpdate()
                 end)
             elseif eventType == hs.application.watcher.terminated then
                 print("⏹️ 音乐应用退出: " .. appName)
-                musicState.isRunning = false
+                cachedMusicInfo.isRunning = false
                 setTitle("quit")
                 hideall()
                 -- 隐藏歌词并停止计时器
@@ -1013,8 +1040,8 @@ end
 function setupSpaceWatcher()
 	eventListeners.spaceWatcher = hs.spaces.watcher.new(function()
 		local currentSpaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
-		if currentSpaceID ~= musicState.spaceID then
-			musicState.spaceID = currentSpaceID
+		if currentSpaceID ~= cachedMusicInfo.spaceID then
+			cachedMusicInfo.spaceID = currentSpaceID
 			hideall()
 		end
 	end)
@@ -1054,24 +1081,6 @@ function setupProgressTimer()
             end
         end
     end)
-end
-
--- 强制更新音乐状态
-function forceUpdateMusicState()
-    if not Music.checkRunning() then
-        musicState.isRunning = false
-        setTitle("quit")
-        return
-    end
-    
-    musicState.isRunning = true
-    musicState.playState = Music.state()
-    musicState.currentTitle = Music.title()
-    musicState.currentArtist = Music.artist()
-    musicState.currentAlbum = Music.album()
-	musicState.currentKind = Music.kind()
-    
-    musicBarUpdate()
 end
 
 -- 进度更新函数
@@ -1183,7 +1192,7 @@ end
 function musicBarUpdate()
     -- 检查应用是否运行
     if not Music.checkRunning() then
-        musicState.isRunning = false
+        cachedMusicInfo.isRunning = false
         setTitle("quit")
         hideall()
         if c_lyric then
@@ -1199,42 +1208,44 @@ function musicBarUpdate()
         return
     end
     
-    musicState.isRunning = true
+    cachedMusicInfo.isRunning = true
     
-    -- 只调用一次 getCachedInfo
+    -- 获取音乐信息
     local newMusicInfo = Music.getCachedInfo()
     if not newMusicInfo then
         return
     end
+
+	-- 检查是否是初始化状态
+    local isInitializing = not _G.cachedMusicInfo.title or 
+        _G.cachedMusicInfo.title == ""
     
     -- 检查变化
-    local hasTrackChanged = not cachedMusicInfo or 
-        cachedMusicInfo.title ~= newMusicInfo.title or
-        cachedMusicInfo.artist ~= newMusicInfo.artist
+    local hasTrackChanged = not _G.cachedMusicInfo.title or 
+        _G.cachedMusicInfo.title ~= newMusicInfo.title or
+        _G.cachedMusicInfo.artist ~= newMusicInfo.artist
     
-    local hasAlbumChanged = not cachedMusicInfo or 
-        cachedMusicInfo.album ~= newMusicInfo.album
+    local hasAlbumChanged = not _G.cachedMusicInfo.album or 
+        _G.cachedMusicInfo.album ~= newMusicInfo.album
     
-    local hasStateChanged = not cachedMusicInfo or 
-        cachedMusicInfo.state ~= newMusicInfo.state
+    local hasStateChanged = not _G.cachedMusicInfo.state or 
+        _G.cachedMusicInfo.state ~= newMusicInfo.state
     
-    -- 更新缓存
-    cachedMusicInfo = newMusicInfo
-
-	-- 更新 musicState（这样其他函数就不需要再调用 getCachedInfo）
-    musicState.currentTitle = newMusicInfo.title or Music.title()
-    musicState.currentArtist = newMusicInfo.artist or Music.artist()
-    musicState.currentAlbum = newMusicInfo.album or Music.album()
-    musicState.currentKind = newMusicInfo.kind or "applemusic"
-    musicState.playState = newMusicInfo.state or "stopped"
-    musicState.currentPosition = newMusicInfo.position or 0
-    musicState.duration = newMusicInfo.duration or 0
+    -- 更新缓存（保留应用状态字段）
+    local oldIsRunning = _G.cachedMusicInfo.isRunning
+    local oldSpaceID = _G.cachedMusicInfo.spaceID
+    local oldLastUpdate = _G.cachedMusicInfo.lastUpdate
+    
+    _G.cachedMusicInfo = newMusicInfo
+    _G.cachedMusicInfo.isRunning = oldIsRunning
+    _G.cachedMusicInfo.spaceID = oldSpaceID
+    _G.cachedMusicInfo.lastUpdate = oldLastUpdate
     
     -- 更新菜单栏标题
     setTitle()
     
     -- 处理播放状态
-    musicState.playState = newMusicInfo.state
+    cachedMusicInfo.state = newMusicInfo.state
     
     if newMusicInfo.state == "playing" then
         -- 播放状态：显示所有内容
@@ -1245,7 +1256,7 @@ function musicBarUpdate()
         end
         
         -- 调用歌词模块（仅在曲目变化时）
-        if hasTrackChanged and Lyric and Lyric.main then
+		if (hasTrackChanged or isInitializing) and Lyric and Lyric.main then
             Lyric.main()
         elseif hasStateChanged and Lyric and Lyric.resumeTimer then
             -- 如果只是状态从暂停变为播放，恢复歌词计时器
@@ -1333,19 +1344,19 @@ function initMusicBar()
 	initEventDrivenSystem()
 	
 	-- 获取初始状态
-	musicState.spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
+	cachedMusicInfo.spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	
 	-- 立即检查音乐状态并更新
-	forceUpdateMusicState()
+	musicBarUpdate()
 	
 	-- 保留低频率备用定时器，但频率更合理
 	if Switch then
 		Switch:stop()
 	end
 	Switch = hs.timer.new(10, function()  -- 10秒检查一次
-		if not musicState.isRunning and Music.checkRunning() then
+		if not cachedMusicInfo.isRunning and Music.checkRunning() then
 			print("⚠️ 容错检查：检测到音乐应用运行")
-			forceUpdateMusicState()
+			musicBarUpdate()
 		end
 	end)
 	Switch:start()

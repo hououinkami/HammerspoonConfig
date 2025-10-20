@@ -28,7 +28,7 @@ Music.tell = function (cmd)
 	return AS(cmd)
 end
 -- 批量获取音乐信息
-Music.getBatchInfo = function() print("getBatchInfo调用")
+Music.getBatchInfo = function()
     if not Music.checkRunning() then
         return nil
     end
@@ -93,8 +93,7 @@ Music._cache = {
     ttl = 0.5  -- 缓存500ms
 }
 
-Music.getCachedInfo = function() print("getCachedInfo调用")
-	print("checkRunning called from:", debug.traceback())
+Music.getCachedInfo = function()
     local now = hs.timer.secondsSinceEpoch()
     if Music._cache.data and (now - Music._cache.timestamp) < Music._cache.ttl then
         return Music._cache.data
@@ -109,34 +108,34 @@ Music.getCachedInfo = function() print("getCachedInfo调用")
 end
 
 -- 清理缓存（在歌曲切换时调用）
-Music.clearCache = function() print("clearCache调用")
+Music.clearCache = function()
     Music._cache.data = nil
     Music._cache.timestamp = 0
 end
 
 -- 强制刷新缓存
-Music.refreshCache = function() print("refreshCache调用")
+Music.refreshCache = function()
     Music.clearCache()
     return Music.getCachedInfo()
 end
 
 -- 单独获取某个信息
-Music.title = function() print("title调用")
+Music.title = function()
     local info = Music.getCachedInfo()
     return info and info.title or Music.tell('name of current track') or " "
 end
 
-Music.artist = function() print("artist调用")
+Music.artist = function()
     local info = Music.getCachedInfo()
     return info and info.artist or Music.tell('artist of current track') or " "
 end
 
-Music.album = function() print("album调用")
+Music.album = function()
     local info = Music.getCachedInfo()
     return info and info.album or Music.tell('album of current track') or " "
 end
 
-Music.duration = function() print("duration调用")
+Music.duration = function()
     local info = Music.getCachedInfo()
     return info and info.duration or Music.tell('finish of current track') or 1
 end
@@ -151,7 +150,7 @@ Music.currentPosition = function(forceRefresh)
     return info and info.position or Music.tell('player position') or 0
 end
 
-Music.state = function() print("state调用")
+Music.state = function()
     if not Music.checkRunning() then
         return "norunning"
     end
@@ -159,22 +158,22 @@ Music.state = function() print("state调用")
     return info and info.state or Music.tell('player state as string')
 end
 
-Music.loved = function() print("loved调用")
+Music.loved = function()
     local info = Music.getCachedInfo()
     return info and info.loved or Music.tell('loved of current track')
 end
 
-Music.rating = function() print("rating调用")
+Music.rating = function()
     local info = Music.getCachedInfo()
     return info and info.rating or (Music.tell('rating of current track') and Music.tell('rating of current track')//20 or 0)
 end
 
-Music.shuffle = function() print("shuffle调用")
+Music.shuffle = function()
     local info = Music.getCachedInfo()
     return info and info.shuffle or Music.tell('shuffle enabled')
 end
 
-Music.loop = function() print("loop调用")
+Music.loop = function()
     local info = Music.getCachedInfo()
     return info and info.loop or Music.tell('song repeat as string')
 end
@@ -191,11 +190,11 @@ Music.album2 = function ()
 	local album = Music.tell('album of current track') or " "
 	return album
 end
-Music.duration2 = function() print("duration2调用")
+Music.duration2 = function()
 	local duration = Music.tell('finish of current track') or 1
 	return duration
 end
-Music.currentPositio2 = function() print("currentPositio2调用")
+Music.currentPositio2 = function()
 	local currentPosition = Music.tell('player position') or 0
 	return currentPosition
 end
@@ -218,14 +217,14 @@ end
 Music.disliked = function ()
 	return Music.tell('disliked of current track')
 end
-Music.group = function() print("group调用")
+Music.group = function()
 	return Music.tell("grouping of current track") or " "
 end
 Music.genre = function ()
 	local genre = Music.tell('genre of current track') or " "
 	return genre
 end
-Music.comment = function() print("comment调用")
+Music.comment = function()
 	return Music.tell("comment of current track")
 end
 -- 检测播放状态
@@ -237,14 +236,12 @@ Music.state = function ()
 	end
 end
 -- 判断是否为演唱歌曲
-Music.isSong = function() print("isSong调用")
+Music.isSong = function()
 	isSong = true
 	local group = Music.group()
 	local genre = Music.genre()
 	local kind = Music.kind()
-	if kind == "radio" then
-		isSong = false
-	elseif group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" or genre == "サウンドトラック" or genre == "クラシック" then
+	if group == "オリジナルサウンドトラック" or group == "アレンジ" or group == "ピアノ" or genre == "サウンドトラック" or genre == "クラシック" then
 		if Music.comment() ~= "Theme" and not Music.loved() then
 			isSong = false
 		end
@@ -296,7 +293,7 @@ Music.previous = function ()
 	Music.tell('previous track')
 end
 -- 歌曲种类
-Music.kind = function() print("kind调用")
+Music.kind = function()
 	local kind = Music.tell('kind of container of current track as string')
 	local class = Music.tell('class of container of current track as string')
 	local cloudstatus = Music.tell('cloud status of current track as string')
@@ -322,7 +319,7 @@ Music.kind = function() print("kind调用")
 	return musictype
 end
 
-Music.kind2 = function() print("kind2调用")
+Music.kind2 = function()
 	local kind = Music.tell('kind of current track')
 	local cloudstatus = Music.tell('cloud status of current track as string')
 	local class = Music.tell('class of current track as string')
@@ -396,7 +393,7 @@ Music.existInLibrary = function ()
 	return existinlibrary
 end
 -- 将Apple Music曲目添加到本地曲库
-Music.addToLibrary = function() print("addToLibrary调用")
+Music.addToLibrary = function()
 	local addtolibraryScript = [[
 		tell application "Music"
 			try
@@ -451,8 +448,9 @@ Music.shufflePlay = function (playlist)
 end
 -- 保存专辑封面
 Music.saveArtwork = function ()
-	if Music.album() ~= songalbum or Music.album() == "" then
-		songalbum = Music.album()
+	local albumName = _G.cachedMusicInfo.album
+	if albumName ~= songalbum or albumName == "" then
+		songalbum = albumName
 		as.applescript([[
 			tell application "Music"
 				set theartwork to raw data of current track's artwork 1
@@ -546,7 +544,7 @@ Music.saveArtworkByAPI = function (set_artwork_object)
 	end
 end
 -- 获取专辑封面路径
-Music.getArtworkPath = function() print("getArtworkPath调用")
+Music.getArtworkPath = function()
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
 		local format = Music.tell('format of artwork 1 of current track as string')
@@ -562,7 +560,7 @@ Music.getArtworkPath = function() print("getArtworkPath调用")
 	return artwork
 end
 -- 删除临时歌词
-Music.deleteLyric = function() print("deleteLyric调用")
+Music.deleteLyric = function()
 	if preKind == "applemusic" and preExistinlibrary == false then
 		deleteLyrics = [[
 			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
