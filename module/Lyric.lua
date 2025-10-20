@@ -399,7 +399,7 @@ Lyric.fetchLyric = function(lyricURL, api)
 		local function httpGetLyric(status, body, headers)
 			Lyric.handleLyricResult(status, body, api)
 		end
-		
+
 		httpRequest("GET", lyricURL, apiList[api].lyricheaders, nil, httpGetLyric)
 	end
 end
@@ -415,15 +415,25 @@ Lyric.handleLyricResult = function(status, body, api)
 		end
 		-- 特殊字符处理
 		local lyric = lyric:gsub("%&apos;","'")
+		
+		-- 🔧 动态判断是否需要保存文件
+		local shouldSaveFile = Music.existInLibrary() or Music.loved()
+		
 		-- 异步编辑歌词
 		Lyric.edit(lyric, function(processedLyricTable)
 			lyricOnline = processedLyricTable
 			-- 异步保存歌词文件
-			if saveFile then
+			if shouldSaveFile then
 				Lyric.save(lyric, fileName)
 			end
 			-- 如果是用户手动选择的歌词，直接显示，不要重新搜索
 			if isSelected then
+				-- 先清理现有的歌词显示
+				if lyricTimer then
+					lyricTimer:stop()
+				end
+				delete(c_lyric)
+
 				_G.lyricTable = processedLyricTable
 				_G.lyricType = "online"
 				Lyric.menubar()
