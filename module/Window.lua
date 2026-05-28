@@ -222,7 +222,7 @@ windowsManagement(hyper_co, {
     right = function() pushCurrent("toright") end,
     up = function() pushCurrent("toup") end,
     down = function() pushCurrent("todown") end,
-    c = function() pushCurrent("center") end,
+    -- c = function() pushCurrent("center") end,
     ["return"] = function() pushCurrent(0, 0, 1, 1) end,
 }, false)
 
