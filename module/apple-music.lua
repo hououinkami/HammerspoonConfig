@@ -80,7 +80,9 @@ Music.getBatchInfo = function()
             loved = parts[7] == "true",
             rating = math.floor((tonumber(parts[8]) or 0) / 20),
             shuffle = parts[9] == "true",
-            loop = parts[10] or "off"
+            loop = parts[10] or "off",
+			kind = Music.kind(),
+			existInLibrary = Music.existInLibrary()
         }
     end
     return nil

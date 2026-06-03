@@ -8,14 +8,14 @@ _G.cachedMusicInfo = {
     title = "",
     artist = "",
     album = "",
-    state = "stopped",
+	duration = 0,
     position = 0,
-    duration = 0,
-    kind = "applemusic",
+    state = "stopped",
     loved = false,
     rating = 0,
     shuffle = false,
     loop = "none",
+	kind = "applemusic",
     existInLibrary = false,
     
     -- 应用状态管理

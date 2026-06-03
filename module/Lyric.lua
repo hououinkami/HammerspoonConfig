@@ -8,14 +8,28 @@ Lyric = {}
 Lyric.main = function(callback)
 	local title = _G.cachedMusicInfo.title or Music.title()
 	local artist = _G.cachedMusicInfo.artist or Music.artist()
-	-- 初始化
-	hide(c_lyric,0)
-	if c_lyric then
-		c_lyric["lyric"].text = nil
+
+	-- ✅ 完全清理之前的状态
+	if lyricTimer then
+		lyricTimer:stop()
 	end
+	
+	-- ✅ 清空歌词显示
+	if c_lyric then
+		hide(c_lyric, 0)
+		if c_lyric["lyric"] then
+			c_lyric["lyric"].text = ""  -- 设置为空字符串而不是nil
+		end
+	end
+	
+	-- ✅ 重置全局变量
+	lyrictext = nil
+	lineNO = 1
+	_G.lyricTable = nil
+	
+	-- 初始化其他变量
 	deleteTimer(lyricTimer)
     lyricURL = nil
-	lineNO = 1
 	songsResult = {}
 	currentsongsResult = {}
 	fileName = title .. " - " .. artist
@@ -34,7 +48,7 @@ end
 -- 异步处理歌词类型
 Lyric.processLyricType = function(callback)
 	-- 判断类型
-	if Music.kind() == "matched" or Music.kind() == "localmusic" or Music.existInLibrary() then
+	if _G.cachedMusicInfo.kind == "matched" or _G.cachedMusicInfo.kind == "localmusic" or _G.cachedMusicInfo.existInLibrary then
 		-- 异步加载本地歌词
 		Lyric.load(fileName, function(lyricfileExist, lyricfileContent, lyricfileError)
 			local lyricType
@@ -85,7 +99,7 @@ Lyric.handleLyricType = function(lyricType, lyricfileContent, callback)
 		-- 异步编辑歌词
 		Lyric.edit(lyricfileContent, function(processedLyricTable)
 			_G.lyricTable = processedLyricTable
-			if not Music.existInLibrary() and not Music.loved() then
+			if not _G.cachedMusicInfo.existInLibrary and not _G.cachedMusicInfo.loved then
 				Lyric.delete()
 			end
 			Lyric.finalizeLyricLoading(callback)
@@ -225,7 +239,7 @@ end
 -- 初始化搜索参数
 Lyric.initializeSearch = function()
 	-- 标志是否需要保存歌词文件到本地
-	saveFile = Music.existInLibrary() or Music.loved()
+	saveFile = _G.cachedMusicInfo.existInLibrary or _G.cachedMusicInfo.loved
 	-- 搜索的关键词
 	searchKeywords = {Music.title() .. " " .. Music.artist(), Music.title()}
 	searchTitle = {Music.title(), Music.title()}
@@ -416,17 +430,17 @@ Lyric.handleLyricResult = function(status, body, api)
 		-- 特殊字符处理
 		local lyric = lyric:gsub("%&apos;","'")
 		
-		-- 🔧 动态判断是否需要保存文件
-		local shouldSaveFile = Music.existInLibrary() or Music.loved()
-		
 		-- 异步编辑歌词
 		Lyric.edit(lyric, function(processedLyricTable)
-			lyricOnline = processedLyricTable
+			-- 🔧 每次都重新判断是否需要保存
+			local shouldSaveFile = _G.cachedMusicInfo.existInLibrary or Music.loved()
+			
 			-- 异步保存歌词文件
 			if shouldSaveFile then
 				Lyric.save(lyric, fileName)
 			end
-			-- 如果是用户手动选择的歌词，直接显示，不要重新搜索
+			
+			-- 如果是用户手动选择的歌词，直接显示
 			if isSelected then
 				-- 先清理现有的歌词显示
 				if lyricTimer then
@@ -436,11 +450,20 @@ Lyric.handleLyricResult = function(status, body, api)
 
 				_G.lyricTable = processedLyricTable
 				_G.lyricType = "online"
+				
+				-- 🔧 立即重置所有状态变量
+				isSelected = false
+				update = false
+				songID = nil
+				songlyricURL = nil
+				songAPI = nil
+				-- 注意：不要在这里设置 lyricOnline = nil，因为下一首歌可能需要它
+				
 				Lyric.menubar()
 				Lyric.show(_G.lyricTable)
-				isSelected = false  -- 重置标志
 			else
-				-- 重新加载歌词
+				-- 自动搜索的情况，设置 lyricOnline 供重新加载使用
+				lyricOnline = processedLyricTable
 				Lyric.main()
 			end
 		end)
