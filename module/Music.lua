@@ -1384,7 +1384,9 @@ initMusicBar()
 
 -- 保持原有快捷键
 hotkey.bind(hyper_shift, 'return', Music.togglePlay)
+-- HyperKey.bind(hyper_rshift, 'return', Music.togglePlay)
 hotkey.bind(hyper_opt, 'right', function()
+-- HyperKey.bind(hyper_ropt, 'right', function()
 	if hs.spotify.isPlaying() then
 		hs.spotify.next()
 	else
@@ -1392,6 +1394,7 @@ hotkey.bind(hyper_opt, 'right', function()
 	end
 end)
 hotkey.bind(hyper_opt, 'left', function()
+-- HyperKey.bind(hyper_ropt, 'left', function()
 	if Music.currentPosition() < 5 then
 		if hs.spotify.isPlaying() then
 			hs.spotify.previous()
@@ -1406,5 +1409,7 @@ hotkey.bind(hyper_opt, 'left', function()
 		end
 	end
 end)
+-- HyperKey.bind(hyper_ropt, "up", function() setVolume("up") end, nil, function() setVolume("up") end)
+-- HyperKey.bind(hyper_ropt, 'down', function() setVolume("down") end, nil, function() setVolume("down") end)
 hotkey.bind(hyper_opt, 'up', function() setVolume("up") end, nil, function() setVolume("up") end)
 hotkey.bind(hyper_opt, 'down', function() setVolume("down") end, nil, function() setVolume("down") end)

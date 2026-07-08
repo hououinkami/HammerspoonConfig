@@ -28,9 +28,19 @@ hyper_coc = {'⌘⌥⌃'}
 hyper_cos = {'⌘⌥⇧'}
 hyper_cc = {'⌘⌃'}
 hyper_cmd = {'⌘'}
-hyper_ctrl = {'⌃'}
 hyper_opt = {'⌥'}
+hyper_ctrl = {'⌃'}
 hyper_shift = {'⇧'}
+
+hyper_lcmd = {'lcmd'}
+hyper_lopt = {'lopt'}
+hyper_lctrl = {'lctrl'}
+hyper_lshift = {'lshift'}
+hyper_rcmd = {'rcmd'}
+hyper_ropt = {'ropt'}
+hyper_rctrl = {'rctrl'}
+hyper_rshift = {'rshift'}
+
 -- Hammerspoon快捷键
 hotkey.bind(hyper_ccs, "r", hs.reload)
 hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
@@ -38,12 +48,12 @@ hotkey.bind(hyper_ccs, "p", hs.openPreferences)
 hotkey.bind(hyper_opt, "z", hs.toggleConsole)
 -- 组件加载管理
 local module_list = {
+	-- "Hotkey",
 	"Music",
 	"Window",
 	"Space",
 	"Spotlightlike",
 	"IME",
-	"Hotkey",
 	-- "Network",
 	-- "AppKeyMap",	
 }
