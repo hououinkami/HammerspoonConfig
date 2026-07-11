@@ -44,7 +44,7 @@ Music.getBatchInfo = function()
                     set end of trackInfo to (get finish of current track)
                     set end of trackInfo to (get player position)
                     set end of trackInfo to (get player state as string)
-                    set end of trackInfo to (get loved of current track)
+                    set end of trackInfo to (get favorited of current track)
                     set end of trackInfo to (get rating of current track)
                     set end of trackInfo to (get shuffle enabled)
                     set end of trackInfo to (get song repeat as string)
@@ -162,7 +162,7 @@ end
 
 Music.loved = function()
     local info = Music.getCachedInfo()
-    return info and info.loved or Music.tell('loved of current track')
+    return info and info.loved or Music.tell('favorited of current track')
 end
 
 Music.rating = function()
@@ -200,8 +200,8 @@ Music.currentPositio2 = function()
 	local currentPosition = Music.tell('player position') or 0
 	return currentPosition
 end
-Music.loved2 = function ()
-	return Music.tell('loved of current track')
+Music.favorited2 = function ()
+	return Music.tell('favorited of current track')
 end
 Music.rating2 = function ()
 	if Music.tell('rating of current track') then
@@ -262,10 +262,10 @@ end
 Music.toggleLoved = function ()
 	as.applescript([[
 		tell application "Music"
-			if loved of current track is false then
-				set loved of current track to true
+			if favorited of current track is false then
+				set favorited of current track to true
 			else
-				set loved of current track to false
+				set favorited of current track to false
 			end if
 		end tell
 	]])
