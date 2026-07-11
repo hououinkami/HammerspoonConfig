@@ -14,7 +14,7 @@ _G.cachedMusicInfo = {
     loved = false,
     rating = 0,
     shuffle = false,
-    loop = "none",
+    loop = "off",
 	kind = "applemusic",
     existInLibrary = false,
     
@@ -40,10 +40,6 @@ eventListeners = {}
 --
 -- 创建菜单栏标题
 function setTitle(quitMark)
-	if not initialX then
-		initialX = MusicBar:frame().x
-		firstIcon = initialX - 36
-	end
 	-- 定义菜单栏文本
 	local maxLen = 500
 	if quitMark == "quit" then
@@ -428,7 +424,7 @@ function setControlMenu()
     end
     
     local loopImage = function()
-        local loopState = cachedMusicInfo and cachedMusicInfo.loop or "none"
+        local loopState = cachedMusicInfo and cachedMusicInfo.loop or "off"
         return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
     end
     
@@ -1338,6 +1334,11 @@ function initMusicBar()
 	if not MusicBar then
 		MusicBar = hs.menubar.new(true)
 		MusicBar:setClickCallback(toggleCanvas)
+	end
+
+	if MusicBar then
+		initialX = MusicBar:frame().x
+		firstIcon = initialX - 36
 	end
 	
 	-- 初始化事件驱动系统
