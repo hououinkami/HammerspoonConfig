@@ -1243,19 +1243,21 @@ function musicBarUpdate()
     -- 处理播放状态
     cachedMusicInfo.state = newMusicInfo.state
     
+	-- 保存专辑封面（仅在专辑变化时）
+	if hasAlbumChanged then
+		Music.saveArtwork()
+	end
+
+	 -- 下载歌词（仅在曲目变化时）
+	if (hasTrackChanged or isInitializing) and Lyric and Lyric.main then
+		Lyric.main()
+	end
+	
     if newMusicInfo.state == "playing" then
         -- 播放状态：显示所有内容
         
-        -- 保存专辑封面（仅在专辑变化时）
-        if hasAlbumChanged then
-            Music.saveArtwork()
-        end
-        
-        -- 调用歌词模块（仅在曲目变化时）
-		if (hasTrackChanged or isInitializing) and Lyric and Lyric.main then
-            Lyric.main()
-        elseif hasStateChanged and Lyric and Lyric.resumeTimer then
-            -- 如果只是状态从暂停变为播放，恢复歌词计时器
+        -- 如果状态从暂停变为播放，恢复歌词计时器
+		if hasStateChanged and Lyric and Lyric.resumeTimer then
             Lyric.resumeTimer()
         end
         
@@ -1276,9 +1278,9 @@ function musicBarUpdate()
 		
 	elseif newMusicInfo.state == "paused" then
 		-- 暂停状态：隐藏歌词，保持菜单
-		if not c_lyric then
-			Lyric.main()
-		end
+		-- if not c_lyric then
+		-- 	Lyric.main()
+		-- end
 		-- 隐藏歌词并暂停歌词计时器
 		if c_lyric then
 			hide(c_lyric)
