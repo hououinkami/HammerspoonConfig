@@ -43,6 +43,7 @@ end
 hs.hotkey.bind(hyper_oc, '/', toChinese)
 hs.hotkey.bind(hyper_oc, ',', toEnglish)
 hs.hotkey.bind(hyper_oc, '.', toJapanese)
+
 -- 设置App对应的输入法
 local App2Ime = {
 	{'/System/Library/CoreServices/Finder.app', 'Chinese'},
@@ -119,4 +120,4 @@ function applicationWatcher(appName, eventType, appObject)
 	end
 end
 appWatcher = hs.application.watcher.new(applicationWatcher)
-appWatcher:start()
+-- appWatcher:start()
