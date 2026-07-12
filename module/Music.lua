@@ -35,6 +35,62 @@ local progressState = {
 -- 事件监听器集合
 eventListeners = {}
 
+-- 图片缓存表
+local imageCache = {}
+
+-- 图片加载函数（懒加载 + 缓存）
+local function loadImage(name)
+    if not imageCache[name] then
+        local path = hs.configdir .. "/image/" .. name .. ".png"
+        local image = img.imageFromPath(path)
+        if image then
+            imageCache[name] = image:setSize(imageSize, absolute == true)
+        else
+            -- 加载失败时打印警告，避免静默出错
+            print("⚠️ 图片加载失败: " .. path)
+            return nil
+        end
+    end
+    return imageCache[name]
+end
+
+-- 预加载所有已知图片（在 imageSize 确定后调用）
+local function preloadImages()
+    local imageNames = {
+        -- 喜爱状态
+        "loved_true",
+        "loved_false",
+        -- 随机播放
+        "shuffle_true",
+        "shuffle_false",
+        -- 循环模式
+        "loop_off",
+        "loop_one",
+        "loop_all",
+        -- 星级评分
+        "0star", "1star", "2star", "3star", "4star", "5star",
+        -- 添加到库
+        "added_true",
+        "added_false",
+    }
+    for _, name in ipairs(imageNames) do
+        loadImage(name)  -- 触发加载并缓存
+    end
+    print("✅ 图片预加载完成，共 " .. #imageNames .. " 张")
+end
+
+-- 清空缓存（imageSize 变化时调用）
+local function clearImageCache()
+    imageCache = {}
+    print("🗑️ 图片缓存已清空")
+end
+
+-- 重新加载缓存
+local function reloadImageCache()
+    clearImageCache()
+    preloadImages()
+end
+
 --
 -- MenuBar函数集 --
 --
@@ -55,7 +111,7 @@ function setTitle(quitMark)
 			local artist = cachedMusicInfo.artist or ""
 			menubarTitle = title .. gapText .. artist
 		end
-	elseif cachedMusicInfo.state == "paused" or cachedMusicInfo.title ~= " " then
+	elseif cachedMusicInfo.state == "paused" then
 		menubarIcon = pauseIcon
 		local title = cachedMusicInfo.title or ""
 		local artist = cachedMusicInfo.artist or ""
@@ -192,7 +248,9 @@ function setMainMenu()
 		if id == "background" and event == "mouseUp" and y < borderSize.y and x < borderSize.x then
 			quit = true
 			hideall()
-			progressTimer:stop()
+			if eventListeners.progressTimer then
+				eventListeners.progressTimer:stop()
+			end
 			Music.tell('quit')
 			quitTimer = hs.timer.waitWhile(
 				Music.checkRunning,
@@ -234,13 +292,14 @@ function setRateMenu()
 	-- 图片设置函数 - 使用缓存数据
 	local loveImage = function()
 		local lovedState = cachedMusicInfo and cachedMusicInfo.loved or false
-		return img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(lovedState) .. ".png"):setSize(imageSize, absolute == true)
+		return loadImage("loved_" .. tostring(lovedState))
 	end
-	
+
 	local rateImage = function()
 		local rating = cachedMusicInfo and cachedMusicInfo.rating or 0
-		return img.imageFromPath(hs.configdir .. "/image/" .. rating .. "star.png"):setSize(imageSize, absolute == true)
+		return loadImage(rating .. "star")
 	end
+	
 	-- 生成菜单框架和菜单项目
 	if musicKind == "applemusic" or musicKind == "radio" then
 		c_rateMenu_frame = {x = menuFrame.x + borderSize.x + artworkSize.w + gapSize.x, y = menuFrame.y + borderSize.y + infoSize.h, h = imageSize.h + gapSize.y, w = imageSize.w * 3}
@@ -380,6 +439,7 @@ function setRateMenu()
 	-- 鼠标行为
 	c_rateMenu:mouseCallback(c_rateMenu_fn)
 end
+
 -- 刷新评价显示
 function refreshRatingDisplay()
     if not c_rateMenu then
@@ -388,28 +448,19 @@ function refreshRatingDisplay()
     
     -- 清除缓存并获取最新信息
     Music.clearCache()
-    local newMusicInfo = Music.getCachedInfo()
-    
-    -- 保留应用状态字段
-    local oldIsRunning = cachedMusicInfo.isRunning
-    local oldSpaceID = cachedMusicInfo.spaceID
-    local oldLastUpdate = cachedMusicInfo.lastUpdate
-    
-    cachedMusicInfo = newMusicInfo
-    cachedMusicInfo.isRunning = oldIsRunning
-    cachedMusicInfo.spaceID = oldSpaceID
-    cachedMusicInfo.lastUpdate = oldLastUpdate
+
+	-- 保留应用状态字段
+	mergeMusicInfo(Music.getCachedInfo())
     
     -- 更新喜爱状态图像
     if c_rateMenu["loved"] then
-        local loveImage = img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(cachedMusicInfo.loved) .. ".png"):setSize(imageSize, absolute == true)
+        local loveImage = loadImage("loved_" .. tostring(cachedMusicInfo.loved))
         c_rateMenu["loved"].image = loveImage
     end
     
     -- 更新星级评价图像
     if c_rateMenu["rate"] then
-        local rateImage = img.imageFromPath(hs.configdir .. "/image/" .. cachedMusicInfo.rating .. "star.png"):setSize(imageSize, absolute == true)
-        c_rateMenu["rate"].image = rateImage
+        c_rateMenu["rate"].image = loadImage(cachedMusicInfo.rating .. "star")
     end
 end
 
@@ -420,12 +471,12 @@ function setControlMenu()
     -- 图片设置函数 - 使用缓存数据
     local shuffleImage = function()
         local shuffleState = cachedMusicInfo and cachedMusicInfo.shuffle or false
-        return img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(shuffleState) .. ".png"):setSize(imageSize, absolute == true)
+        return loadImage("shuffle_" .. tostring(shuffleState))
     end
     
     local loopImage = function()
         local loopState = cachedMusicInfo and cachedMusicInfo.loop or "off"
-        return img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
+        return loadImage("loop_" .. loopState)
     end
     
     local addedImage = function()
@@ -433,7 +484,7 @@ function setControlMenu()
         if musicKind == "applemusic" or musicKind == "radio" then
             isExist = tostring(cachedMusicInfo and cachedMusicInfo.existInLibrary or false)
         end
-        return img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
+        return loadImage("added_" .. isExist)
     end
     
     -- 生成菜单框架和菜单项目
@@ -505,70 +556,87 @@ function setControlMenu()
         
         -- 如果有状态变化，刷新控制按钮显示
         if needsRefresh then
-            refreshControlDisplay()
+            refreshDisplay(0.15)
         end
     end)
 end
 -- 刷新控制按钮显示
-function refreshControlDisplay()
-    if not c_controlMenu then
-        return
-    end
+function refreshDisplay(delayTime)
+	delayTime = delayTime or 0
     
-    -- 清除缓存并获取最新信息
-    Music.clearCache()
-    
-    -- 延迟一点时间让系统处理状态变更
-    hs.timer.doAfter(0.15, function()
-        -- 更新缓存信息
-        local newMusicInfo = Music.getCachedInfo()
-        
-        if not newMusicInfo then
-            return
-        end
+	local function doUpdate()
+		-- 清除缓存并获取最新信息
+		Music.clearCache()
+		
+		-- 更新缓存信息并保留应用状态字段
+		mergeMusicInfo(Music.getCachedInfo())
 
-		-- 保留应用状态字段
-        local oldIsRunning = cachedMusicInfo.isRunning
-        local oldSpaceID = cachedMusicInfo.spaceID
-        local oldLastUpdate = cachedMusicInfo.lastUpdate
-        
-        cachedMusicInfo = newMusicInfo
-        cachedMusicInfo.isRunning = oldIsRunning
-        cachedMusicInfo.spaceID = oldSpaceID
-        cachedMusicInfo.lastUpdate = oldLastUpdate
-        
-        -- 更新随机播放按钮
-        if c_controlMenu["shuffle"] then
-            local shuffleState = cachedMusicInfo.shuffle
-            local shuffleImage = img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(shuffleState) .. ".png"):setSize(imageSize, absolute == true)
-            c_controlMenu["shuffle"].image = shuffleImage
-        end
-        
-        -- 更新循环播放按钮
-        if c_controlMenu["loop"] then
-            local loopState = cachedMusicInfo.loop
-            local loopImage = img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. loopState .. ".png"):setSize(imageSize, absolute == true)
-            c_controlMenu["loop"].image = loopImage
-        end
-        
-        -- 更新播放列表按钮
-        if c_controlMenu["playlist"] then
-            local isExist = "true"
-            if Music.kind() == "applemusic" or Music.kind() == "radio" then
-                isExist = tostring(cachedMusicInfo.existInLibrary or false)
-            end
-            local addedImage = img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
-            c_controlMenu["playlist"].image = addedImage
-        end
-    end)
+		if c_controlMenu then
+			-- 更新随机播放按钮
+			if c_controlMenu["shuffle"] then
+				c_controlMenu["shuffle"].image = loadImage("shuffle_" .. tostring(cachedMusicInfo.shuffle))
+			end
+			
+			-- 更新循环播放按钮
+			if c_controlMenu["loop"] then
+				c_controlMenu["loop"].image = loadImage("loop_" .. cachedMusicInfo.loop)
+			end
+			
+			-- 更新播放列表按钮
+			if c_controlMenu["playlist"] then
+				local isExist = (cachedMusicInfo.kind == "applemusic" or cachedMusicInfo.kind == "radio")
+					and tostring(cachedMusicInfo.existInLibrary or false)
+					or "true"
+				c_controlMenu["playlist"].image = loadImage("added_" .. isExist)
+			end
+		end
+
+		if c_rateMenu then
+			-- 更新喜爱状态图像
+			if c_rateMenu["loved"] then
+				local loveImage = loadImage("loved_" .. tostring(cachedMusicInfo.loved))
+				c_rateMenu["loved"].image = loveImage
+			end
+			
+			-- 更新星级评价图像
+			if c_rateMenu["rate"] then
+				c_rateMenu["rate"].image = loadImage(cachedMusicInfo.rating .. "star")
+			end
+		end
+	end
+    
+	if delayTime > 0 then
+        hs.timer.doAfter(delayTime, doUpdate)
+    else
+        doUpdate()
+    end
 end
 
 -- 播放列表悬浮菜单
 function setPlaylistMenu()
-	-- 获取播放列表个数
-	local playlistCount = Music.tell('count of (name of every user playlist whose smart is false and special kind is none)')
 	-- 获取播放列表名称
 	local playlistName = Music.tell('name of every user playlist whose smart is false and special kind is none')
+
+	-- 获取播放列表个数
+	local playlistCount = #playlistName
+	if playlistCount == 0 then
+        print("⚠️ 没有可用的播放列表")
+        return
+    end
+
+	-- 一次性获取当前曲目所在的所有播放列表，用于本地比对
+    local currentTrackPlaylists = Music.tell('name of playlists of current track') or {}
+    -- 转换为 set（哈希表），O(1) 查询替代 N 次 AS 调用
+    local inPlaylistSet = {}
+    if type(currentTrackPlaylists) == "table" then
+        for _, name in ipairs(currentTrackPlaylists) do
+            inPlaylistSet[name] = true
+        end
+    end
+
+    -- 用 table.concat 在 Lua 侧拼接测宽字符串，不再需要第3次 AS 调用
+    local testText = table.concat(playlistName, "\n")
+
 	-- 框架尺寸
 	controlMenuFrame = c_controlMenu:frame()
 	playlistFrame = {x = controlMenuFrame.x + c_controlMenu["playlist"].frame.x + c_controlMenu["playlist"].frame.w / 2, y = controlMenuFrame.y + c_controlMenu["playlist"].frame.y + c_controlMenu["playlist"].frame.h / 2, h = textSize * playlistCount, w = smallSize}
@@ -577,34 +645,30 @@ function setPlaylistMenu()
 	else
 		c_playlist:frame(playlistFrame)
 	end
+
 	-- 设置菜单宽度
-	local _,test,_ = as.applescript([[
-		tell application "Music"
-			set allplaylist to (get name of every user playlist whose smart is false and special kind is none)
-			set theBackup to AppleScript's text item delimiters
-			set AppleScript's text item delimiters to "
-	"
-			set theString to allplaylist as string
-			set AppleScript's text item delimiters to theBackup
-			return theString
-		end tell
-	]])
 	c_playlist:appendElements(
 		{
 			id = "test",
 			frame = {x = 0, y = 0, h = textSize, w = 1},
 			type = "text",
-			text = test,
+			text = testText,
 			textSize = textSize,
 			textLineBreak = "wordWrap",
 			trackMouseEnterExit = true,
 			trackMouseUp = true
 		}
 	)
-	minTextSize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
+
 	playlistMenuSize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
-	playlistFrame = {x = playlistFrame.x, y = playlistFrame.y, h = playlistMenuSize.h + borderSize.y * playlistCount, w = playlistMenuSize.w}
+	playlistFrame = {
+		x = playlistFrame.x,
+		y = playlistFrame.y,
+		h = playlistMenuSize.h + borderSize.y * playlistCount,
+		w = playlistMenuSize.w
+	}
 	c_playlist:frame(playlistFrame)
+
 	-- 生成菜单框架
 	c_playlist:replaceElements(
 		{-- 菜单背景
@@ -617,18 +681,34 @@ function setPlaylistMenu()
 			trackMouseUp = true
 		}
 	)
-	-- 菜单项目
-	count = 1
+
+	-- 菜单项目: 用 inPlaylistSet 本地查询，不再循环调用 AS
+	local count = 1
 	repeat
-		if not Music.existInPlaylist(playlistName[count]) then
-			textColor = {red = menuTextColor[1] / 255, green = menuTextColor[2] / 255, blue = menuTextColor[3] / 255}
-		else
-			textColor = {red = menuTextColorS[1] / 255, green = menuTextColorS[2] / 255, blue = menuTextColorS[3] / 255}
-		end
+		local textColor
+        if not inPlaylistSet[playlistName[count]] then
+            textColor = {
+                red   = menuTextColor[1] / 255,
+                green = menuTextColor[2] / 255,
+                blue  = menuTextColor[3] / 255
+            }
+        else
+            textColor = {
+                red   = menuTextColorS[1] / 255,
+                green = menuTextColorS[2] / 255,
+                blue  = menuTextColorS[3] / 255
+            }
+        end
+		
 		c_playlist:appendElements(
 			{-- 菜单项背景
 				id = "playlistback" .. count,
-				frame = {x = 0, y = playlistFrame.h / playlistCount * (count - 1), h = playlistFrame.h / playlistCount, w = playlistFrame.w},
+				frame = {
+					x = 0,
+					y = playlistFrame.h / playlistCount * (count - 1),
+					h = playlistFrame.h / playlistCount,
+					w = playlistFrame.w
+				},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
 				fillColor = {alpha = menubgAlpha, red = menubgColor[1] / 255, green = menubgColor[2] / 255, blue = menubgColor[3] / 255},
@@ -640,11 +720,16 @@ function setPlaylistMenu()
 		c_playlist:appendElements(
 			{-- 菜单项
 				id = "playlist" .. count,
-				frame = {x = borderSize.x, y = borderSize.y * (count - 0.5) + playlistMenuSize.h / playlistCount * (count - 1), h = playlistMenuSize.h / playlistCount, w = playlistMenuSize.w},
+				frame = {
+					x = borderSize.x,
+					y = borderSize.y * (count - 0.5) + playlistMenuSize.h / playlistCount * (count - 1),
+					h = playlistMenuSize.h / playlistCount,
+					w = playlistMenuSize.w
+				},
 				type = "text",
 				text = playlistName[count],
 				textSize = textSize,
-				textColor = textColor;
+				textColor = textColor,
 				textLineBreak = "wordWrap",
 				trackMouseEnterExit = true,
 				trackMouseUp = true
@@ -653,7 +738,12 @@ function setPlaylistMenu()
 		c_playlist:appendElements(
 			{-- 菜单项overlay
 				id = "playlistoverlay" .. count,
-				frame = {x = 0, y = playlistFrame.h / playlistCount * (count - 1), h = playlistFrame.h / playlistCount, w = playlistFrame.w},
+				frame = {
+					x = 0,
+					y = playlistFrame.h / playlistCount * (count - 1),
+					h = playlistFrame.h / playlistCount,
+					w = playlistFrame.w
+				},
 				type = "rectangle",
 				roundedRectRadii = {xRadius = 6, yRadius = 6},
 				fillColor = {alpha = 0, red = 0, green = 0, blue = 0},
@@ -662,36 +752,50 @@ function setPlaylistMenu()
 				trackMouseUp = true
 			}
 		)
+
 		count = count + 1
 	until count > playlistCount
+
 	-- 鼠标行为
 	c_playlist:mouseCallback(function(canvas, event, id, x, y)
 		-- x,y为距离整个悬浮菜单边界的坐标
-		i = 1
+		local i = 1
 		repeat
 			if id == "playlistoverlay" .. i then
-				if event == "mouseEnter" then
-					c_playlist["playlistback" .. i].fillColor = {alpha = menubgAlphaS, red = menubgColorS[1] / 255, green = menubgColorS[2] / 255, blue = menubgColorS[3] / 255}
-				elseif event == "mouseExit" then
-					if x > borderSize.x and x < playlistFrame.w - borderSize.x and y > borderSize.y and y < playlistFrame.h - borderSize.y then
-						c_playlist["playlistback" .. i].fillColor = {alpha = menubgAlpha, red = menubgColor[1] / 255, green = menubgColor[2] / 255, blue = menubgColor[3] / 255}
-					else
-						hide(c_playlist)
-					end
-				elseif event == "mouseUp" then
-					Music.addToPlaylist(playlistName[i])
-					hide(c_playlist)
-					-- 判断是否添加成功
-					if Music.kind() == "applemusic" or Music.kind() == "radio" then
-						if not Music.existInLibrary() then
-							hs.alert.show("曲の追加が失敗しているようです")
-						end
-						setControlMenu()
-					end
-				end
-			end
+                if event == "mouseEnter" then
+                    c_playlist["playlistback" .. i].fillColor = {
+                        alpha = menubgAlphaS,
+                        red   = menubgColorS[1] / 255,
+                        green = menubgColorS[2] / 255,
+                        blue  = menubgColorS[3] / 255
+                    }
+                elseif event == "mouseExit" then
+                    if x > borderSize.x and x < playlistFrame.w - borderSize.x
+                        and y > borderSize.y and y < playlistFrame.h - borderSize.y then
+                        c_playlist["playlistback" .. i].fillColor = {
+                            alpha = menubgAlpha,
+                            red   = menubgColor[1] / 255,
+                            green = menubgColor[2] / 255,
+                            blue  = menubgColor[3] / 255
+                        }
+                    else
+                        hide(c_playlist)
+                    end
+                elseif event == "mouseUp" then
+                    Music.addToPlaylist(playlistName[i])
+                    hide(c_playlist)
+                    
+                    if cachedMusicInfo.kind == "applemusic" or cachedMusicInfo.kind == "radio" then
+                        if not Music.existInLibrary() then
+                            hs.alert.show("曲の追加が失敗しているようです")
+                        end
+                        setControlMenu()
+                    end
+                end
+            end
 			i = i + 1
 		until i > playlistCount
+
 		if id == "background" then
 			if event == "mouseExit" then
 				hide(c_playlist)
@@ -779,7 +883,10 @@ function setProgressCanvas()
 			y >= 0 and y <= c_progress:frame().h then
 			
 			-- 计算新的播放位置
-			local newPosition = (x / c_progress:frame().w) * musicDuration
+			local duration = cachedMusicInfo and cachedMusicInfo.duration or 0
+			if duration <= 0 then return end  -- 实时读取，永远是当前歌曲
+			
+			local newPosition = (x / c_progress:frame().w) * duration
 			
 			-- 设置新位置
 			Music.tell('set player position to "' .. newPosition .. '"')
@@ -1151,37 +1258,13 @@ function updateMenuContent()
     end
 end
 
--- 只更新控制状态
-function updateControlStates()
-    if not c_controlMenu or not c_rateMenu or not cachedMusicInfo then
-        return
-    end
-    
-    -- 更新控制按钮状态
-    if c_controlMenu["shuffle"] then
-        c_controlMenu["shuffle"].image = img.imageFromPath(hs.configdir .. "/image/" .. "shuffle_" .. tostring(cachedMusicInfo.shuffle) .. ".png"):setSize(imageSize, absolute == true)
-    end
-    
-    if c_controlMenu["loop"] then
-        c_controlMenu["loop"].image = img.imageFromPath(hs.configdir .. "/image/" .. "loop_" .. cachedMusicInfo.loop .. ".png"):setSize(imageSize, absolute == true)
-    end
-    
-    if c_controlMenu["playlist"] then
-        local isExist = "true"
-        if Music.kind() == "applemusic" or Music.kind() == "radio" then
-            isExist = tostring(cachedMusicInfo.existInLibrary or false)
-        end
-        c_controlMenu["playlist"].image = img.imageFromPath(hs.configdir .. "/image/" .. "added_" .. isExist .. ".png"):setSize(imageSize, absolute == true)
-    end
-    
-    -- 更新评分显示
-    if c_rateMenu["loved"] then
-        c_rateMenu["loved"].image = img.imageFromPath(hs.configdir .. "/image/" .. "loved_" .. tostring(cachedMusicInfo.loved) .. ".png"):setSize(imageSize, absolute == true)
-    end
-    
-    if c_rateMenu["rate"] then
-        c_rateMenu["rate"].image = img.imageFromPath(hs.configdir .. "/image/" .. cachedMusicInfo.rating .. "star.png"):setSize(imageSize, absolute == true)
-    end
+-- 更新缓存
+function mergeMusicInfo(newInfo)
+    if not newInfo then return end
+    newInfo.isRunning  = _G.cachedMusicInfo.isRunning
+    newInfo.spaceID    = _G.cachedMusicInfo.spaceID
+    newInfo.lastUpdate = _G.cachedMusicInfo.lastUpdate
+    _G.cachedMusicInfo = newInfo
 end
 
 -- 音乐状态更新函数
@@ -1228,20 +1311,10 @@ function musicBarUpdate()
         _G.cachedMusicInfo.state ~= newMusicInfo.state
     
     -- 更新缓存（保留应用状态字段）
-    local oldIsRunning = _G.cachedMusicInfo.isRunning
-    local oldSpaceID = _G.cachedMusicInfo.spaceID
-    local oldLastUpdate = _G.cachedMusicInfo.lastUpdate
-    
-    _G.cachedMusicInfo = newMusicInfo
-    _G.cachedMusicInfo.isRunning = oldIsRunning
-    _G.cachedMusicInfo.spaceID = oldSpaceID
-    _G.cachedMusicInfo.lastUpdate = oldLastUpdate
+    mergeMusicInfo(newMusicInfo)
     
     -- 更新菜单栏标题
     setTitle()
-    
-    -- 处理播放状态
-    cachedMusicInfo.state = newMusicInfo.state
     
 	-- 保存专辑封面（仅在专辑变化时）
 	if hasAlbumChanged then
@@ -1268,7 +1341,7 @@ function musicBarUpdate()
             progressState.lastDuration = 0
             progressState.lastUpdateTime = 0
         elseif hasStateChanged then
-            updateControlStates()
+            refreshDisplay()
         end
         
         -- 启动进度条定时器
@@ -1293,7 +1366,7 @@ function musicBarUpdate()
 		if hasTrackChanged or hasAlbumChanged or not c_mainMenu then
 			buildMenus()
 		elseif hasStateChanged then
-			updateControlStates()
+			refreshDisplay()
 		end
 		
 		-- 停止进度条定时器
@@ -1342,6 +1415,9 @@ function initMusicBar()
 		initialX = MusicBar:frame().x
 		firstIcon = initialX - 36
 	end
+
+	-- 预加载图标
+    preloadImages()
 	
 	-- 初始化事件驱动系统
 	initEventDrivenSystem()
