@@ -1,5 +1,7 @@
 require ('module.utils') 
+
 Music = {}
+
 -- 调用AppleScript模块
 Music.tell = function (cmd)
 	local AS = function(cmd)
@@ -27,6 +29,7 @@ Music.tell = function (cmd)
 	end
 	return AS(cmd)
 end
+
 -- 批量获取音乐信息
 Music.getBatchInfo = function()
     if not Music.checkRunning() then
@@ -286,6 +289,15 @@ end
 Music.togglePlay = function ()
 	Music.tell('playpause')
 end
+Music.play = function ()
+	Music.tell('play')
+end
+Music.pause = function ()
+	Music.tell('pause')
+end
+Music.stop = function ()
+	Music.tell('stop')
+end
 -- 下一首
 Music.next = function ()
 	Music.tell('next track')
@@ -466,6 +478,35 @@ Music.saveArtwork = function ()
 			close access outFile
 		]])
 	end
+end
+-- 保存专辑封面（Apple Music）
+Music.saveArtworkFromURL = function (storeURL, callback)
+    local trackID = storeURL:match("i=(%d+)")
+    if not trackID then return end
+
+    local artworkPath = os.getenv("HOME") .. "/.hammerspoon/currentartwork.jpg"
+    local apiURL = "https://itunes.apple.com/lookup?id=" .. trackID .. "&entity=song"
+
+    hs.http.asyncGet(apiURL, nil, function(status, body)
+        if status ~= 200 then return end
+        local json = hs.json.decode(body)
+        if not json or not json.results or #json.results == 0 then return end
+
+        local artURL = json.results[1].artworkUrl100
+        if not artURL then return end
+        artURL = artURL:gsub("100x100bb", "3000x3000bb")
+
+        hs.http.asyncGet(artURL, nil, function(s, imgData)
+            if s ~= 200 then return end
+            local file = io.open(artworkPath, "wb")
+            if file then
+                file:write(imgData)
+                file:close()
+				-- 下载完成后执行
+				if callback then callback() end
+            end
+        end)
+    end)
 end
 -- 保存专辑封面（利用iTunes的API）
 Music.saveArtworkByAPI = function (set_artwork_object)

@@ -21,7 +21,11 @@ _G.cachedMusicInfo = {
     -- 应用状态管理
     isRunning = false,
     spaceID = nil,
-    lastUpdate = 0
+    lastUpdate = 0,
+
+	-- 旧值存储
+	_prevTitle = "",
+	_prevAlbum = "",
 }
 
 -- 全局进度条状态管理
@@ -1045,7 +1049,33 @@ function handleMusicNotification(name, object, userInfo)
     if currentTime - cachedMusicInfo.lastUpdate < 0.2 then
         return
     end
-    
+
+	-- 写入新值之前，先快照旧值
+    cachedMusicInfo._prevTitle = cachedMusicInfo.title
+    cachedMusicInfo._prevAlbum = cachedMusicInfo.album
+
+	-- 从通知直接写入可靠字段
+    if userInfo["Name"] then cachedMusicInfo.title = userInfo["Name"] end
+    if userInfo["Artist"] then cachedMusicInfo.artist = userInfo["Artist"] end
+    if userInfo["Album"] then cachedMusicInfo.album = userInfo["Album"] end
+    if userInfo["Total Time"] then cachedMusicInfo.duration = userInfo["Total Time"] / 1000 end
+	if userInfo["Rating"] then cachedMusicInfo.rating = userInfo["Rating"] / 20 end
+	if userInfo["Store URL"] then cachedMusicInfo.storeURL = userInfo["Store URL"] end
+
+    local state = userInfo["Player State"]
+    if state then
+        cachedMusicInfo.state = state == "Playing" and "playing"
+                             or state == "Paused"  and "paused"
+                             or "stopped"
+    end
+
+    -- kind：仅 applemusic 可准确判断，local/matched 保留原值
+    if not userInfo["Location"] then
+        cachedMusicInfo.kind = "applemusic"
+	else
+		cachedMusicInfo.kind = "matched"
+    end
+
     -- 清理缓存以获取最新信息
     Music.clearCache()
     
@@ -1260,11 +1290,24 @@ end
 
 -- 更新缓存
 function mergeMusicInfo(newInfo)
-    if not newInfo then return end
-    newInfo.isRunning  = _G.cachedMusicInfo.isRunning
-    newInfo.spaceID    = _G.cachedMusicInfo.spaceID
-    newInfo.lastUpdate = _G.cachedMusicInfo.lastUpdate
-    _G.cachedMusicInfo = newInfo
+	-- 剔除通知字段后合并 AS 数据
+	if infoFromNotification then
+		if not newInfo then return end
+		local notifKeys = { title=true, artist=true, album=true, duration=true, rating=true, state=true, kind=true }
+		for k in pairs(notifKeys) do
+			newInfo[k] = nil
+		end
+	end
+	
+	if not newInfo then return end
+	
+	for k, v in pairs(newInfo) do
+        _G.cachedMusicInfo[k] = v
+    end
+    -- newInfo.isRunning  = _G.cachedMusicInfo.isRunning
+    -- newInfo.spaceID    = _G.cachedMusicInfo.spaceID
+    -- newInfo.lastUpdate = _G.cachedMusicInfo.lastUpdate
+    -- _G.cachedMusicInfo = newInfo
 end
 
 -- 音乐状态更新函数
@@ -1288,59 +1331,67 @@ function musicBarUpdate()
     end
     
     cachedMusicInfo.isRunning = true
-    
-    -- 获取音乐信息
-    local newMusicInfo = Music.getCachedInfo()
-    if not newMusicInfo then
-        return
-    end
 
-	-- 检查是否是初始化状态
-    local isInitializing = not _G.cachedMusicInfo.title or 
-        _G.cachedMusicInfo.title == ""
+	-- 读取旧值（仅用于封面和歌词的判断）
+    local prevTitle, prevAlbum, prevState
+
+	if infoFromNotification then
+		-- 通知模式：旧值在通知写入前已经快照到 _prev 字段
+		prevTitle = cachedMusicInfo._prevTitle
+		prevAlbum = cachedMusicInfo._prevAlbum
+	else
+		-- AS 模式：合并前读旧值
+		prevTitle = cachedMusicInfo.title
+		prevAlbum = cachedMusicInfo.album
+	end
+	prevState = cachedMusicInfo.state
     
-    -- 检查变化
-    local hasTrackChanged = not _G.cachedMusicInfo.title or 
-        _G.cachedMusicInfo.title ~= newMusicInfo.title or
-        _G.cachedMusicInfo.artist ~= newMusicInfo.artist
-    
-    local hasAlbumChanged = not _G.cachedMusicInfo.album or 
-        _G.cachedMusicInfo.album ~= newMusicInfo.album
-    
-    local hasStateChanged = not _G.cachedMusicInfo.state or 
-        _G.cachedMusicInfo.state ~= newMusicInfo.state
-    
-    -- 更新缓存（保留应用状态字段）
-    mergeMusicInfo(newMusicInfo)
+    -- 获取并合并AS音乐信息
+	mergeMusicInfo(Music.getCachedInfo())
+
+	-- 变化检测
+    local hasTrackChanged = prevTitle ~= cachedMusicInfo.title
+    local hasAlbumChanged = prevAlbum ~= cachedMusicInfo.album
+    local hasStateChanged = prevState ~= cachedMusicInfo.state
+    local isInitializing  = not c_mainMenu  -- 菜单未建过，强制重建
     
     -- 更新菜单栏标题
     setTitle()
     
 	-- 保存专辑封面（仅在专辑变化时）
 	if hasAlbumChanged then
-		Music.saveArtwork()
+		local osVer = hs.host.operatingSystemVersion()
+    	if osVer.major >= 26 and cachedMusicInfo.kind == "applemusic" then
+			Music.saveArtworkFromURL(cachedMusicInfo.storeURL, function()
+				-- 下载完成后更新菜单里的封面
+				if c_mainMenu and c_mainMenu["artwork"] then
+					c_mainMenu["artwork"].image = Music.getArtworkPath()
+				end
+			end)
+		else
+			Music.saveArtwork()
+		end
 	end
 
 	 -- 下载歌词（仅在曲目变化时）
-	if (hasTrackChanged or isInitializing) and Lyric and Lyric.main then
+	if hasTrackChanged and Lyric and Lyric.main then
 		Lyric.main()
 	end
 	
-    if newMusicInfo.state == "playing" then
-        -- 播放状态：显示所有内容
-        
+    if cachedMusicInfo.state == "playing" then
         -- 如果状态从暂停变为播放，恢复歌词计时器
-		if hasStateChanged and Lyric and Lyric.resumeTimer then
+		if Lyric and Lyric.resumeTimer then
             Lyric.resumeTimer()
         end
         
         -- 重建菜单（仅在必要时）
-        if hasTrackChanged or hasAlbumChanged or not c_mainMenu then
-            buildMenus()
-            progressState.lastPosition = 0
-            progressState.lastDuration = 0
-            progressState.lastUpdateTime = 0
+		if isInitializing or hasTrackChanged or hasAlbumChanged then
+			buildMenus()
+			progressState.lastPosition = 0
+			progressState.lastDuration = 0
+			progressState.lastUpdateTime = 0
         elseif hasStateChanged then
+            -- 仅状态变化（暂停→播放）：只刷新图标
             refreshDisplay()
         end
         
@@ -1349,12 +1400,8 @@ function musicBarUpdate()
 			eventListeners.progressTimer:start()
 		end
 		
-	elseif newMusicInfo.state == "paused" then
-		-- 暂停状态：隐藏歌词，保持菜单
-		-- if not c_lyric then
-		-- 	Lyric.main()
-		-- end
-		-- 隐藏歌词并暂停歌词计时器
+	elseif cachedMusicInfo.state == "paused" then
+		-- 暂停状态隐藏歌词并暂停歌词计时器
 		if c_lyric then
 			hide(c_lyric)
 		end
@@ -1363,11 +1410,11 @@ function musicBarUpdate()
 		end
 		
 		-- 保持菜单显示，但停止进度条更新
-		if hasTrackChanged or hasAlbumChanged or not c_mainMenu then
-			buildMenus()
-		elseif hasStateChanged then
-			refreshDisplay()
-		end
+		if isInitializing or hasTrackChanged or hasAlbumChanged then
+            buildMenus()
+        elseif hasStateChanged then
+            refreshDisplay()
+        end
 		
 		-- 停止进度条定时器
 		if eventListeners.progressTimer and eventListeners.progressTimer:running() then
@@ -1425,8 +1472,15 @@ function initMusicBar()
 	-- 获取初始状态
 	cachedMusicInfo.spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	
-	-- 立即检查音乐状态并更新
-	musicBarUpdate()
+	-- 触发一次真实通知来初始化缓存
+    local state = Music.state()
+	if infoFromNotification and (state == "playing" or state == "paused") then
+		Music.togglePlay()
+		Music.togglePlay()
+	else
+		-- 立即检查音乐状态并更新
+		musicBarUpdate()
+	end
 	
 	-- 保留低频率备用定时器，但频率更合理
 	if Switch then
