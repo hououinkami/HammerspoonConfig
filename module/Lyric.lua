@@ -351,11 +351,12 @@ Lyric.processSearchResults = function()
 	-- 按默认优先的顺序遍历匹配
 	local foundMatch = false
 	for r = 1, #currentsongsResult do
-		local matchedURL = Lyric.matchLyric(currentsongsResult[r].list, r)
+		local apiNO = currentsongsResult[r].api
+		local matchedURL = Lyric.matchLyric(currentsongsResult[r].list, apiNO)
 		if matchedURL then
 			lyricURL = matchedURL
 			foundMatch = true
-			Lyric.fetchLyric(lyricURL, r)
+			Lyric.fetchLyric(lyricURL, apiNO)
 			break
 		end
 	end
