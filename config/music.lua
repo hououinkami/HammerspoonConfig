@@ -73,7 +73,7 @@ end
 if string.find(Config.owner,"Kami") or string.find(Config.owner,"カミ") then
 	MusicApp = "ミュージック"
 	Stopped = "停止中"
-	ClicktoRun = '起動していない'
+	ClicktoRun = 'Apple Music'
 	MusicLibrary = "ライブラリ"
 	localFile = "AACオーディオファイル"
 	connectingFile = "接続中…"
@@ -85,7 +85,7 @@ if string.find(Config.owner,"Kami") or string.find(Config.owner,"カミ") then
 else
 	MusicApp = "音乐"
 	Stopped = "已停止"
-	ClicktoRun = '未启动'
+	ClicktoRun = 'Apple Music'
 	MusicLibrary = "资料库"
 	localFile = "AAC音频文件"
 	connectingFile = "正在连接…"
