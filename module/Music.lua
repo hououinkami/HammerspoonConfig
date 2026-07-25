@@ -300,7 +300,7 @@ function setRateMenu()
 	end
 
 	local rateImage = function()
-		local rating = cachedMusicInfo and cachedMusicInfo.rating or 0
+		local rating = math.tointeger(cachedMusicInfo and cachedMusicInfo.rating or 0) or 0
 		return loadImage(rating .. "star")
 	end
 	
@@ -464,7 +464,7 @@ function refreshRatingDisplay()
     
     -- 更新星级评价图像
     if c_rateMenu["rate"] then
-        c_rateMenu["rate"].image = loadImage(cachedMusicInfo.rating .. "star")
+        c_rateMenu["rate"].image = loadImage(math.tointeger(cachedMusicInfo.rating) .. "star")
     end
 end
 
@@ -604,7 +604,7 @@ function refreshDisplay(delayTime)
 			
 			-- 更新星级评价图像
 			if c_rateMenu["rate"] then
-				c_rateMenu["rate"].image = loadImage(cachedMusicInfo.rating .. "star")
+				c_rateMenu["rate"].image = loadImage(math.tointeger(cachedMusicInfo.rating) .. "star")
 			end
 		end
 	end
