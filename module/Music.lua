@@ -828,7 +828,7 @@ function setPlaylistMenu()
 		x = playlistFrame.x,
 		y = playlistFrame.y,
 		h = playlistMenuSize.h + borderSize.y * playlistCount,
-		w = playlistMenuSize.w
+		w = playlistMenuSize.w + borderSize.x * 2
 	}
 	c_playlist:frame(playlistFrame)
 
