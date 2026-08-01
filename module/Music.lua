@@ -95,6 +95,152 @@ local function reloadImageCache()
     preloadImages()
 end
 
+-- 判断是否为Tahoe及以上系统
+local IS_SEQUOIA_PLUS = hs.host.operatingSystemVersion().major >= 26
+
+--
+-- Color Server 渐变背景模块 --
+--
+local COLOR_SERVER = nil
+local ok = pcall(require, 'module.secret')
+if ok and myDomain then
+	COLOR_SERVER = "https://color." .. myDomain .. "/gradient"
+end
+
+-- 当前渐变颜色缓存（避免每次重建菜单都请求）
+local gradientCache = {
+    background = {alpha = 0.95, red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
+    midground  = {alpha = 0.7,  red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
+    highlight  = {alpha = 0.4,  red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
+    lastAlbum  = "",   -- 记录上次请求的专辑，避免重复请求
+    isReady    = false -- 标记颜色是否已从服务获取
+}
+
+-- 异步获取渐变颜色
+local function fetchGradientColors(imageObj, callback)
+	if not COLOR_SERVER then
+		return
+	end
+	
+    -- imageObj 可能是路径字符串，也可能是 hs.image 对象
+    local b64
+
+    local imgObj
+	if type(imageObj) == "string" then
+        -- 是文件路径
+        imgObj = hs.image.imageFromPath(imageObj)
+	else
+		imgObj = imageObj
+	end
+	
+	if not imgObj then
+		print("⚠️ 封面图片加载失败: " .. tostring(imageObj))
+		callback(nil)
+		return
+	end
+
+    if type(imgObj) == "userdata" then
+		-- 先缩小避免超限
+		local scaled = imgObj:setSize({w=150, h=150})
+        -- 是 hs.image 对象，直接编码为 JPEG base64
+		local dataURL = scaled:encodeAsURLString(true)
+		-- 返回的前缀是 "data:image/png;base64,..."
+		b64 = dataURL:match("base64,(.+)$")
+    else
+        print("⚠️ 未知的图片类型: " .. type(imgObj))
+        callback(nil)
+        return
+    end
+
+	if not b64 then
+		print("⚠️ base64 提取失败")
+		callback(nil)
+		return
+	end
+
+    local payload = hs.json.encode({
+        type  = "base64",
+        image = b64,
+    })
+
+	-- print(string.format("📤 发送请求 | 大小: %.1f KB", #payload / 1024))
+
+    hs.http.asyncPost(
+        COLOR_SERVER,
+        payload,
+        { ["Content-Type"] = "application/json" },
+        function(code, body, headers)
+            if code == 200 then
+                local ok, data = pcall(hs.json.decode, body)
+                if ok and data then
+                    callback(data)
+                else
+                    print("⚠️ 颜色解析失败: " .. tostring(body))
+                    callback(nil)
+                end
+            else
+                print("⚠️ Color Server 请求失败, code=" .. tostring(code))
+                callback(nil)
+            end
+        end
+    )
+end
+
+-- 将渐变颜色应用到已存在的 c_mainMenu
+local function applyGradientToMenu()
+    if not c_mainMenu then return end
+    if not c_mainMenu["background"] then return end
+
+    local bg  = gradientCache.background
+    local mid = gradientCache.midground
+    local hi  = gradientCache.highlight
+
+    -- 只更新颜色，不追加元素
+    c_mainMenu["background"].fillColor = bg
+
+    if c_mainMenu["gradient_mid"] then
+        c_mainMenu["gradient_mid"].fillGradientColors = {
+            mid,
+            {alpha=0, red=mid.red, green=mid.green, blue=mid.blue}
+        }
+    end
+
+    if c_mainMenu["gradient_hi"] then
+        c_mainMenu["gradient_hi"].fillGradientColors = {
+            {alpha=0.35, red=hi.red, green=hi.green, blue=hi.blue},
+            {alpha=0,    red=hi.red, green=hi.green, blue=hi.blue}
+        }
+    end
+end
+
+-- 当专辑变化时调用
+function updateGradientBackground(imageObj)
+    -- 同一张专辑不重复请求
+	local cacheKey = (cachedMusicInfo.title or "") .. "|" .. (cachedMusicInfo.album or "")
+    if gradientCache.lastAlbum == cacheKey and gradientCache.isReady then
+        applyGradientToMenu()
+        return
+    end
+
+    -- 先用旧颜色渲染，避免白屏等待
+    applyGradientToMenu()
+
+    -- 异步请求新颜色
+    fetchGradientColors(imageObj, function(data)
+        if not data then return end
+
+        -- 更新缓存
+        gradientCache.background = data.background or gradientCache.background
+        gradientCache.midground  = data.midground  or gradientCache.midground
+        gradientCache.highlight  = data.highlight  or gradientCache.highlight
+        gradientCache.lastAlbum  = cacheKey
+        gradientCache.isReady    = true
+
+        -- 应用到菜单（菜单可能已经显示了）
+        applyGradientToMenu()
+    end)
+end
+
 --
 -- MenuBar函数集 --
 --
@@ -195,7 +341,30 @@ function setMainMenu()
 			fillColor = {alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
 			-- trackMouseEnterExit = true,
 			trackMouseUp = true
-		}, {-- 专辑封面
+		}, {-- 中层渐变
+			id = "gradient_mid",
+			type  = "rectangle",
+			action = "fill",
+			roundedRectRadii = {xRadius = 6, yRadius = 6},
+			fillGradient = "linear",
+			fillGradientColors = {
+				{alpha=0.7, red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255},
+				{alpha=0,   red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255}
+			},
+			fillGradientAngle = 120,
+		},
+		{-- 高光渐变
+			id = "gradient_hi",
+			type  = "rectangle",
+			action = "fill",
+			roundedRectRadii = {xRadius = 6, yRadius = 6},
+			fillGradient = "radial",
+			fillGradientColors = {
+				{alpha=0.35, red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255},
+				{alpha=0,    red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255}
+			},
+			fillGradientCenter = {x=0.85, y=0.15},
+		},{-- 专辑封面
 			id = "artwork",
 			frame = {x = borderSize.x, y = borderSize.y, h = artworkSize.h, w = artworkSize.w},
 			type = "image",
@@ -214,7 +383,7 @@ function setMainMenu()
 		}
 	)
 	-- 设置悬浮菜单自适应宽度
-	infoSize = c_mainMenu:minimumTextSize(3, c_mainMenu["info"].text)
+	infoSize = c_mainMenu:minimumTextSize(5, c_mainMenu["info"].text)
 	local defaultSize = infoSize.w + artworkSize.w + borderSize.x * 2 + gapSize.x
 	if defaultSize < smallSize then
 		defaultSize = smallSize
@@ -651,20 +820,10 @@ function setPlaylistMenu()
 	end
 
 	-- 设置菜单宽度
-	c_playlist:appendElements(
-		{
-			id = "test",
-			frame = {x = 0, y = 0, h = textSize, w = 1},
-			type = "text",
-			text = testText,
-			textSize = textSize,
-			textLineBreak = "wordWrap",
-			trackMouseEnterExit = true,
-			trackMouseUp = true
-		}
-	)
-
-	playlistMenuSize = c_playlist:minimumTextSize(1, c_playlist["test"].text)
+	local styledText = hs.styledtext.new(testText, {
+		font = { size = textSize }
+	})
+	playlistMenuSize = c_playlist:minimumTextSize(styledText)
 	playlistFrame = {
 		x = playlistFrame.x,
 		y = playlistFrame.y,
@@ -971,6 +1130,7 @@ function buildMenus()
 	setRateMenu()
 	setControlMenu()
 	setProgressCanvas()
+	applyGradientToMenu()
 end
 
 -- 修复的 toggleCanvas 函数
@@ -1360,12 +1520,16 @@ function musicBarUpdate()
     
 	-- 保存专辑封面（仅在专辑变化时）
 	if hasAlbumChanged then
-		local osVer = hs.host.operatingSystemVersion()
-    	if osVer.major >= 26 and cachedMusicInfo.kind == "applemusic" then
+    	if IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic" then
 			Music.saveArtworkFromURL(cachedMusicInfo.storeURL, function()
 				-- 下载完成后更新菜单里的封面
 				if c_mainMenu and c_mainMenu["artwork"] then
 					c_mainMenu["artwork"].image = Music.getArtworkPath()
+				end
+				-- 封面下载完成后立即预请求渐变
+				local artworkImg = Music.getArtworkPath()
+				if artworkImg then
+					updateGradientBackground(artworkImg)
 				end
 			end)
 		else
@@ -1390,6 +1554,13 @@ function musicBarUpdate()
 			progressState.lastPosition = 0
 			progressState.lastDuration = 0
 			progressState.lastUpdateTime = 0
+			-- 建完菜单后再请求渐变（非 Sequoia 分支）
+            if (isInitializing or hasAlbumChanged) and not (IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic") then
+				local artworkImg = Music.getArtworkPath()
+				if artworkImg then
+					updateGradientBackground(artworkImg)
+				end
+			end
         elseif hasStateChanged then
             -- 仅状态变化（暂停→播放）：只刷新图标
             refreshDisplay()
@@ -1412,6 +1583,13 @@ function musicBarUpdate()
 		-- 保持菜单显示，但停止进度条更新
 		if isInitializing or hasTrackChanged or hasAlbumChanged then
             buildMenus()
+			-- 建完菜单后再请求渐变（非 Sequoia 分支）
+            if (isInitializing or hasAlbumChanged) and not (IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic") then
+				local artworkImg = Music.getArtworkPath()
+				if artworkImg then
+					updateGradientBackground(artworkImg)
+				end
+			end
         elseif hasStateChanged then
             refreshDisplay()
         end

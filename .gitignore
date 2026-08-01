@@ -2,6 +2,7 @@
 /*.jpg
 /*.png
 /module/archive
+/module/secret.lua
 /module/test_*.lua
 /Spoons
 /init*.lua
