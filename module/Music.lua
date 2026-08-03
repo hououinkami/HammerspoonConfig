@@ -262,7 +262,7 @@ local function applyGradientToMenu()
     if not c_mainMenu["background"] then return end
 
 	-- 如果有模糊背景图片，优先用图片
-    if gradientCache.bgImage then
+    if gradientCache.bgImage and useBlurBackground then
 		-- 同步更新 clip 区域的尺寸
 		if c_mainMenu["bg_clip"] then
 			c_mainMenu["bg_clip"].frame = {x = 0, y = 0, w = menuFrame.w, h = menuFrame.h}
@@ -321,7 +321,7 @@ function updateGradientBackground(imageObj)
     -- 先用旧颜色渲染，避免白屏等待
     applyGradientToMenu()
 
-    -- 异步请求新颜色（降级备用）
+    -- 异步请求新颜色（始终请求，作为降级备用）
     fetchGradientColors(imageObj, function(data)
         if not data then return end
 
@@ -339,12 +339,12 @@ function updateGradientBackground(imageObj)
     end)
 
 	-- 异步请求模糊背景图片
-    if menuFrame then
+    if menuFrame and useBlurBackground then
         fetchBlurBackground(imageObj, menuFrame.w, menuFrame.h, function(bgImage)
             if not bgImage then return end
-            gradientCache.bgImage   = bgImage
+            gradientCache.bgImage = bgImage
             gradientCache.lastAlbum = cacheKey
-            gradientCache.isReady   = true
+            gradientCache.isReady = true
             applyGradientToMenu()
         end)
     end

@@ -1,6 +1,8 @@
 ---------------------
 -- Music菜单栏设置项
 ---------------------
+-- 背景模式：true = 模糊背景图片，false = 纯渐变色
+useBlurBackground = true
 -- 从通知中心获取曲目信息
 infoFromNotification = true
 -- 播放中图标
