@@ -8,10 +8,12 @@ Lyric = {}
 Lyric.main = function(callback)
 	local title = _G.cachedMusicInfo.title or Music.title()
 	local artist = _G.cachedMusicInfo.artist or Music.artist()
+	_G.lyricExpectedTitle = title
 
 	-- ✅ 完全清理之前的状态
 	if lyricTimer then
 		lyricTimer:stop()
+		lyricTimer = nil
 	end
 	
 	-- ✅ 清空歌词显示
@@ -319,6 +321,12 @@ end
 
 -- 处理搜索结果
 Lyric.handleSearchResult = function(musicStatus, musicBody, api)
+	-- 搜索结果回来时，先校验歌曲是否已切换
+    if _G.cachedMusicInfo.title ~= _G.lyricExpectedTitle then
+        print("⚠️ 検索結果が古いです、破棄します")
+        return
+    end
+
 	completed = completed + 1
 	if musicStatus == 200 then
 		local musicinfo = hs.json.decode(musicBody)
@@ -412,6 +420,10 @@ Lyric.fetchLyric = function(lyricURL, api)
 		
 		-- 异步回调函数
 		local function httpGetLyric(status, body, headers)
+			if _G.cachedMusicInfo.title ~= _G.lyricExpectedTitle then
+				print("⚠️ 歌詞が古いです、破棄します")
+				return
+			end
 			Lyric.handleLyricResult(status, body, api)
 		end
 
@@ -480,67 +492,49 @@ Lyric.edit = function(lyric, callback)
 	local lyricTable = {}
 	
 	if #lyricData > 2 then
-		-- 分批异步处理歌词行
-		Lyric.processLyricLines(lyricData, allLine, lyricTable, 1, callback)
+		for l = 1, #lyricData do
+			-- 歌词黑名单替换为空行
+			for i,v in ipairs(blackList) do
+				if string.find(lyricData[l],"%][%s]*" .. v) then
+					lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
+					break
+				end
+			end
+			-- 只处理包含正确时间戳的歌词行
+			if string.find(lyricData[l],'%[%d+:%d+') then
+				local lyricLine = {}
+				line = lyricData[l]:gsub("%[(%d+:)","%1"):gsub("(%d+)%]","%1`")
+				_line = stringSplit(line, "`")
+				if #_line == 1 then
+					table.insert(_line, "")
+				end
+				lyricLine.index = l
+				lyricLine.time = _line[1]:gsub("%.",":")
+				lyricLine.lyric = _line[#_line] or ""
+				table.insert(lyricTable, lyricLine)
+				-- 多个时间戳时的处理
+				if #_line > 2 then
+					multiTime = true
+					for t = 2, #_line - 1, 1 do
+						local lyricLine = {}
+						allLine = allLine + 1
+						lyricLine.index = allLine
+						lyricLine.time = _line[t]:gsub("%.",":")
+						if _line[#_line]:find('^%d+:%d+') then
+							lyricLine.lyric = ""
+						else
+							lyricLine.lyric = _line[#_line]
+						end
+						table.insert(lyricTable, lyricLine)
+					end
+				end
+			end
+		end
+		Lyric.finalizeLyricProcessing(lyricTable, callback)
 	else
 		-- 在最后插入空行方便处理
 		table.insert(lyricTable, {index = #lyricTable + 1, time = Music.duration(), lyric = ""})
 		callback(lyricTable)
-	end
-end
-
--- 异步处理歌词行
-Lyric.processLyricLines = function(lyricData, allLine, lyricTable, startIndex, callback)
-	local batchSize = 20 -- 每批处理20行
-	local endIndex = math.min(startIndex + batchSize - 1, #lyricData)
-	
-	for l = startIndex, endIndex do
-		-- 歌词黑名单替换为空行
-		for i,v in ipairs(blackList) do
-			if string.find(lyricData[l],"%][%s]*" .. v) then
-				lyricData[l] = lyricData[l]:gsub(v .. ".*", "")
-				break
-			end
-		end
-		-- 只处理包含正确时间戳的歌词行
-		if string.find(lyricData[l],'%[%d+:%d+') then
-			local lyricLine = {}
-			line = lyricData[l]:gsub("%[(%d+:)","%1"):gsub("(%d+)%]","%1`")
-			_line = stringSplit(line, "`")
-			if #_line == 1 then
-				table.insert(_line, "")
-			end
-			lyricLine.index = l
-			lyricLine.time = _line[1]:gsub("%.",":")
-			lyricLine.lyric = _line[#_line] or ""
-			table.insert(lyricTable, lyricLine)
-			-- 多个时间戳时的处理
-			if #_line > 2 then
-				multiTime = true
-				for t = 2, #_line - 1, 1 do
-					local lyricLine = {}
-					allLine = allLine + 1
-					lyricLine.index = allLine
-					lyricLine.time = _line[t]:gsub("%.",":")
-					if _line[#_line]:find('^%d+:%d+') then
-						lyricLine.lyric = ""
-					else
-						lyricLine.lyric = _line[#_line]
-					end
-					table.insert(lyricTable, lyricLine)
-				end
-			end
-		end
-	end
-	
-	-- 如果还有未处理的行，继续异步处理
-	if endIndex < #lyricData then
-		hs.timer.doAfter(0.01, function()
-			Lyric.processLyricLines(lyricData, allLine, lyricTable, endIndex + 1, callback)
-		end)
-	else
-		-- 处理完成，继续后续步骤
-		Lyric.finalizeLyricProcessing(lyricTable, callback)
 	end
 end
 
@@ -604,22 +598,22 @@ end
 
 -- 异步显示歌词
 Lyric.show = function(lyricTable, callback)
-	if lyricTable then
-		-- 异步初始化歌词图层
-		Lyric.setCanvas(function()
-			-- 异步设定计时器
-			hs.timer.doAfter(0.1, function()
-				Lyric.setupLyricTimer(lyricTable, callback)
-			end)
-		end)
-	else
-		if callback then callback() end
-	end
+    if lyricTable then
+        Lyric.setCanvas(function()
+			Lyric.setupLyricTimer(lyricTable, callback)
+        end)
+    else
+        if callback then callback() end
+    end
 end
 
 -- 设置歌词计时器
 Lyric.setupLyricTimer = function(lyricTable, callback)
+	local snapshot = _G.lyricExpectedTitle  -- ← 闭包快照，防止被后续 main() 修改
 	lyricTimer = hs.timer.new(1, function()
+		if _G.cachedMusicInfo.title ~= snapshot then
+            return
+        end
 		-- 异步显示歌词
 		Lyric.showLyricStep(lineNO, lyricTable)
 	end):start()
@@ -631,7 +625,7 @@ Lyric.showLyricStep = function(startline, lyricTable)
 	if not lyricTable then
 		return
 	end
-	
+
 	-- 歌词定位
 	local currentPosition = Music.currentPosition() - lyricTimeOffset
 	local currentLyric = ""
@@ -722,20 +716,11 @@ Lyric.handleLyric = function(lyric, callback)
 		return
 	end
 	
-	local lyricObjTable = {}
 	local s_list = stringSplit2(lyric)
+	local lyricObj = nil
 	
-	-- 分批处理样式
-	Lyric.processStyleBatch(s_list, lyricObjTable, 1, callback)
-end
-
--- 异步分批处理样式
-Lyric.processStyleBatch = function(s_list, lyricObjTable, startIndex, callback)
-	local batchSize = 10 -- 每批处理10个字符
-	local endIndex = math.min(startIndex + batchSize - 1, #s_list)
-	
-	for i = startIndex, endIndex do
-		local v = s_list[i]
+	-- 处理样式
+	for i, v in ipairs(s_list) do
 		lyricStyled = hs.styledtext.new(v, {
 			font = { 
 				name = lyricTextFont, 
@@ -770,52 +755,13 @@ Lyric.processStyleBatch = function(s_list, lyricObjTable, startIndex, callback)
 				offset = lyricShadowOffset 
 			},
 		})
-		if not v:find("%w") then
-			table.insert(lyricObjTable, lyricStyled)
-		else
-			table.insert(lyricObjTable, lyricStyled:setStyle({
-				font = { 
-					name = lyricTextFont2, 
-					size = lyricTextSize
-				}
-			}))
-		end
+		if v:find("%w") then
+            lyricStyled = lyricStyled:setStyle({ font = { name = lyricTextFont2, size = lyricTextSize } })
+        end
+		-- 直接合并，不用中间表
+        lyricObj = lyricObj and (lyricObj .. lyricStyled) or lyricStyled
 	end
-	
-	-- 如果还有未处理的字符，继续异步处理
-	if endIndex < #s_list then
-		hs.timer.doAfter(0.001, function()
-			Lyric.processStyleBatch(s_list, lyricObjTable, endIndex + 1, callback)
-		end)
-	else
-		-- 处理完成，合并结果
-		local lyricObj = nil
-		for i,v in ipairs(lyricObjTable) do
-			if not lyricObj then
-				lyricObj = v
-			else
-				lyricObj = lyricObj .. v
-			end
-		end
-		callback(lyricObj)
-	end
-end
-
--- 合并歌词对象
-Lyric.combineLyricObjects = function(lyricObjTable)
-	local lyricObj = nil
-	for i,v in ipairs(lyricObjTable) do
-		if not lyricObj then
-			lyricObj = v
-		else
-			lyricObj = lyricObj .. v
-		end
-	end
-	
-	-- 异步更新显示
-	if c_lyric and c_lyric["lyric"] then
-		c_lyric["lyric"].text = lyricObj
-	end
+	callback(lyricObj)
 end
 
 -- 异步建立歌词图层
