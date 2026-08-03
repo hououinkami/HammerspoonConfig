@@ -41,6 +41,8 @@ menubgAlpha = 0.96
 menubgColorS = {127.5, 127.5, 127.5}
 -- 菜单背景选中透明度
 menubgAlphaS = 0.8
+-- 菜单字体透明度
+menuTextAlpha = 1
 -- 菜单字体默认颜色（RGB）
 menuTextColor = {255, 255, 255}
 -- 菜单字体选中颜色（RGB）
@@ -50,7 +52,7 @@ menuStrokeColor = {255, 255, 255}
 -- 菜单边框透明度
 menuStrokeAlpha = 0.8
 -- 进度条颜色
-progressColor = {185, 185, 185}
+progressColor = {255, 255, 255}
 -- Apple Music红
 AMRed = {232, 68, 79}
 AMBlue = {0, 120, 255}

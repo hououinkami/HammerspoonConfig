@@ -351,7 +351,7 @@ function setMainMenu()
 				{alpha=0.7, red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255},
 				{alpha=0,   red=bgColor[1]/255, green=bgColor[2]/255, blue=bgColor[3]/255}
 			},
-			fillGradientAngle = 120,
+			fillGradientAngle = 60,
 		},
 		{-- 高光渐变
 			id = "gradient_hi",
@@ -377,6 +377,12 @@ function setMainMenu()
 			type = "text",
 			text = title .. "\n\n" .. artist .. "\n\n" .. album .. "\n",
 			textSize = textSize,
+			textColor = {
+				alpha = menuTextAlpha,
+				red   = menuTextColor[1] / 255,
+				green = menuTextColor[2] / 255,
+				blue  = menuTextColor[3] / 255
+			},
 			textLineBreak = "wordWrap",
 			trackMouseEnterExit = true,
 			trackMouseUp = true
