@@ -112,6 +112,7 @@ local gradientCache = {
     background = {alpha = 0.95, red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
     midground  = {alpha = 0.7,  red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
     highlight  = {alpha = 0.4,  red = bgColor[1]/255, green = bgColor[2]/255, blue = bgColor[3]/255},
+	bgImage    = nil,
     lastAlbum  = "",   -- 记录上次请求的专辑，避免重复请求
     isReady    = false -- 标记颜色是否已从服务获取
 }
@@ -186,12 +187,107 @@ local function fetchGradientColors(imageObj, callback)
     )
 end
 
+-- 异步获取模糊背景图片
+local function fetchBlurBackground(imageObj, width, height, callback)
+    if not myDomain then return end
+
+    local imgObj
+    if type(imageObj) == "string" then
+        imgObj = hs.image.imageFromPath(imageObj)
+    else
+        imgObj = imageObj
+    end
+
+    if not imgObj then
+        callback(nil)
+        return
+    end
+
+    local scaled = imgObj:setSize({w = 150, h = 150})
+    local dataURL = scaled:encodeAsURLString(true)
+    local b64 = dataURL:match("base64,(.+)$")
+
+    if not b64 then
+        callback(nil)
+        return
+    end
+
+    local payload = hs.json.encode({
+        type   = "base64",
+        image  = b64,
+        width  = math.floor(width),
+        height = math.floor(height),
+        blur   = 20,
+        darken = 0.4,
+    })
+
+    hs.http.asyncPost(
+        "https://color." .. myDomain .. "/blur_bg",
+        payload,
+        { ["Content-Type"] = "application/json" },
+        function(code, body)
+            if code == 200 then
+                local ok, data = pcall(hs.json.decode, body)
+                if ok and data and data.image then
+					-- 解码 base64
+                    local imgData = hs.base64.decode(data.image)
+                    
+                    -- 写入临时文件
+                    local blurPath = hs.configdir .. "/currentartwork_blur.png"
+                    local f = io.open(blurPath, "wb")
+                    if f then
+                        f:write(imgData)
+                        f:close()
+                        -- 用路径加载图片
+                        local bgImage = hs.image.imageFromPath(blurPath)
+                        callback(bgImage)
+                    else
+                        print("⚠️ 无法写入临时文件")
+                        callback(nil)
+                    end
+                else
+                    callback(nil)
+                end
+            else
+                print("⚠️ blur_bg 请求失败, code=" .. tostring(code))
+                callback(nil)
+            end
+        end
+    )
+end
+
 -- 将渐变颜色应用到已存在的 c_mainMenu
 local function applyGradientToMenu()
     if not c_mainMenu then return end
     if not c_mainMenu["background"] then return end
 
-    local bg  = gradientCache.background
+	-- 如果有模糊背景图片，优先用图片
+    if gradientCache.bgImage then
+		-- 同步更新 clip 区域的尺寸
+		if c_mainMenu["bg_clip"] then
+			c_mainMenu["bg_clip"].frame = {x = 0, y = 0, w = menuFrame.w, h = menuFrame.h}
+		end
+        c_mainMenu["background"].type  = "image"
+        c_mainMenu["background"].image = gradientCache.bgImage
+        c_mainMenu["background"].imageScaling = "scaleToFit"
+        -- 图片模式下隐藏渐变层（可选，避免叠加）
+        if c_mainMenu["gradient_mid"] then
+            c_mainMenu["gradient_mid"].fillGradientColors = {
+                {alpha=0, red=0, green=0, blue=0},
+                {alpha=0, red=0, green=0, blue=0}
+            }
+        end
+        if c_mainMenu["gradient_hi"] then
+            c_mainMenu["gradient_hi"].fillGradientColors = {
+                {alpha=0, red=0, green=0, blue=0},
+                {alpha=0, red=0, green=0, blue=0}
+            }
+        end
+        return
+    end
+
+    -- 降级：用渐变色
+	local bg  = gradientCache.background
     local mid = gradientCache.midground
     local hi  = gradientCache.highlight
 
@@ -225,7 +321,7 @@ function updateGradientBackground(imageObj)
     -- 先用旧颜色渲染，避免白屏等待
     applyGradientToMenu()
 
-    -- 异步请求新颜色
+    -- 异步请求新颜色（降级备用）
     fetchGradientColors(imageObj, function(data)
         if not data then return end
 
@@ -236,9 +332,22 @@ function updateGradientBackground(imageObj)
         gradientCache.lastAlbum  = cacheKey
         gradientCache.isReady    = true
 
-        -- 应用到菜单（菜单可能已经显示了）
-        applyGradientToMenu()
+        -- 只有没有图片时才用渐变色渲染
+        if not gradientCache.bgImage then
+            applyGradientToMenu()
+        end
     end)
+
+	-- 异步请求模糊背景图片
+    if menuFrame then
+        fetchBlurBackground(imageObj, menuFrame.w, menuFrame.h, function(bgImage)
+            if not bgImage then return end
+            gradientCache.bgImage   = bgImage
+            gradientCache.lastAlbum = cacheKey
+            gradientCache.isReady   = true
+            applyGradientToMenu()
+        end)
+    end
 end
 
 --
@@ -333,7 +442,13 @@ function setMainMenu()
 	local album = cachedMusicInfo.album or Music.album()
 	
 	c_mainMenu:replaceElements(
-		{-- 背景
+		{-- 圆角裁剪区域
+			id = "bg_clip",
+			type = "rectangle",
+			action = "clip",
+			frame = {x = 0, y = 0, h = artworkSize.h + borderSize.y * 2, w = menuWidth},
+			roundedRectRadii = {xRadius = 6, yRadius = 6},
+		},{-- 背景
 			id = "background",
 			type = "rectangle",
 			action = "fill",
@@ -341,7 +456,10 @@ function setMainMenu()
 			fillColor = {alpha = bgAlpha, red = bgColor[1] / 255, green = bgColor[2] / 255, blue = bgColor[3] / 255},
 			-- trackMouseEnterExit = true,
 			trackMouseUp = true
-		}, {-- 中层渐变
+		}, {-- 重置裁剪（必须在所有背景元素之后、内容元素之前）
+			id = "bg_clip_reset",
+			type = "resetClip",
+		},{-- 中层渐变
 			id = "gradient_mid",
 			type  = "rectangle",
 			action = "fill",
@@ -389,7 +507,7 @@ function setMainMenu()
 		}
 	)
 	-- 设置悬浮菜单自适应宽度
-	infoSize = c_mainMenu:minimumTextSize(5, c_mainMenu["info"].text)
+	infoSize = c_mainMenu:minimumTextSize(7, c_mainMenu["info"].text)
 	local defaultSize = infoSize.w + artworkSize.w + borderSize.x * 2 + gapSize.x
 	if defaultSize < smallSize then
 		defaultSize = smallSize
