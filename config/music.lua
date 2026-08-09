@@ -1,8 +1,10 @@
 ---------------------
 -- Music菜单栏设置项
 ---------------------
--- 背景模式：true = 模糊背景图片，false = 纯渐变色
-useBlurBackground = true
+-- 背景模式
+useBlurBackground = true	-- true = 模糊背景图片，false = 纯渐变色
+blurRadius  = 20   -- 模糊半径，越大越模糊
+blurDarken  = 0.6  -- 压暗程度，0=不压暗，1=全黑
 -- 从通知中心获取曲目信息
 infoFromNotification = true
 -- 播放中图标

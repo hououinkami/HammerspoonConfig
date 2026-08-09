@@ -217,8 +217,8 @@ local function fetchBlurBackground(imageObj, width, height, callback)
         image  = b64,
         width  = math.floor(width),
         height = math.floor(height),
-        blur   = 20,
-        darken = 0.4,
+        blur   = blurRadius or 20,
+        darken = blurDarken or 0.5,
     })
 
     hs.http.asyncPost(
