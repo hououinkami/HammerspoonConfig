@@ -292,6 +292,14 @@ local function applyGradientToMenu()
     local hi  = gradientCache.highlight
 
     -- 只更新颜色，不追加元素
+	c_mainMenu["background"].type      = "rectangle"
+    c_mainMenu["background"].action    = "fill"
+    c_mainMenu["background"].image     = nil   -- ← 清除残留图片
+    c_mainMenu["background"].frame     = {     -- ← 补上 frame
+        x = 0, y = 0,
+        w = menuFrame.w,
+        h = menuFrame.h
+    }
     c_mainMenu["background"].fillColor = bg
 
     if c_mainMenu["gradient_mid"] then
