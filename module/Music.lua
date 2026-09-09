@@ -229,6 +229,7 @@ local function fetchBlurBackground(imageObj, width, height, callback)
         payload,
         { ["Content-Type"] = "application/json" },
         function(code, body)
+			print(code, body)
             if code == 200 then
                 local ok, data = pcall(hs.json.decode, body)
                 if ok and data and data.image then
