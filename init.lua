@@ -63,7 +63,7 @@ local load_test_modules = false
 
 for _, v in ipairs(module_list) do
 	if v == 'Network' or v == 'Music' then
-		if not string.find(Config.owner,"mini") then
+		if not string.find(Config.owner,"mini2") then
 			require ('module.' .. v)
 		end
 	else

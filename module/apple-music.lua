@@ -479,6 +479,64 @@ Music.saveArtwork = function ()
 		]])
 	end
 end
+-- iTunes Search API 封面获取
+Music.fetchArtworkFromiTunes = function(title, artist, album, callback)
+    local function trySearch(url, matchFn, fallback)
+        hs.http.asyncGet(url, nil, function(code, body)
+            if code ~= 200 then
+                if fallback then fallback() else callback(nil) end
+                return
+            end
+            local ok, data = pcall(hs.json.decode, body)
+            if not ok or not data or #(data.results or {}) == 0 then
+                if fallback then fallback() else callback(nil) end
+                return
+            end
+
+            local artUrl = nil
+            -- 优先：精确匹配
+            for _, r in ipairs(data.results) do
+                if matchFn(r) then
+                    artUrl = r.artworkUrl100; break
+                end
+            end
+            -- 降级：用第一条
+            artUrl = artUrl or data.results[1].artworkUrl100
+
+            if artUrl then
+                artUrl = artUrl:gsub("%d+x%d+bb", "1000x1000bb")
+                callback(artUrl)
+            else
+                if fallback then fallback() else callback(nil) end
+            end
+        end)
+    end
+
+    -- 第一次：用 artist+album 搜专辑，精确匹配 artistName
+    local q1 = hs.http.encodeForQuery((artist or "") .. " " .. (album or title or ""))
+    local url1 = "https://itunes.apple.com/search?term=" .. q1
+               .. "&media=music&entity=album&limit=10&country=jp"
+
+    trySearch(url1,
+        function(r)
+            local artistMatch = artist and r.artistName and r.artistName == artist
+            local albumMatch  = album  and r.collectionName and r.collectionName:find(album, 1, true)
+            return artistMatch and albumMatch
+        end,
+        -- 降级：用 title 搜单曲
+        function()
+            local q2 = hs.http.encodeForQuery((artist or "") .. " " .. (title or ""))
+            local url2 = "https://itunes.apple.com/search?term=" .. q2
+                       .. "&media=music&entity=song&limit=10&country=jp"
+            trySearch(url2,
+                function(r)
+                    return artist and r.artistName and r.artistName == artist
+                end,
+                nil  -- 二次降级：直接用 results[1]，已在 trySearch 内处理
+            )
+        end
+    )
+end
 -- 保存专辑封面（Apple Music）
 Music.saveArtworkFromURL = function (storeURL, callback)
     local trackID = storeURL:match("i=(%d+)")

@@ -36,6 +36,12 @@ local progressState = {
 	lastUpdateTime = 0
 }
 
+-- 判断是否为Tahoe及以上系统
+local IS_TAHOE_PLUS = hs.host.operatingSystemVersion().major >= 26
+
+-- 是否接收过通知的标志
+local hasReceivedNotification = false
+
 -- 事件监听器集合
 eventListeners = {}
 
@@ -94,9 +100,6 @@ local function reloadImageCache()
     clearImageCache()
     preloadImages()
 end
-
--- 判断是否为Tahoe及以上系统
-local IS_SEQUOIA_PLUS = hs.host.operatingSystemVersion().major >= 26
 
 --
 -- Color Server 渐变背景模块 --
@@ -355,6 +358,34 @@ function updateGradientBackground(imageObj)
             gradientCache.isReady = true
             applyGradientToMenu()
         end)
+    end
+end
+
+-- 封面更新函数
+local function updateArtwork(onDone)
+    if IS_TAHOE_PLUS then
+        Music.fetchArtworkFromiTunes(
+            cachedMusicInfo.title, cachedMusicInfo.artist, cachedMusicInfo.album,
+            function(artUrl)
+                if not artUrl then
+                    print("⚠️ iTunes API 未找到封面: " .. tostring(cachedMusicInfo.title))
+                    if onDone then onDone(false) end; return
+                end
+                hs.http.asyncGet(artUrl, nil, function(code, body)
+                    if code ~= 200 then
+                        print("⚠️ 封面下载失败, code=" .. tostring(code))
+                        if onDone then onDone(false) end; return
+                    end
+                    local path = hs.configdir .. "/currentartwork.jpg"
+                    local f = io.open(path, "wb")
+                    if f then f:write(body); f:close() end
+                    if onDone then onDone(f ~= nil) end
+                end)
+            end
+        )
+    else
+        Music.saveArtwork()
+        if onDone then onDone(true) end
     end
 end
 
@@ -1335,6 +1366,9 @@ end
 -- 处理音乐通知
 function handleMusicNotification(name, object, userInfo)
     if not userInfo then return end
+
+	-- 标记已收到通知
+	hasReceivedNotification = true
     
     local currentTime = hs.timer.secondsSinceEpoch()
     -- 防抖：避免过于频繁的更新
@@ -1583,7 +1617,7 @@ end
 -- 更新缓存
 function mergeMusicInfo(newInfo)
 	-- 剔除通知字段后合并 AS 数据
-	if infoFromNotification then
+	if infoFromNotification and hasReceivedNotification then
 		if not newInfo then return end
 		local notifKeys = { title=true, artist=true, album=true, duration=true, rating=true, state=true, kind=true }
 		for k in pairs(notifKeys) do
@@ -1627,7 +1661,7 @@ function musicBarUpdate()
 	-- 读取旧值（仅用于封面和歌词的判断）
     local prevTitle, prevAlbum, prevState
 
-	if infoFromNotification then
+	if hasReceivedNotification then
 		-- 通知模式：旧值在通知写入前已经快照到 _prev 字段
 		prevTitle = cachedMusicInfo._prevTitle
 		prevAlbum = cachedMusicInfo._prevAlbum
@@ -1651,22 +1685,15 @@ function musicBarUpdate()
     setTitle()
     
 	-- 保存专辑封面（仅在专辑变化时）
-	if hasAlbumChanged then
-    	if IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic" then
-			Music.saveArtworkFromURL(cachedMusicInfo.storeURL, function()
-				-- 下载完成后更新菜单里的封面
-				if c_mainMenu and c_mainMenu["artwork"] then
-					c_mainMenu["artwork"].image = Music.getArtworkPath()
-				end
-				-- 封面下载完成后立即预请求渐变
-				local artworkImg = Music.getArtworkPath()
-				if artworkImg then
-					updateGradientBackground(artworkImg)
-				end
-			end)
-		else
-			Music.saveArtwork()
-		end
+	if hasAlbumChanged or isInitializing then
+		updateArtwork(function(success)
+			if not success then return end
+			local artworkImg = Music.getArtworkPath()
+			if c_mainMenu and c_mainMenu["artwork"] then
+				c_mainMenu["artwork"].image = artworkImg
+			end
+			if artworkImg then updateGradientBackground(artworkImg) end
+		end)
 	end
 
 	 -- 下载歌词（仅在曲目变化时）
@@ -1686,13 +1713,6 @@ function musicBarUpdate()
 			progressState.lastPosition = 0
 			progressState.lastDuration = 0
 			progressState.lastUpdateTime = 0
-			-- 建完菜单后再请求渐变（非 Sequoia 分支）
-            if (isInitializing or hasAlbumChanged) and not (IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic") then
-				local artworkImg = Music.getArtworkPath()
-				if artworkImg then
-					updateGradientBackground(artworkImg)
-				end
-			end
         elseif hasStateChanged then
             -- 仅状态变化（暂停→播放）：只刷新图标
             refreshDisplay()
@@ -1715,13 +1735,6 @@ function musicBarUpdate()
 		-- 保持菜单显示，但停止进度条更新
 		if isInitializing or hasTrackChanged or hasAlbumChanged then
             buildMenus()
-			-- 建完菜单后再请求渐变（非 Sequoia 分支）
-            if (isInitializing or hasAlbumChanged) and not (IS_SEQUOIA_PLUS and cachedMusicInfo.kind == "applemusic") then
-				local artworkImg = Music.getArtworkPath()
-				if artworkImg then
-					updateGradientBackground(artworkImg)
-				end
-			end
         elseif hasStateChanged then
             refreshDisplay()
         end
@@ -1782,15 +1795,8 @@ function initMusicBar()
 	-- 获取初始状态
 	cachedMusicInfo.spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	
-	-- 触发一次真实通知来初始化缓存
-    local state = Music.state()
-	if infoFromNotification and (state == "playing" or state == "paused") then
-		Music.togglePlay()
-		Music.togglePlay()
-	else
-		-- 立即检查音乐状态并更新
-		musicBarUpdate()
-	end
+	-- 立即检查音乐状态并更新
+	musicBarUpdate()
 	
 	-- 保留低频率备用定时器，但频率更合理
 	if Switch then
