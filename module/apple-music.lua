@@ -2,8 +2,39 @@ require ('module.utils')
 
 Music = {}
 
+-- 缓存机制
+Music._cache = {
+    data = nil,
+    timestamp = 0,
+    ttl = 0.5  -- 缓存500ms
+}
+
+-- 全局封面缓存
+Music._artworkCache = {
+    image = nil,
+    album = "",
+}
+
+-- 清理缓存（在歌曲切换时调用）
+Music.clearCache = function()
+    Music._cache.data = nil
+    Music._cache.timestamp = 0
+end
+
+-- 强制刷新缓存
+Music.refreshCache = function()
+    Music.clearCache()
+    return Music.getCachedInfo()
+end
+
+-- 清除封面缓存（切歌时调用）
+Music.clearArtworkCache = function()
+    Music._artworkCache.image = nil
+    Music._artworkCache.album = ""
+end
+
 -- 调用AppleScript模块
-Music.tell = function (cmd)
+Music.tell = function(cmd)
 	local AS = function(cmd)
 		local _cmd = 'tell application "Music" to ' .. cmd
 		local ok, result = as.applescript(_cmd)
@@ -91,13 +122,7 @@ Music.getBatchInfo = function()
     return nil
 end
 
--- 缓存机制
-Music._cache = {
-    data = nil,
-    timestamp = 0,
-    ttl = 0.5  -- 缓存500ms
-}
-
+-- 获取音乐信息缓存
 Music.getCachedInfo = function()
     local now = hs.timer.secondsSinceEpoch()
     if Music._cache.data and (now - Music._cache.timestamp) < Music._cache.ttl then
@@ -110,18 +135,6 @@ Music.getCachedInfo = function()
         Music._cache.timestamp = now
     end
     return info
-end
-
--- 清理缓存（在歌曲切换时调用）
-Music.clearCache = function()
-    Music._cache.data = nil
-    Music._cache.timestamp = 0
-end
-
--- 强制刷新缓存
-Music.refreshCache = function()
-    Music.clearCache()
-    return Music.getCachedInfo()
 end
 
 -- 单独获取某个信息
@@ -182,64 +195,24 @@ Music.loop = function()
     local info = Music.getCachedInfo()
     return info and info.loop or Music.tell('song repeat as string')
 end
--- 单独曲目信息
-Music.title2 = function ()
-	local title = Music.tell('name of current track') or " "
-	return title
-end
-Music.artist2 = function ()
-	local artist = Music.tell('artist of current track') or " "
-	return artist
-end
-Music.album2 = function ()
-	local album = Music.tell('album of current track') or " "
-	return album
-end
-Music.duration2 = function()
-	local duration = Music.tell('finish of current track') or 1
-	return duration
-end
-Music.currentPositio2 = function()
-	local currentPosition = Music.tell('player position') or 0
-	return currentPosition
-end
-Music.favorited2 = function ()
-	return Music.tell('favorited of current track')
-end
-Music.rating2 = function ()
-	if Music.tell('rating of current track') then
-		return Music.tell('rating of current track')//20
-	else return 0
-	end
-end
-Music.loop2 = function ()
-	return Music.tell('song repeat as string')
-end
-Music.shuffle2 = function ()
-	return Music.tell('shuffle enabled')
-end
 
-Music.disliked = function ()
+Music.disliked = function()
 	return Music.tell('disliked of current track')
 end
+
 Music.group = function()
 	return Music.tell("grouping of current track") or " "
 end
-Music.genre = function ()
+
+Music.genre = function()
 	local genre = Music.tell('genre of current track') or " "
 	return genre
 end
+
 Music.comment = function()
 	return Music.tell("comment of current track")
 end
--- 检测播放状态
-Music.state = function ()
-	if Music.checkRunning() == true then
-		return Music.tell('player state as string')
-	else
-		return "norunning"
-	end
-end
+
 -- 判断是否为演唱歌曲
 Music.isSong = function()
 	isSong = true
@@ -257,12 +230,14 @@ Music.isSong = function()
 	end
 	return isSong
 end
+
 -- 星级评价
-Music.setRating = function (rating)
+Music.setRating = function(rating)
 	Music.tell('set rating of current track to ' .. rating * 20)
 end
+
 -- 标记为喜爱
-Music.toggleLoved = function ()
+Music.toggleLoved = function()
 	as.applescript([[
 		tell application "Music"
 			if favorited of current track is false then
@@ -273,8 +248,9 @@ Music.toggleLoved = function ()
 		end tell
 	]])
 end
+
 -- 标记为不喜欢
-Music.toggleDisliked = function ()
+Music.toggleDisliked = function()
 	as.applescript([[
 		tell application "Music"
 			if disliked of current track is false then
@@ -285,27 +261,32 @@ Music.toggleDisliked = function ()
 		end tell
 	]])
 end
+
 -- 切换播放状态
-Music.togglePlay = function ()
+Music.togglePlay = function()
 	Music.tell('playpause')
 end
-Music.play = function ()
+
+Music.play = function()
 	Music.tell('play')
 end
-Music.pause = function ()
+
+Music.pause = function()
 	Music.tell('pause')
 end
-Music.stop = function ()
+
+Music.stop = function()
 	Music.tell('stop')
 end
--- 下一首
-Music.next = function ()
+
+Music.next = function()
 	Music.tell('next track')
 end
--- 上一首
-Music.previous = function ()
+
+Music.previous = function()
 	Music.tell('previous track')
 end
+
 -- 歌曲种类
 Music.kind = function()
 	local kind = Music.tell('kind of container of current track as string')
@@ -333,38 +314,19 @@ Music.kind = function()
 	return musictype
 end
 
-Music.kind2 = function()
-	local kind = Music.tell('kind of current track')
-	local cloudstatus = Music.tell('cloud status of current track as string')
-	local class = Music.tell('class of current track as string')
-	if kind ~= nil then
-		-- 若为匹配Apple Music的本地歌曲
-		if cloudstatus == "matched" then
-			musictype = "matched"
-		-- 若Apple Μsic连接中
-		elseif string.find(Music.title(),connectingFile) or string.find(Music.title(),unknowTitle) or string.find(Music.artist(),genius) or string.find(kind, streamingFile) or string.find(Music.title(),station) then
-			musictype = "connecting"
-		-- 若为Apple Music
-		elseif class == "URL track" or string.len(kind) == 0 or string.find(kind, "Apple Music") then
-			musictype = "applemusic"
-		--若为本地曲目
-		elseif string.find(kind, localFile) then
-			musictype = "localmusic"
-		end
-	end
-	return musictype
-end
 -- 音量调整
-Music.volume = function (volumeValue)
+Music.volume = function(volumeValue)
 	Music.tell('set sound volume to ' .. volumeValue)
 end
+
 -- 检测Music是否在运行
 Music.checkRunning = function()
 	local _,isrunning,_ = as.applescript([[tell application "System Events" to (name of processes) contains "Music"]])
 	return isrunning
 end
+
 -- 跳转至当前播放的歌曲
-Music.locate = function ()
+Music.locate = function()
 	as.applescript([[
 		tell application "Music"
 			activate
@@ -372,8 +334,9 @@ Music.locate = function ()
 		end tell
 	]])
 end
+
 -- 切换随机模式
-Music.toggleShuffle = function ()
+Music.toggleShuffle = function()
 	if Music.kind() ~= "radio" then
 		if Music.shuffle() == false then
 			Music.tell("set shuffle enabled to true")
@@ -382,8 +345,9 @@ Music.toggleShuffle = function ()
 		end
 	end
 end
+
 -- 切换重复模式
-Music.toggleLoop = function ()
+Music.toggleLoop = function()
 	if Music.kind() ~= "radio" then
 		if Music.loop() == "all" then
 			Music.tell('set song repeat to one')
@@ -394,8 +358,9 @@ Music.toggleLoop = function ()
 		end
 	end
 end
+
 -- 判断Apple Music曲目是否存在于本地曲库中
-Music.existInLibrary = function ()
+Music.existInLibrary = function()
 	local existinlibraryScript = [[
 		tell application "Music"
 			set a to current track's name
@@ -406,6 +371,7 @@ Music.existInLibrary = function ()
 	local _,existinlibrary,_ = as.applescript(existinlibraryScript:gsub("MusicList",MusicApp))
 	return existinlibrary
 end
+
 -- 将Apple Music曲目添加到本地曲库
 Music.addToLibrary = function()
 	local addtolibraryScript = [[
@@ -421,8 +387,9 @@ Music.addToLibrary = function()
 		as.applescript(addtolibraryScript:gsub("Library",MusicLibrary))
 	end
 end
+
 -- 判断Apple Music曲目是否存在于播放列表中
-Music.existInPlaylist = function (playlistname)
+Music.existInPlaylist = function(playlistname)
 	local existinscript = [[
 		tell application "Music"
 			set trackName to current track's name
@@ -433,6 +400,7 @@ Music.existInPlaylist = function (playlistname)
 	local _,existinplaylist,_ = as.applescript(existinscript:gsub("pname", playlistname))
 	return existinplaylist
 end
+
 -- 将当前曲目添加到指定播放列表
 Music.addToPlaylist = function(playlistname)
 	if Music.existinplaylist(playlistname) == false then
@@ -452,35 +420,47 @@ Music.addToPlaylist = function(playlistname)
 		as.applescript(addtoplaylistscript)
 	end
 end
+
 -- 随机播放指定播放列表中曲目
-Music.shufflePlay = function (playlist)
+Music.shufflePlay = function(playlist)
 	local _,shuffle,_ = as.applescript([[tell application "Music" to get shuffle enabled]])
 	if Music.tell('shuffle enabled') == false then
 		Music.tell('set shuffle enabled to true')
 	end
 	Music.tell('play playlist named ' .. playlist)
 end
--- 保存专辑封面
-Music.saveArtwork = function ()
-	local albumName = _G.cachedMusicInfo.album
-	if albumName ~= songalbum or albumName == "" then
-		songalbum = albumName
-		as.applescript([[
-			tell application "Music"
-				set theartwork to raw data of current track's artwork 1
-				set theformat to format of current track's artwork 1
-			end tell
-			set homefolder to  path to home folder as string
-			set fileName to (homefolder & ".hammerspoon:" & "currentartwork.jpg")
-			set outFile to open for access file fileName with write permission
-			set eof outFile to 0
-			write theartwork to outFile
-			close access outFile
-		]])
+
+-- 从 AS 直接获取封面
+local function getArtworkFromAS(callback)
+	local outPath = hs.configdir .. "/currentartwork.jpg"
+	local script = [[
+		tell application "Music"
+			try
+				set d to raw data of artwork 1 of current track
+				set f to open for access POSIX file "]] .. outPath .. [[" with write permission
+				set eof f to 0
+				write d to f
+				close access f
+				return "ok"
+			on error err
+				return "fail:" & err
+			end try
+		end tell
+	]]
+
+	local ok, result = as.applescript(script)
+	if not ok or result ~= "ok" then
+		callback(nil); return
 	end
+
+	local image = hs.image.imageFromPath(outPath)
+	-- 用完删掉，避免残留
+	-- os.remove(outPath)
+	callback(image)
 end
+
 -- iTunes Search API 封面获取
-Music.fetchArtworkFromiTunes = function(title, artist, album, callback)
+local function fetchArtworkFromiTunes(title, artist, album, callback)
     local function trySearch(url, matchFn, fallback)
         hs.http.asyncGet(url, nil, function(code, body)
             if code ~= 200 then
@@ -537,8 +517,81 @@ Music.fetchArtworkFromiTunes = function(title, artist, album, callback)
         end
     )
 end
--- 保存专辑封面（Apple Music）
-Music.saveArtworkFromURL = function (storeURL, callback)
+
+-- 从 iTunes API 获取封面（内存方式）
+local function getArtworkFromAPI(title, artist, album, callback)
+    fetchArtworkFromiTunes(title, artist, album, function(artUrl)
+        if not artUrl then
+            callback(nil)
+            return
+        end
+        hs.http.asyncGet(artUrl, nil, function(code, body)
+            if code ~= 200 or not body then
+                callback(nil)
+                return
+            end
+            local b64 = hs.base64.encode(body)
+            local dataURL = "data:image/jpeg;base64," .. b64
+            local image = hs.image.imageFromURL(dataURL)
+            callback(image)
+        end)
+    end)
+end
+
+-- 异步获取封面（优先 AS，降级 API）
+Music.fetchArtwork = function(callback)
+    local cacheKey = (_G.cachedMusicInfo.album or "") .. "|" .. (_G.cachedMusicInfo.title or "")
+    
+    -- 命中缓存直接返回
+    if Music._artworkCache.image and Music._artworkCache.album == cacheKey then
+        callback(Music._artworkCache.image)
+        return
+    end
+
+    -- 先尝试 AS 方式
+    getArtworkFromAS(function(image)
+        if image then
+            Music._artworkCache.image = image
+            Music._artworkCache.album = cacheKey
+            callback(image)
+            return
+        end
+        
+        -- AS 失败，降级用 API
+        getArtworkFromAPI(
+            _G.cachedMusicInfo.title,
+            _G.cachedMusicInfo.artist,
+            _G.cachedMusicInfo.album,
+            function(image)
+                if image then
+                    Music._artworkCache.image = image
+                    Music._artworkCache.album = cacheKey
+                end
+                -- 没有封面时返回默认图
+                callback(image or img.imageFromPath(hs.configdir .. "/image/NoArtwork.png"))
+            end
+        )
+    end)
+end
+
+-- 删除临时歌词
+Music.deleteLyric = function()
+	if preKind == "applemusic" and preExistinlibrary == false then
+		deleteLyrics = [[
+			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
+			tell application "Finder"
+				--delete file deleteFile
+				try
+					do shell script "rm \"" & POSIX path of deleteFile & "\""
+				end try
+			end tell
+		]]
+		delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
+	end
+end
+
+-- 保存专辑封面至本地（备用）
+Music.saveArtworkFromURL = function(storeURL, callback)
     local trackID = storeURL:match("i=(%d+)")
     if not trackID then return end
 
@@ -566,8 +619,9 @@ Music.saveArtworkFromURL = function (storeURL, callback)
         end)
     end)
 end
+
 -- 保存专辑封面（利用iTunes的API）
-Music.saveArtworkByAPI = function (set_artwork_object)
+Music.saveArtworkByAPI = function(set_artwork_object)
 	-- 判断是否为Apple Music
 	if Music.kind() ~= "connecting" then --若为本地曲目
 		if Music.album() ~= songalbum then
@@ -644,7 +698,7 @@ Music.saveArtworkByAPI = function (set_artwork_object)
 		end
 	end
 end
--- 获取专辑封面路径
+
 Music.getArtworkPath = function()
 	if Music.kind() ~= "connecting" then
 		-- 获取图片后缀名
@@ -659,19 +713,4 @@ Music.getArtworkPath = function()
 		artwork = img.imageFromPath(hs.configdir .. "/image/AppleMusic.png")
 	end
 	return artwork
-end
--- 删除临时歌词
-Music.deleteLyric = function()
-	if preKind == "applemusic" and preExistinlibrary == false then
-		deleteLyrics = [[
-			set deleteFile to (path to music folder as text) & "LyricsX:lyricsFile.lrcx"
-			tell application "Finder"
-				--delete file deleteFile
-				try
-					do shell script "rm \"" & POSIX path of deleteFile & "\""
-				end try
-			end tell
-		]]
-		delay(1, function() as.applescript(deleteLyrics:gsub("lyricsFile",preTitle .. " - " .. preArtist)) end)
-	end
 end

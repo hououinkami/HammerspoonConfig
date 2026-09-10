@@ -145,9 +145,9 @@ local function fetchGradientColors(imageObj, callback)
 
     if type(imgObj) == "userdata" then
 		-- 先缩小避免超限
-		local scaled = imgObj:setSize({w=150, h=150})
+		local imgObj = imgObj:setSize({w=150, h=150})
         -- 是 hs.image 对象，直接编码为 JPEG base64
-		local dataURL = scaled:encodeAsURLString(true)
+		local dataURL = imgObj:encodeAsURLString(true)
 		-- 返回的前缀是 "data:image/png;base64,..."
 		b64 = dataURL:match("base64,(.+)$")
     else
@@ -206,8 +206,8 @@ local function fetchBlurBackground(imageObj, width, height, callback)
         return
     end
 
-    local scaled = imgObj:setSize({w = 150, h = 150})
-    local dataURL = scaled:encodeAsURLString(true)
+    local imgObj = imgObj:setSize({w = 150, h = 150})
+    local dataURL = imgObj:encodeAsURLString(true)
     local b64 = dataURL:match("base64,(.+)$")
 
     if not b64 then
@@ -234,20 +234,10 @@ local function fetchBlurBackground(imageObj, width, height, callback)
                 if ok and data and data.image then
 					-- 解码 base64
                     local imgData = hs.base64.decode(data.image)
-                    
-                    -- 写入临时文件
-                    local blurPath = hs.configdir .. "/currentartwork_blur.png"
-                    local f = io.open(blurPath, "wb")
-                    if f then
-                        f:write(imgData)
-                        f:close()
-                        -- 用路径加载图片
-                        local bgImage = hs.image.imageFromPath(blurPath)
-                        callback(bgImage)
-                    else
-                        print("⚠️ 无法写入临时文件")
-                        callback(nil)
-                    end
+                    local bgImage = hs.image.imageFromURL(
+                        "data:image/png;base64," .. hs.base64.encode(imgData)
+                    )
+                    callback(bgImage)
                 else
                     callback(nil)
                 end
@@ -358,34 +348,6 @@ function updateGradientBackground(imageObj)
             gradientCache.isReady = true
             applyGradientToMenu()
         end)
-    end
-end
-
--- 封面更新函数
-local function updateArtwork(onDone)
-    if IS_TAHOE_PLUS then
-        Music.fetchArtworkFromiTunes(
-            cachedMusicInfo.title, cachedMusicInfo.artist, cachedMusicInfo.album,
-            function(artUrl)
-                if not artUrl then
-                    print("⚠️ iTunes API 未找到封面: " .. tostring(cachedMusicInfo.title))
-                    if onDone then onDone(false) end; return
-                end
-                hs.http.asyncGet(artUrl, nil, function(code, body)
-                    if code ~= 200 then
-                        print("⚠️ 封面下载失败, code=" .. tostring(code))
-                        if onDone then onDone(false) end; return
-                    end
-                    local path = hs.configdir .. "/currentartwork.jpg"
-                    local f = io.open(path, "wb")
-                    if f then f:write(body); f:close() end
-                    if onDone then onDone(f ~= nil) end
-                end)
-            end
-        )
-    else
-        Music.saveArtwork()
-        if onDone then onDone(true) end
     end
 end
 
@@ -525,7 +487,7 @@ function setMainMenu()
 			id = "artwork",
 			frame = {x = borderSize.x, y = borderSize.y, h = artworkSize.h, w = artworkSize.w},
 			type = "image",
-			image = Music.getArtworkPath(),
+			image = Music._artworkCache.image or img.imageFromPath(hs.configdir .. "/image/NoArtwork.png"),
 			trackMouseEnterExit = true,
 			trackMouseUp = true
 		}, {-- 专辑信息
@@ -1609,8 +1571,8 @@ function updateMenuContent()
     end
     
     -- 更新专辑封面（如果需要）
-    if c_mainMenu["artwork"] then
-        c_mainMenu["artwork"].image = Music.getArtworkPath()
+    if c_mainMenu["artwork"] and Music._artworkCache.image then
+        c_mainMenu["artwork"].image = Music._artworkCache.image
     end
 end
 
@@ -1686,13 +1648,18 @@ function musicBarUpdate()
     
 	-- 保存专辑封面（仅在专辑变化时）
 	if hasAlbumChanged or isInitializing then
-		updateArtwork(function(success)
-			if not success then return end
-			local artworkImg = Music.getArtworkPath()
+		gradientCache.bgImage = nil
+		gradientCache.isReady = false
+		gradientCache.lastAlbum = ""
+		Music.clearArtworkCache()  -- 清除旧缓存
+
+		Music.fetchArtwork(function(image)
 			if c_mainMenu and c_mainMenu["artwork"] then
-				c_mainMenu["artwork"].image = artworkImg
+				c_mainMenu["artwork"].image = image
 			end
-			if artworkImg then updateGradientBackground(artworkImg) end
+			if image then
+				updateGradientBackground(image)
+			end
 		end)
 	end
 
