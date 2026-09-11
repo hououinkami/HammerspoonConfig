@@ -362,12 +362,25 @@ function getAllFiles(dir)
 end
 
 -- HTTP Method
-function httpRequest(method, url, header, body, fn)
-	if method == "GET" then
-		hs.http.asyncGet(url, header, fn)
-	elseif method == "POST" then
-		hs.http.asyncPost(url, body, header, fn)
-	end
+function httpRequest(method, url, header, body, fn, timeout)
+    timeout = timeout or 10  -- 默认10秒
+
+    local done = false
+    local function once(code, respBody, respHeader)
+        if done then return end
+        done = true
+        fn(code, respBody, respHeader)
+    end
+
+    if method == "GET" then
+        hs.http.asyncGet(url, header, once)
+    elseif method == "POST" then
+        hs.http.asyncPost(url, body, header, once)
+    end
+
+    hs.timer.doAfter(timeout, function()
+        once(-1, nil, nil)  -- 超时触发 fallback
+    end)
 end
 
 -- 音量调整

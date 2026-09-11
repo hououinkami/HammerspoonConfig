@@ -107,7 +107,7 @@ end
 local COLOR_SERVER = nil
 local ok = pcall(require, 'module.secret')
 if ok and myDomain then
-	COLOR_SERVER = "https://color." .. myDomain .. "/gradient"
+	COLOR_SERVER = "https://color." .. myDomain
 end
 
 -- 当前渐变颜色缓存（避免每次重建菜单都请求）
@@ -167,12 +167,11 @@ local function fetchGradientColors(imageObj, callback)
         image = b64,
     })
 
-	-- print(string.format("📤 发送请求 | 大小: %.1f KB", #payload / 1024))
-
-    hs.http.asyncPost(
-        COLOR_SERVER,
-        payload,
-        { ["Content-Type"] = "application/json" },
+    httpRequest(
+		"POST",
+		COLOR_SERVER .. "/gradient",
+		{ ["Content-Type"] = "application/json" },
+		payload,
         function(code, body, headers)
             if code == 200 then
                 local ok, data = pcall(hs.json.decode, body)
@@ -186,13 +185,14 @@ local function fetchGradientColors(imageObj, callback)
                 print("⚠️ Color Server 请求失败, code=" .. tostring(code))
                 callback(nil)
             end
-        end
+        end,
+		5
     )
 end
 
 -- 异步获取模糊背景图片
 local function fetchBlurBackground(imageObj, width, height, callback)
-    if not myDomain then return end
+    if not myDomain then callback(nil) return end
 
     local imgObj
     if type(imageObj) == "string" then
@@ -224,10 +224,11 @@ local function fetchBlurBackground(imageObj, width, height, callback)
         darken = blurDarken or 0.5,
     })
 
-    hs.http.asyncPost(
-        "https://color." .. myDomain .. "/blur_bg",
-        payload,
-        { ["Content-Type"] = "application/json" },
+	httpRequest(
+		"POST",
+		COLOR_SERVER .. "/blur_bg",
+		{ ["Content-Type"] = "application/json" },
+		payload,
         function(code, body)
             if code == 200 then
                 local ok, data = pcall(hs.json.decode, body)
@@ -245,7 +246,8 @@ local function fetchBlurBackground(imageObj, width, height, callback)
                 print("⚠️ blur_bg 请求失败, code=" .. tostring(code))
                 callback(nil)
             end
-        end
+        end,
+		5
     )
 end
 
@@ -1646,23 +1648,6 @@ function musicBarUpdate()
     -- 更新菜单栏标题
     setTitle()
     
-	-- 保存专辑封面（仅在专辑变化时）
-	if hasAlbumChanged or isInitializing then
-		gradientCache.bgImage = nil
-		gradientCache.isReady = false
-		gradientCache.lastAlbum = ""
-		Music.clearArtworkCache()  -- 清除旧缓存
-
-		Music.fetchArtwork(function(image)
-			if c_mainMenu and c_mainMenu["artwork"] then
-				c_mainMenu["artwork"].image = image
-			end
-			if image then
-				updateGradientBackground(image)
-			end
-		end)
-	end
-
 	 -- 下载歌词（仅在曲目变化时）
 	if hasTrackChanged and Lyric and Lyric.main then
 		Lyric.main()
@@ -1727,6 +1712,23 @@ function musicBarUpdate()
         progressState.lastDuration = 0
         progressState.lastUpdateTime = 0
     end
+	
+	-- 保存专辑封面（仅在专辑变化时）
+	if hasAlbumChanged or isInitializing then
+		gradientCache.bgImage = nil
+		gradientCache.isReady = false
+		gradientCache.lastAlbum = ""
+		Music.clearArtworkCache()  -- 清除旧缓存
+
+		Music.fetchArtwork(function(image)
+			if c_mainMenu and c_mainMenu["artwork"] then
+				c_mainMenu["artwork"].image = image
+			end
+			if image then
+				updateGradientBackground(image)
+			end
+		end)
+	end
 end
 
 -- 清理事件监听器
