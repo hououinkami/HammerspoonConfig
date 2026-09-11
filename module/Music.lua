@@ -1229,8 +1229,7 @@ function showall()
 	end
 	
 	-- 确保进度条定时器在播放时运行 - 使用实际状态检查
-	local actualState = Music.state()
-	if actualState == "playing" and eventListeners.progressTimer then
+	if cachedMusicInfo.state == "playing" and eventListeners.progressTimer then
 		if not eventListeners.progressTimer:running() then
 			eventListeners.progressTimer:start()
 		end
@@ -1266,7 +1265,8 @@ end
 function toggleCanvas()
 	local spaceID = hs.spaces.activeSpaces()[hs.screen.mainScreen():getUUID()]
 	local toggleFunction = function ()
-		if Music.state() == "playing" or Music.state() == "paused" then
+		local state = cachedMusicInfo.state
+		if state == "playing" or state == "paused" then
 			-- 确保菜单已构建
 			if not c_mainMenu then
 				buildMenus()
@@ -1488,10 +1488,9 @@ function setupProgressTimer()
     local timerInterval = 1.0
     
     eventListeners.progressTimer = hs.timer.new(timerInterval, function()
-        local actualState = Music.state()
         
         -- 根据状态调整更新频率
-        if actualState == "playing" and c_progress and c_progress:isShowing() then
+        if cachedMusicInfo.state == "playing" and c_progress and c_progress:isShowing() then
             updateProgressOnly()
             -- 播放时保持1秒间隔
             if timerInterval ~= 1.0 then
