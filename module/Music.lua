@@ -256,12 +256,14 @@ local function applyGradientToMenu()
     if not c_mainMenu then return end
     if not c_mainMenu["background"] then return end
 
+	-- 先同步 clip 尺寸
+    if c_mainMenu["bg_clip"] then
+        c_mainMenu["bg_clip"].frame = {x = 0, y = 0, w = menuFrame.w, h = menuFrame.h}
+    end
+
 	-- 如果有模糊背景图片，优先用图片
     if gradientCache.bgImage and useBlurBackground then
 		-- 同步更新 clip 区域的尺寸
-		if c_mainMenu["bg_clip"] then
-			c_mainMenu["bg_clip"].frame = {x = 0, y = 0, w = menuFrame.w, h = menuFrame.h}
-		end
         c_mainMenu["background"].type  = "image"
         c_mainMenu["background"].image = gradientCache.bgImage
         c_mainMenu["background"].imageScaling = "scaleToFit"
