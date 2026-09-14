@@ -1604,22 +1604,27 @@ end
 -- 音乐状态更新函数
 function musicBarUpdate()
     -- 检查应用是否运行
-    if not Music.checkRunning() then
-        cachedMusicInfo.isRunning = false
-        setTitle("quit")
-        hideall()
-        if c_lyric then
-            hide(c_lyric)
-        end
-        -- 停止歌词计时器
-        if Lyric and Lyric.stopTimer then
-            Lyric.stopTimer()
-        end
-        if eventListeners.progressTimer then
-            eventListeners.progressTimer:stop()
-        end
-        return
-    end
+	if not cachedMusicInfo.isRunning then
+		if not Music.checkRunning() then
+			cachedMusicInfo.isRunning = false
+			setTitle("quit")
+			hideall()
+			if c_lyric then
+				hide(c_lyric)
+			end
+			-- 停止歌词计时器
+			if Lyric and Lyric.stopTimer then
+				Lyric.stopTimer()
+			end
+			if eventListeners.progressTimer then
+				eventListeners.progressTimer:stop()
+			end
+			return
+		else
+			-- AS 确认还在运行，修正缓存
+			cachedMusicInfo.isRunning = true
+		end
+	end
     
     cachedMusicInfo.isRunning = true
 
