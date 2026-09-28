@@ -46,33 +46,39 @@ hotkey.bind(hyper_ccs, "r", hs.reload)
 hotkey.bind(hyper_ccs, "q", function() hs.crash.crash() end)
 hotkey.bind(hyper_ccs, "p", hs.openPreferences)
 hotkey.bind(hyper_opt, "z", hs.toggleConsole)
+
 -- 组件加载管理
 local module_list = {
-	-- "Hotkey",
-	"Music",
-	"Window",
-	"Space",
-	"Spotlightlike",
-	"IME",
-	-- "Network",
-	-- "AppKeyMap",	
+    { name = "Music",          exclude = { "mini" } },
+    { name = "Window" },
+    { name = "Space" },
+    { name = "Spotlightlike" },
+    { name = "IME" },
+	-- { name = "Hotkey" },
+    -- { name = "Network",     exclude = { "mini" } },
+    -- { name = "AppKeyMap" },
+    { name = "autoupdate",     exclude = { "Kami" } },
 }
+
+-- 模块按需加载函数
+local function shouldLoad(module)
+    if not module.exclude then return true end
+    for _, keyword in ipairs(module.exclude) do
+        if string.find(Config.owner, keyword, 1, true) then
+			return false
+		end
+    end
+    return true
+end
+
+for _, m in ipairs(module_list) do
+    if shouldLoad(m) then
+        require('module.' .. m.name)
+    end
+end
 
 -- 是否加载测试模块的条件
 local load_test_modules = false
-
-for _, v in ipairs(module_list) do
-	if v == 'Network' or v == 'Music' then
-		if not string.find(Config.owner,"mini2") then
-			require ('module.' .. v)
-		end
-	else
-		require ('module.' .. v)
-	end
-end
-if not string.find(Config.owner,"Kami") then
-	require ('module.autoupdate')
-end
 
 -- 条件加载所有以test_开头的模块
 if load_test_modules then
@@ -88,15 +94,11 @@ if load_test_modules then
 end
 
 -- 当Music和歌词的配置文件文件更新时热更新
-function reloadConfig(files)
+local function reloadConfig(files)
     for _,file in pairs(files) do
-		filenameExt = string.match(file, ".+/([^/]*%.%w+)$")
+		local filenameExt = string.match(file, ".+/([^/]*%.%w+)$")
 		local idx = filenameExt:match(".+()%.%w+$")
-		if(idx) then
-			filename = filenameExt:sub(1, idx-1)
-		else
-			filename = filenameExt
-		end
+		local filename = idx and filenameExt:sub(1, idx-1) or filenameExt
 		hotfix('config.' .. filename)
 		if filename == "lyric" then
 			lyrictext = nil
