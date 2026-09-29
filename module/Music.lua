@@ -1601,6 +1601,58 @@ function mergeMusicInfo(newInfo)
     -- _G.cachedMusicInfo = newInfo
 end
 
+-- 音乐菜单全局开关
+_G.musicBarEnabled = true
+
+function setMusicBarEnabled(enabled)
+    _G.musicBarEnabled = enabled
+    if not enabled then
+        hideall()
+        if MusicBar then
+            MusicBar:removeFromMenuBar()
+        end
+        if eventListeners.progressTimer then
+            eventListeners.progressTimer:stop()
+        end
+        -- 只停通知监听，不要动歌词相关的任何东西
+        if eventListeners.musicNotification then
+            eventListeners.musicNotification:stop()
+        end
+        if eventListeners.spotifyNotification then
+            eventListeners.spotifyNotification:stop()
+        end
+        -- 停止应用监听和空间监听
+        if eventListeners.appWatcher then
+            eventListeners.appWatcher:stop()
+        end
+        if eventListeners.spaceWatcher then
+            eventListeners.spaceWatcher:stop()
+        end
+    else
+        if MusicBar then
+            MusicBar:returnToMenuBar()
+			MusicBar:setClickCallback(toggleCanvas)
+        else
+            initMusicBar()
+            return
+        end
+        -- 逐个恢复，不要用 initEventDrivenSystem()，避免重复创建歌词相关的
+        if eventListeners.musicNotification then
+            eventListeners.musicNotification:start()
+        end
+        if eventListeners.spotifyNotification then
+            eventListeners.spotifyNotification:start()
+        end
+        if eventListeners.appWatcher then
+            eventListeners.appWatcher:start()
+        end
+        if eventListeners.spaceWatcher then
+            eventListeners.spaceWatcher:start()
+        end
+        musicBarUpdate()
+    end
+end
+
 -- 音乐状态更新函数
 function musicBarUpdate()
     -- 检查应用是否运行

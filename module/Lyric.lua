@@ -934,6 +934,28 @@ Lyric.buildMenu = function(songs, callback)
 		end
 		lyricBar:setMenu(menudata)
 	end
+
+	-- 始终存在的底部菜单项，独立于 lyricType
+    local menudata_always = {
+        { title = "-" },
+        {
+            title = lyricString.musicBarEnable,
+            checked = _G.musicBarEnabled,
+            fn = function()
+                _G.musicBarEnabled = not _G.musicBarEnabled
+                setMusicBarEnabled(_G.musicBarEnabled)
+                hs.timer.doAfter(0.1, function()
+                    Lyric.menubar(songsResult)
+                end)
+            end,
+        },
+        {
+            title = lyricString.updateConfig,
+            fn = function()
+                updateHammerspoon()
+            end,
+        }
+    }
 	
 	local menudata1 = {
 		{
@@ -1012,12 +1034,6 @@ Lyric.buildMenu = function(songs, callback)
 				Lyric.main()
 			end,
 		},
-		{
-			title = lyricString.updateConfig,
-			fn = function()
-				updateHammerspoon()
-			end,
-		}
 	}
 	
 	local menudata = {}
@@ -1076,6 +1092,11 @@ Lyric.buildMenu = function(songs, callback)
 			end
 		end
 	end
+
+	-- 统一追加，无论走哪个分支都会加上
+    for _, v in ipairs(menudata_always) do
+        table.insert(menudata, v)
+    end
 	
 	local icon = hs.image.imageFromPath(hs.configdir .. "/image/lyric.png"):setSize({ w = 20, h = 20 }, true)
 	lyricBar:setIcon(icon)

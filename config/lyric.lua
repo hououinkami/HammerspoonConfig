@@ -43,7 +43,8 @@ lyricString = {
     delete = "歌詞ファイルを削除して再検索",
     api = "歌詞検索のデフォルトAPI",
     reload = "歌詞モジュールをリロード",
-    updateConfig = "Hammerspoonプロフィールを更新"
+    updateConfig = "Hammerspoonプロフィールを更新",
+    musicBarEnable = "ミュージックモジュールの適用",
 }
 -- 粉色歌词
 if not string.find(Config.owner,"Kami") then
@@ -59,7 +60,8 @@ if not string.find(Config.owner,"Kami") then
         delete = "删除歌词文件并重新搜索",
         api = "歌词搜索默认API",
         reload = "重载歌词模块",
-        updateConfig = "更新Hammerspoon配置"
+        updateConfig = "更新Hammerspoon配置",
+        musicBarEnable = "启用音乐模块",
     }
 end
 -- 歌词黑名单
