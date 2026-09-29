@@ -418,3 +418,76 @@ function updateHammerspoon()
     
     task:start()
 end
+
+function updateHammerspoonByZip()
+    print("开始更新配置...")
+
+    local hammerspoonDir = Config.HOME .. "/.hammerspoon"
+    local zipUrl = "https://github.com/hououinkami/HammerspoonConfig/archive/refs/heads/main.zip"
+    local zipPath = "/tmp/HammerspoonConfig.zip"
+    local extractDir = "/tmp/HammerspoonConfig_extract"
+    local sourceDir = extractDir .. "/HammerspoonConfig-main"
+
+    -- Step 1: 下载 zip
+    local downloadTask = hs.task.new("/usr/bin/curl", function(exitCode, stdOut, stdErr)
+        if exitCode ~= 0 then
+            print("下载失败：", stdErr)
+            return
+        end
+        print("下载成功，开始解压...")
+
+        -- Step 2: 清理旧解压目录，解压 zip
+        os.execute("rm -rf " .. extractDir)
+        local unzipTask = hs.task.new("/usr/bin/unzip", function(exitCode2, _, stdErr2)
+            if exitCode2 ~= 0 then
+                print("解压失败：", stdErr2)
+                return
+            end
+            print("解压成功，开始备份 secret.lua 并清理旧文件...")
+
+            -- Step 3: 备份 secret.lua → 全删 → 还原 secret.lua
+			local cleanCmd = table.concat({
+				-- 备份
+				"cp " .. hammerspoonDir .. "/secret.lua /tmp/secret.lua.bak",
+				-- 全删
+				" && rm -rf " .. hammerspoonDir .. "/*",
+				-- 还原（mv 失败则用 cp 兜底）
+				" && (mv /tmp/secret.lua.bak " .. hammerspoonDir .. "/secret.lua",
+				" || cp /tmp/secret.lua.bak " .. hammerspoonDir .. "/secret.lua)",
+				-- 无论成功失败，最后都清理 bak
+				" ; rm -f /tmp/secret.lua.bak"
+			}, "")			
+
+            local cleanTask = hs.task.new("/bin/sh", function(exitCode3, _, stdErr3)
+                if exitCode3 ~= 0 then
+                    print("清理失败：", stdErr3)
+                    return
+                end
+                print("清理成功，开始复制新文件...")
+
+                -- Step 4: 将解压内容复制到 ~/.hammerspoon
+                local copyTask = hs.task.new("/bin/sh", function(exitCode4, _, stdErr4)
+                    if exitCode4 ~= 0 then
+                        print("复制失败：", stdErr4)
+                        return
+                    end
+                    print("复制成功，清理临时文件...")
+
+                    -- Step 5: 清理临时文件
+                    os.execute("rm -rf " .. extractDir)
+                    os.execute("rm -f " .. zipPath)
+
+                    print("更新完成，正在重载 Hammerspoon...")
+                    hs.reload()
+                end, {"-c", "cp -R " .. sourceDir .. "/. " .. hammerspoonDir .. "/"})
+                copyTask:start()
+
+            end, {"-c", cleanCmd})
+            cleanTask:start()
+
+        end, {"-o", zipPath, "-d", extractDir})
+        unzipTask:start()
+
+    end, {"-L", "-o", zipPath, zipUrl})
+    downloadTask:start()
+end

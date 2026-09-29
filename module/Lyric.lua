@@ -949,13 +949,15 @@ Lyric.buildMenu = function(songs, callback)
                 end)
             end,
         },
-        {
-            title = lyricString.updateConfig,
-            fn = function()
-                updateHammerspoon()
-            end,
-        }
     }
+	if not string.find(Config.owner, "Kami", 1, true) then
+		table.insert(menudata_always, {
+			title = lyricString.updateConfig,
+            fn = function()
+                updateHammerspoonByZip()
+            end,
+        })
+	end
 	
 	local menudata1 = {
 		{
